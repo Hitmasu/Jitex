@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ContentModelStore">
+    <e p="C:\Users\Flávio\.Rider2019.3\system\extResources" t="IncludeRecursive" />
+    <e p="C:\Users\Flávio\.Rider2019.3\system\resharper-host\local\Transient\ReSharperHost\v193\SolutionCaches\_Jitex.1804815678.00" t="ExcludeRecursive" />
+    <e p="C:\Users\Flávio\RiderProjects\Jitex" t="IncludeFlat">
+      <e p="Jitex" t="IncludeRecursive">
+        <e p="bin" t="ExcludeRecursive" />
+        <e p="JIT" t="Include">
+          <e p="CORTypes" t="Include">
+            <e p="Delegates.cs" t="Include" />
+            <e p="Enums.cs" t="Include" />
+            <e p="Structs.cs" t="Include" />
+          </e>
+          <e p="ManagedJit.cs" t="Include" />
+        </e>
+        <e p="Jitex.csproj" t="IncludeRecursive" />
+        <e p="obj" t="ExcludeRecursive">
+          <e p="Debug" t="Include">
+            <e p="netcoreapp3.1" t="Include">
+              <e p="Jitex.AssemblyInfo.cs" t="Include" />
+            </e>
+          </e>
+        </e>
+        <e p="Tools" t="Include">
+          <e p="MethodTools.cs" t="Include" />
+          <e p="WinAPI.cs" t="Include" />
+        </e>
+      </e>
+      <e p="Jitex.sln" t="IncludeFlat" />
+      <e p="packages" t="ExcludeRecursive" />
+    </e>
+  </component>
+</project>
