@@ -1,0 +1,16 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Jitex", "Jitex\Jitex.csproj", "{B2B6EA59-C4F6-4A61-94C4-B47A6371FADA}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B2B6EA59-C4F6-4A61-94C4-B47A6371FADA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B2B6EA59-C4F6-4A61-94C4-B47A6371FADA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B2B6EA59-C4F6-4A61-94C4-B47A6371FADA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B2B6EA59-C4F6-4A61-94C4-B47A6371FADA}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
