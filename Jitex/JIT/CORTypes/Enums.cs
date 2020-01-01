@@ -1,4 +1,4 @@
-﻿namespace Jitex.JIT.PInvoke
+﻿namespace Jitex.JIT.CORTypes
 {
     internal static class Enums
     {

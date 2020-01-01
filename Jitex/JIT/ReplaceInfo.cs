@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Jitex.JIT
 {
@@ -18,7 +16,7 @@ namespace Jitex.JIT
             ASM
         }
 
-        public ReplaceMode Mode { get; set; }
-        public byte[] Body { get; set; }
+        public ReplaceMode Mode { get; }
+        public byte[] Body { get; }
     }
 }

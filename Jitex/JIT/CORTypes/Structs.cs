@@ -1,7 +1,7 @@
 ﻿using System;
-using static Jitex.JIT.PInvoke.Enums;
+using static Jitex.JIT.CORTypes.Enums;
 
-namespace Jitex.JIT.PInvoke
+namespace Jitex.JIT.CORTypes
 {
     internal static class Structs
     {

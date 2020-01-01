@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Runtime.InteropServices;
-using static Jitex.JIT.PInvoke.Structs;
+using static Jitex.JIT.CORTypes.Structs;
 
 namespace Jitex.JIT.CORTypes
 {

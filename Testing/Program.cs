@@ -7,11 +7,10 @@ namespace Testing
 {
     class Program
     {
-        static void Main(string[] args)
+        static void Main()
         {
             ManagedJit jit = ManagedJit.GetInstance();
             jit.OnPreCompile = OnPreCompile;
-            //Nothing();
             int resultado = Somar(5, 5);
             Console.WriteLine(resultado);
             Console.ReadKey();

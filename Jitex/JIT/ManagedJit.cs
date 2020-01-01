@@ -1,37 +1,43 @@
 ﻿using Jitex.JIT.CORTypes;
 using Jitex.Tools;
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using Jitex.JIT.PInvoke;
 using static Jitex.JIT.CORTypes.Delegates;
-using static Jitex.JIT.PInvoke.Structs;
+using static Jitex.JIT.CORTypes.Structs;
 using static Jitex.Tools.Memory;
 using static Jitex.Tools.WinApi;
 
 namespace Jitex.JIT
 {
     /// <summary>
-    /// Hook current managed jit.
+    /// Hook current jit.
     /// </summary>
     /// <remarks>
     /// Source: https://xoofx.com/blog/2018/04/12/writing-managed-jit-in-csharp-with-coreclr/
     /// </remarks>
-    public class ManagedJit
+    public class ManagedJit : IDisposable
     {
         [ThreadStatic] private static CompileTls _compileTls;
 
         private static readonly IntPtr JitVTable;
-        private static readonly CompileMethodDelegate DefaultCompileMethod;
+        private static readonly CompileMethodDelegate OriginalCompileMethod;
+        private static readonly IntPtr OriginalCompiteMethodPtr;
         private static readonly object JitLock;
         private static readonly Dictionary<IntPtr, Assembly> MapHandleToAssembly;
 
         private static ManagedJit _instance;
         private static bool _hookInstalled;
-
         private static IntPtr _corJitInfoPtr;
+
+        private CompileMethodDelegate _customCompileMethod;
+        private IntPtr _customCompiledMethodPtr;
+
+        private bool _isDisposed;
 
         public delegate ReplaceInfo PreCompile(MethodBase method);
 
@@ -53,26 +59,26 @@ namespace Jitex.JIT
 
             JitVTable = Marshal.ReadIntPtr(jit);
 
-            IntPtr defaultCompileMethodPtr = Marshal.ReadIntPtr(JitVTable, IntPtr.Size * VTable.CompileMethod);
-            DefaultCompileMethod = Marshal.GetDelegateForFunctionPointer<CompileMethodDelegate>(defaultCompileMethodPtr);
+            OriginalCompiteMethodPtr = Marshal.ReadIntPtr(JitVTable, IntPtr.Size * VTable.CompileMethod);
+            OriginalCompileMethod = Marshal.GetDelegateForFunctionPointer<CompileMethodDelegate>(OriginalCompiteMethodPtr);
         }
 
         private ManagedJit()
         {
-            if (DefaultCompileMethod == null) return;
+            if (OriginalCompileMethod == null) return;
 
-            CompileMethodDelegate compileMethodDelegate = CompileMethod;
-            IntPtr compileMethodPtr = Marshal.GetFunctionPointerForDelegate(compileMethodDelegate);
+            _customCompileMethod = CompileMethod;
+            _customCompiledMethodPtr = Marshal.GetFunctionPointerForDelegate(_customCompileMethod);
 
-            IntPtr trampolinePtr = AllocateTrampoline(compileMethodPtr);
+            IntPtr trampolinePtr = AllocateTrampoline(_customCompiledMethodPtr);
             CompileMethodDelegate trampoline = Marshal.GetDelegateForFunctionPointer<CompileMethodDelegate>(trampolinePtr);
 
             CORINFO_METHOD_INFO emptyInfo = default;
 
-            trampoline(IntPtr.Zero, IntPtr.Zero, ref emptyInfo, 0, out _, out int _);
+            trampoline(IntPtr.Zero, IntPtr.Zero, ref emptyInfo, 0, out _, out _);
 
             FreeTrampoline(trampolinePtr);
-            InstallManagedJit(compileMethodPtr);
+            InstallManagedJit(_customCompiledMethodPtr);
             _hookInstalled = true;
         }
 
@@ -157,65 +163,88 @@ namespace Jitex.JIT
 
                 if (replaceInfo != null)
                 {
-                    IntPtr newILAddress = Marshal.AllocHGlobal(replaceInfo.Body.Length);
+                    IntPtr ilAddress = IntPtr.Zero;
 
                     if (replaceInfo.Mode == ReplaceInfo.ReplaceMode.IL)
                     {
-                        Marshal.Copy(replaceInfo.Body, 0, newILAddress, replaceInfo.Body.Length);
+                        unsafe
+                        {
+                            fixed (void* ptr = replaceInfo.Body)
+                            {
+                                ilAddress = new IntPtr(ptr);
+                            }
+                        }
                     }
                     else
                     {
-                        //Create a empty body to inject asm:
-                        //{
-                        //  return;
-                        //}
-                        byte[] emptyBody;
-
-                        //After compile, JIT will allocate 34 bytes to our empty body,
-                        //if we need more space (large asm instrucions), we should allocate more space to our IL using br.s.
-                        if (replaceInfo.Body.Length > 34 && replaceInfo.Body.Length % 2 != 0)
+                        try
                         {
-                            emptyBody = new byte[replaceInfo.Body.Length + 1];
-                        }
-                        else
-                        {
-                            emptyBody = new byte[replaceInfo.Body.Length];
-                        }
+                            //Create a empty body to JIT allocate space
+                            //{
+                            //  return;
+                            //}
+                            
 
-                        emptyBody[0] = 0x2b; //br.s
-                        emptyBody[^1] = 0x2a; //ret
+                            int length;
 
-
-                        if (info.args.retType != Enums.CorInfoType.CORINFO_TYPE_VOID)
-                        {
-                            //that is like 'return default'
-                            emptyBody[^2] = 0x06; //ldloc.0
-
-                            if (emptyBody.Length > 34)
+                            //Our empty body occupy 34 bytes after compiled.
+                            //If we need more space (large asm instrucions), we should allocate more space to our IL using br.s before compile.
+                            if (replaceInfo.Body.Length > 34 && replaceInfo.Body.Length % 2 != 0)
                             {
-                                for (int i = 2; i < emptyBody.Length - 2; i++)
+                                length = replaceInfo.Body.Length + 1;
+                            }
+                            else
+                            {
+                                length = replaceInfo.Body.Length;
+                            }
+
+                            Span<byte> emptyBody;
+
+                            unsafe
+                            {
+                                void* ptr = stackalloc byte[length];
+                                emptyBody = new Span<byte>(ptr, length);
+                                ilAddress = new IntPtr(ptr);
+                            }
+                            
+                            emptyBody[0] = 0x2b; //br.s
+                            emptyBody[^1] = 0x2a; //ret
+                            
+                            if (info.args.retType != Enums.CorInfoType.CORINFO_TYPE_VOID)
+                            {
+                                //that is like 'return default'
+                                emptyBody[^2] = 0x06; //ldloc.0
+
+                                if (emptyBody.Length > 34)
                                 {
-                                    if (i % 2 == 0)
+                                    for (int i = 2; i < emptyBody.Length - 2; i++)
                                     {
-                                        emptyBody[i] = 0x2b;
+                                        if (i % 2 == 0)
+                                        {
+                                            emptyBody[i] = 0x2b;
+                                        }
                                     }
                                 }
                             }
                         }
-
-
-                        Marshal.Copy(emptyBody, 0, newILAddress, emptyBody.Length);
+                        catch
+                        {
+                            Marshal.FreeHGlobal(ilAddress);
+                            throw new Exception("failed");
+                        }
                     }
 
-                    info.ILCode = newILAddress;
+                    info.ILCode = ilAddress;
                     info.ILCodeSize = replaceInfo.Body.Length;
                 }
 
-                int result = DefaultCompileMethod(thisPtr, comp, ref info, flags, out nativeEntry, out nativeSizeOfCode);
+                int result = OriginalCompileMethod(thisPtr, comp, ref info, flags, out nativeEntry, out nativeSizeOfCode);
+
 
                 //ASM can be replaced just after method already compiled by jit.
                 if (replaceInfo?.Mode == ReplaceInfo.ReplaceMode.ASM)
                 {
+                    //Marshal.FreeHGlobal(info.ILCode);
                     Marshal.Copy(replaceInfo.Body, 0, nativeEntry, replaceInfo.Body.Length);
                 }
 
@@ -241,6 +270,23 @@ namespace Jitex.JIT
             IntPtr delegatePtr = Marshal.ReadIntPtr(_corJitInfoPtr, IntPtr.Size * offset);
             Delegate delegateMethod = Marshal.GetDelegateForFunctionPointer(delegatePtr, typeof(TDelegate));
             return (TOut) delegateMethod.DynamicInvoke(_corJitInfoPtr, value);
+        }
+
+
+        public void Dispose()
+        {
+            lock (JitLock)
+            {
+                if (_isDisposed) return;
+
+                InstallManagedJit(OriginalCompiteMethodPtr);
+                _customCompileMethod = null;
+                _customCompiledMethodPtr = IntPtr.Zero;
+                _instance = null;
+                _hookInstalled = false;
+                _isDisposed = true;
+            }
+            GC.SuppressFinalize(this);
         }
     }
 }
