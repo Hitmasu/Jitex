@@ -5,8 +5,11 @@ namespace Jitex.JIT.CORTypes
 {
     internal static class Structs
     {
+        // ReSharper disable UnusedMember.Global
+        // ReSharper disable InconsistentNaming
         public struct CORINFO_SIG_INFO
         {
+            
             public CorInfoCallConv callConv;
 
             public IntPtr retTypeClass; // if the return type is a value class, this is its handle (enums are normalized)
@@ -25,7 +28,7 @@ namespace Jitex.JIT.CORTypes
             public IntPtr scope; // passed to getArgClass
             public uint token;
             public long garbage;
-        };
+        }
 
         public struct CORINFO_SIG_INST
         {
@@ -33,7 +36,7 @@ namespace Jitex.JIT.CORTypes
             public IntPtr classInst; // (representative, not exact) instantiation for class type variables in signature
             public uint methInstCount;
             public IntPtr methInst; // (representative, not exact) instantiation for method type variables in signature
-        };
+        }
 
         public struct CORINFO_METHOD_INFO
         {
@@ -47,6 +50,8 @@ namespace Jitex.JIT.CORTypes
             public CorInfoRegionKind regionKind;
             public CORINFO_SIG_INFO args;
             public CORINFO_SIG_INFO locals;
-        };
+        }
+        // ReSharper restore InconsistentNaming
+        // ReSharper restore UnusedMember.Global
     }
 }

@@ -2,7 +2,8 @@
 {
     internal static class Enums
     {
-        // ReSharper disable UnusedMember.Local
+        // ReSharper disable UnusedMember.Global
+        // ReSharper disable InconsistentNaming
         public enum CorInfoOptions
         {
             /// <summary>
@@ -33,16 +34,15 @@
             /// Keep the generics context alive throughout the method even if there is no explicit use, and report its location to the CLR
             /// </summary>
             CORINFO_GENERICS_CTXT_KEEP_ALIVE = 0x00000100
-        };
+        }
 
         public enum CorInfoRegionKind
         {
-            
             CORINFO_REGION_NONE,
             CORINFO_REGION_HOT,
             CORINFO_REGION_COLD,
             CORINFO_REGION_JIT,
-        };
+        }
 
         public enum CorInfoType : byte
         {
@@ -82,7 +82,7 @@
             /// </summary>
             CORINFO_TYPE_VAR = 0x16,
             CORINFO_TYPE_COUNT, // number of jit types
-        };
+        }
 
         public enum CorInfoCallConv
         {
@@ -96,14 +96,26 @@
             CORINFO_CALLCONV_FIELD = 0x6,
             CORINFO_CALLCONV_LOCAL_SIG = 0x7,
             CORINFO_CALLCONV_PROPERTY = 0x8,
-            CORINFO_CALLCONV_NATIVEVARARG = 0xb, // used ONLY for IL stub PInvoke vararg calls
 
-            CORINFO_CALLCONV_MASK = 0x0f, // Calling convention is bottom 4 bits
+            /// <summary>
+            /// Used ONLY for IL stub PInvoke vararg calls.
+            /// </summary>
+            CORINFO_CALLCONV_NATIVEVARARG = 0xb,
+
+            /// <summary>
+            /// Calling convention is bottom 4 bits.
+            /// </summary>
+            CORINFO_CALLCONV_MASK = 0x0f,
             CORINFO_CALLCONV_GENERIC = 0x10,
             CORINFO_CALLCONV_HASTHIS = 0x20,
             CORINFO_CALLCONV_EXPLICITTHIS = 0x40,
-            CORINFO_CALLCONV_PARAMTYPE = 0x80, // Passed last. Same as CORINFO_GENERICS_CTXT_FROM_PARAMTYPEARG
-        };
-        // ReSharper restore UnusedMember.Local
+
+            /// <summary>
+            /// Passed last. Same as CORINFO_GENERICS_CTXT_FROM_PARAMTYPEARG.
+            /// </summary>
+            CORINFO_CALLCONV_PARAMTYPE = 0x80
+        }
+        // ReSharper restore InconsistentNaming
+        // ReSharper restore UnusedMember.Global
     }
 }
