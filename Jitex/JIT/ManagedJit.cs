@@ -53,14 +53,20 @@ namespace Jitex.JIT
                 return;
 
             GetJitDelegate getJit = (GetJitDelegate) Marshal.GetDelegateForFunctionPointer(getJitAddress, typeof(GetJitDelegate));
+            
+            //Obtém o endereço do JIT
             IntPtr jit = getJit();
 
+            //Obtém a VTable
             JitVTable = Marshal.ReadIntPtr(jit);
 
             OriginalCompiteMethodPtr = Marshal.ReadIntPtr(JitVTable, IntPtr.Size * VTable.CompileMethod);
             OriginalCompileMethod = Marshal.GetDelegateForFunctionPointer<CompileMethodDelegate>(OriginalCompiteMethodPtr);
         }
 
+        /// <summary>
+        /// Prepare custom JIT.
+        /// </summary>
         private ManagedJit()
         {
             if (OriginalCompileMethod == null) return;
@@ -76,10 +82,14 @@ namespace Jitex.JIT
             trampoline(IntPtr.Zero, IntPtr.Zero, ref emptyInfo, 0, out _, out _);
 
             FreeTrampoline(trampolinePtr);
-            InstallManagedJit(_customCompiledMethodPtr);
+            SetCompileMethod(_customCompiledMethodPtr);
             _hookInstalled = true;
         }
 
+        /// <summary>
+        /// Get instance of ManagedJIT.
+        /// </summary>
+        /// <returns></returns>
         public static ManagedJit GetInstance()
         {
             lock (JitLock)
@@ -88,7 +98,11 @@ namespace Jitex.JIT
             }
         }
 
-        private static void InstallManagedJit(IntPtr compileMethodPtr)
+        /// <summary>
+        /// Set address of CompileMethod in VTable.
+        /// </summary>
+        /// <param name="compileMethodPtr">The address of method.</param>
+        private static void SetCompileMethod(IntPtr compileMethodPtr)
         {
             VirtualProtect(JitVTable + VTable.CompileMethod, new IntPtr(IntPtr.Size), MemoryProtection.ReadWrite, out var oldFlags);
             Marshal.WriteIntPtr(JitVTable, VTable.CompileMethod, compileMethodPtr);
@@ -161,7 +175,7 @@ namespace Jitex.JIT
 
                 if (replaceInfo != null)
                 {
-                    IntPtr ilAddress = IntPtr.Zero;
+                    IntPtr ilAddress;
 
                     if (replaceInfo.Mode == ReplaceInfo.ReplaceMode.IL)
                     {
@@ -175,60 +189,50 @@ namespace Jitex.JIT
                     }
                     else
                     {
-                        try
+                        //Create a empty body to JIT allocate space
+                        //{
+                        //  return;
+                        //}
+                        Span<byte> emptyBody;
+
+                        int length;
+
+                        //Our empty body occupy 34 bytes after compiled.
+                        //If we need more space (large asm instrucions), we should allocate more space to our IL using br.s before compile.
+                        if (replaceInfo.Body.Length > 34 && replaceInfo.Body.Length % 2 != 0)
                         {
-                            //Create a empty body to JIT allocate space
-                            //{
-                            //  return;
-                            //}
-                            
+                            length = replaceInfo.Body.Length + 1;
+                        }
+                        else
+                        {
+                            length = replaceInfo.Body.Length;
+                        }
 
-                            int length;
+                        unsafe
+                        {
+                            void* ptr = stackalloc byte[length];
+                            emptyBody = new Span<byte>(ptr, length);
+                            ilAddress = new IntPtr(ptr);
+                        }
 
-                            //Our empty body occupy 34 bytes after compiled.
-                            //If we need more space (large asm instrucions), we should allocate more space to our IL using br.s before compile.
-                            if (replaceInfo.Body.Length > 34 && replaceInfo.Body.Length % 2 != 0)
+                        emptyBody[0] = 0x2b; //br.s
+                        emptyBody[^1] = 0x2a; //ret
+
+                        if (info.args.retType != Enums.CorInfoType.CORINFO_TYPE_VOID)
+                        {
+                            //that is like 'return default'
+                            emptyBody[^2] = 0x06; //ldloc.0
+
+                            if (emptyBody.Length > 34)
                             {
-                                length = replaceInfo.Body.Length + 1;
-                            }
-                            else
-                            {
-                                length = replaceInfo.Body.Length;
-                            }
-
-                            Span<byte> emptyBody;
-
-                            unsafe
-                            {
-                                void* ptr = stackalloc byte[length];
-                                emptyBody = new Span<byte>(ptr, length);
-                                ilAddress = new IntPtr(ptr);
-                            }
-                            
-                            emptyBody[0] = 0x2b; //br.s
-                            emptyBody[^1] = 0x2a; //ret
-                            
-                            if (info.args.retType != Enums.CorInfoType.CORINFO_TYPE_VOID)
-                            {
-                                //that is like 'return default'
-                                emptyBody[^2] = 0x06; //ldloc.0
-
-                                if (emptyBody.Length > 34)
+                                for (int i = 2; i < emptyBody.Length - 2; i++)
                                 {
-                                    for (int i = 2; i < emptyBody.Length - 2; i++)
+                                    if (i % 2 == 0)
                                     {
-                                        if (i % 2 == 0)
-                                        {
-                                            emptyBody[i] = 0x2b;
-                                        }
+                                        emptyBody[i] = 0x2b;
                                     }
                                 }
                             }
-                        }
-                        catch
-                        {
-                            Marshal.FreeHGlobal(ilAddress);
-                            throw new Exception("failed");
                         }
                     }
 
@@ -238,11 +242,9 @@ namespace Jitex.JIT
 
                 int result = OriginalCompileMethod(thisPtr, comp, ref info, flags, out nativeEntry, out nativeSizeOfCode);
 
-
                 //ASM can be replaced just after method already compiled by jit.
                 if (replaceInfo?.Mode == ReplaceInfo.ReplaceMode.ASM)
                 {
-                    //Marshal.FreeHGlobal(info.ILCode);
                     Marshal.Copy(replaceInfo.Body, 0, nativeEntry, replaceInfo.Body.Length);
                 }
 
@@ -277,13 +279,14 @@ namespace Jitex.JIT
             {
                 if (_isDisposed) return;
 
-                InstallManagedJit(OriginalCompiteMethodPtr);
+                SetCompileMethod(OriginalCompiteMethodPtr);
                 _customCompileMethod = null;
                 _customCompiledMethodPtr = IntPtr.Zero;
                 _instance = null;
                 _hookInstalled = false;
                 _isDisposed = true;
             }
+
             GC.SuppressFinalize(this);
         }
     }
