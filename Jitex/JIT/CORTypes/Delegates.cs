@@ -52,5 +52,8 @@ namespace Jitex.JIT.CORTypes
         /// <returns>Handle from assembly.</returns>
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         public delegate IntPtr GetAssemblyName(IntPtr thisPtr, IntPtr assemblyHandle);
+
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        public delegate ulong GetName(IntPtr thisPtr);
     }
 }

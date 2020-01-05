@@ -40,8 +40,17 @@ namespace Jitex.JIT.CORTypes
 
         public struct CORINFO_METHOD_INFO
         {
+            /// <summary>
+            /// Method Handle
+            /// </summary>
             public IntPtr ftn;
-            public IntPtr scope;
+
+            /// <summary>
+            /// Module Handle
+            /// </summary>
+            public IntPtr scope; 
+
+
             public IntPtr ILCode;
             public int ILCodeSize;
             public uint maxStack;
