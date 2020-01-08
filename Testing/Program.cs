@@ -1,6 +1,8 @@
-﻿using Jitex.JIT;
-using System;
+﻿using System;
+using Jitex.JIT;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
@@ -10,20 +12,44 @@ namespace Testing
     {
         static void Main()
         {
-            ManagedJit managedJit = ManagedJit.GetInstance();
-            //managedJit.OnPreCompile = OnPreCompile;
-            int resultado = Somar(1, 1);
-            Console.Title = "Hook";
-            Console.WriteLine(resultado);
-            Console.ReadKey();
+                ManagedJit managedJit = ManagedJit.GetInstance();
+                managedJit.OnPreCompile = OnPreCompile;
+                Somar(1, 1);
         }
 
         private static ReplaceInfo OnPreCompile(MethodBase method)
         {
             MethodInfo somarInfo = typeof(Program).GetMethod("Somar");
-
             if (somarInfo.MetadataToken == method.MetadataToken)
             {
+                //somarInfo.GetMethodBody().GetILAsByteArray();
+
+                Trace.WriteLine($"IL: {{{string.Join(", ", somarInfo.GetMethodBody().GetILAsByteArray().Select(il => "0x"+ il.ToString("X")))}}}");
+                var RE = new List<byte>
+                {
+                    0x17,
+                    0x17,
+                    0x5F,
+                    //0x26,
+                    //0x17, 0x5F, // 3
+                    //0x17,
+                    //0x06,
+                    0x2A
+                };
+                //RE.AddRange(somarInfo.GetMethodBody().GetILAsByteArray());
+                //RE.Add(0x16);
+                //RE.Add(0x58);
+                //RE.Add(0x16);
+                //RE.Add(0x0A);
+                //RE.Add(0x2A);
+                //for (int i = 0; i < RE.Length-1; i++)
+                //{
+                //    RE[i] = 0x16;
+                //}
+
+                //RE[^1] = 0x2A;
+                return new ReplaceInfo(ReplaceInfo.ReplaceMode.IL, RE.ToArray());
+
                 //num1 + num2 + 1 + 2 + 3 + 4 + 5 + 6 + ....
 
                 //01 d1                   add    ecx,edx
@@ -41,7 +67,7 @@ namespace Testing
                 int count = 0;
 
                 //Simula um bytecode de no mínimo 500 bytes
-                while (newIL.Count < 500)
+                while (newIL.Count < 30)
                 {
                     newIL.Add(0x83);
                     newIL.Add(0xc1);
@@ -62,7 +88,7 @@ namespace Testing
 
         public static int Somar(int num1, int num2)
         {
-            return num1 + num2;
+            return default;
         }
     }
 }

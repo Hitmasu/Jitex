@@ -27,6 +27,14 @@ namespace Jitex.Tools
             return jmpNative;
         }
 
+        public static void CreateDetour(IntPtr addressSource, IntPtr to)
+        {
+            VirtualProtect(addressSource, new IntPtr(IntPtr.Size), MemoryProtection.ReadWrite, out var oldFlags);
+            Marshal.Copy(TrampolineInstruction, 0, addressSource, TrampolineInstruction.Length);
+            Marshal.WriteIntPtr(addressSource, 2, to);
+            VirtualProtect(addressSource, new IntPtr(IntPtr.Size), oldFlags, out _);
+        }
+
         /// <summary>
         /// Free memory trampoline.
         /// </summary>

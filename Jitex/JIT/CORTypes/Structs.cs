@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Runtime.InteropServices;
+using static Jitex.JIT.CORTypes.Delegates;
 using static Jitex.JIT.CORTypes.Enums;
 
 namespace Jitex.JIT.CORTypes
@@ -62,5 +64,17 @@ namespace Jitex.JIT.CORTypes
         }
         // ReSharper restore InconsistentNaming
         // ReSharper restore UnusedMember.Global
+
+        public struct CorJitCompiler
+        {
+            public CompileMethodDelegate CompileMethod { get; set; }
+        }
+
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
+        public struct CorJitInfo
+        {
+            public GetModuleAssemblyDelegate GetModuleAssembly { get; set; }
+            public GetAssemblyName GetAssemblyName { get; set; }
+        }
     }
 }

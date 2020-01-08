@@ -1,15 +1,13 @@
 ﻿using Jitex.JIT.CORTypes;
 using Jitex.Tools;
-using Microsoft.Diagnostics.Runtime;
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
-using System.Runtime.CompilerServices;
+using System.Reflection.Emit;
 using System.Runtime.InteropServices;
-using dnlib.DotNet;
 using static Jitex.JIT.CORTypes.Delegates;
 using static Jitex.JIT.CORTypes.Structs;
 using static Jitex.Tools.Memory;
@@ -26,17 +24,19 @@ namespace Jitex.JIT
     /// </remarks>
     public class ManagedJit : IDisposable
     {
-        [DllImport("clrjit.dll", CallingConvention = System.Runtime.InteropServices.CallingConvention.StdCall, SetLastError = true, EntryPoint = "getJit", BestFitMapping = true)]
+        [DllImport("clrjit.dll", CallingConvention = CallingConvention.StdCall, SetLastError = true, EntryPoint = "getJit", BestFitMapping = true)]
         public static extern IntPtr GetJit();
 
-        [ThreadStatic]
-        private static CompileTls _compileTls;
+        [ThreadStatic] private static CompileTls _compileTls;
 
         private static readonly IntPtr JitVTable;
-        private static readonly CompileMethodDelegate OriginalCompileMethod;
-        private static readonly IntPtr OriginalCompiteMethodPtr;
+        private static readonly CorJitCompiler compiler;
+
+        private static IsJitOptimizationDisabled _isJitOptimizationDisabledOriginal;
+        private static IsJitOptimizationDisabled _customIsJitOptimizationDisabled;
+
         private static readonly object JitLock;
-        private static readonly ConcurrentDictionary<IntPtr, Assembly> MapHandleToAssembly;
+        private static readonly ConcurrentDictionary<IntPtr, AssemblyInfo> MapHandleToAssembly;
 
         private static ManagedJit _instance;
         private static bool _hookInstalled;
@@ -49,21 +49,20 @@ namespace Jitex.JIT
 
         public delegate ReplaceInfo PreCompile(MethodBase method);
 
+
         public PreCompile OnPreCompile { get; set; }
 
         static ManagedJit()
         {
             JitLock = new object();
-            MapHandleToAssembly = new ConcurrentDictionary<IntPtr, Assembly>(IntPtrEqualityComparer.Instance);
+            MapHandleToAssembly = new ConcurrentDictionary<IntPtr, AssemblyInfo>(IntPtrEqualityComparer.Instance);
 
             //Obtém o endereço do JIT
             IntPtr jit = GetJit();
 
             //Obtém a VTable
             JitVTable = Marshal.ReadIntPtr(jit);
-
-            OriginalCompiteMethodPtr = Marshal.ReadIntPtr(JitVTable);
-            OriginalCompileMethod = Marshal.GetDelegateForFunctionPointer<CompileMethodDelegate>(OriginalCompiteMethodPtr);
+            compiler = Marshal.PtrToStructure<CorJitCompiler>(JitVTable);
         }
 
         /// <summary>
@@ -71,24 +70,20 @@ namespace Jitex.JIT
         /// </summary>
         private ManagedJit()
         {
-            if (OriginalCompileMethod == null) return;
+            if (compiler.CompileMethod == null) return;
 
             _customCompileMethod = CompileMethod;
-            
+            _customCompiledMethodPtr = Marshal.GetFunctionPointerForDelegate(_customCompileMethod);
+
+            IntPtr trampolinePtr = AllocateTrampoline(_customCompiledMethodPtr);
+            CompileMethodDelegate trampoline = Marshal.GetDelegateForFunctionPointer<CompileMethodDelegate>(trampolinePtr);
 
             CORINFO_METHOD_INFO emptyInfo = default;
-            _customCompileMethod(IntPtr.Zero, IntPtr.Zero, ref emptyInfo, 0, out _, out _);
-            OriginalCompileMethod(IntPtr.Zero, IntPtr.Zero, ref emptyInfo, 0, out _, out _);
-            InstallCompileMethod( Marshal.GetFunctionPointerForDelegate(_customCompileMethod));
+            trampoline(IntPtr.Zero, IntPtr.Zero, ref emptyInfo, 0, out _, out _);
 
-            //IntPtr trampolinePtr = AllocateTrampoline(_customCompiledMethodPtr);
-            //CompileMethodDelegate trampoline = Marshal.GetDelegateForFunctionPointer<CompileMethodDelegate>(trampolinePtr);
+            FreeTrampoline(trampolinePtr);
 
-            //CORINFO_METHOD_INFO emptyInfo = default;
-            //trampoline(IntPtr.Zero, IntPtr.Zero, ref emptyInfo, 0, out _, out _);
-            
-            //FreeTrampoline(trampolinePtr);
-            
+            InstallCompileMethod(Marshal.GetFunctionPointerForDelegate(_customCompileMethod));
             _hookInstalled = true;
         }
 
@@ -138,7 +133,8 @@ namespace Jitex.JIT
                     return 0;
                 }
 
-                ReplaceInfo replaceInfo = null; 
+                ReplaceInfo replaceInfo = null;
+                AssemblyInfo assemblyInfo = null;
 
                 if (compileEntry.EnterCount == 1 && OnPreCompile != null)
                 {
@@ -151,19 +147,20 @@ namespace Jitex.JIT
                     {
                         IntPtr assemblyHandle = ExecuteCEEInfo<GetModuleAssemblyDelegate, IntPtr, IntPtr>(info.scope, VTable.GetModuleAssembly);
 
-                        if (!MapHandleToAssembly.TryGetValue(assemblyHandle, out Assembly assemblyFound))
+                        if (!MapHandleToAssembly.TryGetValue(assemblyHandle, out assemblyInfo))
                         {
                             IntPtr assemblyNamePtr = ExecuteCEEInfo<GetAssemblyName, IntPtr, IntPtr>(assemblyHandle, VTable.GetAssemblyName);
                             string assemblyName = Marshal.PtrToStringAnsi(assemblyNamePtr);
-                            assemblyFound = AppDomain.CurrentDomain.GetAssemblies().FirstOrDefault(assembly => assembly.GetName().Name == assemblyName);
-                            MapHandleToAssembly.TryAdd(assemblyHandle, assemblyFound);
+                            Assembly assemblyFound = AppDomain.CurrentDomain.GetAssemblies().FirstOrDefault(assembly => assembly.GetName().Name == assemblyName);
+                            assemblyInfo = new AssemblyInfo(assemblyFound);
+                            MapHandleToAssembly.TryAdd(assemblyHandle, assemblyInfo);
                         }
 
-                        if (assemblyFound != null)
+                        if (assemblyInfo.Assembly != null)
                         {
                             int methodToken = ExecuteCEEInfo<GetMethodDefFromMethodDelegate, int, IntPtr>(info.ftn, VTable.GetMethodDefFromMethod);
 
-                            foreach (Module module in assemblyFound.Modules)
+                            foreach (Module module in assemblyInfo.Assembly.Modules)
                             {
                                 try
                                 {
@@ -181,7 +178,7 @@ namespace Jitex.JIT
 
                 if (replaceInfo != null)
                 {
-                    int ilLength = 0;
+                    int ilLength;
                     IntPtr ilAddress;
 
                     if (replaceInfo.Mode == ReplaceInfo.ReplaceMode.IL)
@@ -203,15 +200,21 @@ namespace Jitex.JIT
                         //}
                         Span<byte> emptyBody;
 
-                        int minSize = info.args.retType == Enums.CorInfoType.CORINFO_TYPE_VOID ? 43 : 53;
+                        int minSize = assemblyInfo.IsJitOptmizedEnabled ? 13 : 34;
 
-                        if (replaceInfo.Body.Length > minSize)
+                        if (replaceInfo.Body.Length > minSize && replaceInfo.Body.Length > 21)
                         {
-                            ilLength = 4 + (replaceInfo.Body.Length - minSize);
+                            int nextMax = replaceInfo.Body.Length + (3 - replaceInfo.Body.Length % 3);
+                            ilLength = 4 + 2 * ((nextMax - 21) / 3);
                         }
                         else
                         {
                             ilLength = 4;
+                        }
+
+                        if (info.args.retType != Enums.CorInfoType.CORINFO_TYPE_VOID)
+                        {
+                            ilLength++;
                         }
 
                         unsafe
@@ -221,28 +224,44 @@ namespace Jitex.JIT
                             ilAddress = new IntPtr(ptr);
                         }
 
-                        emptyBody[0] = 0x2b; //br.s
-                        emptyBody[^1] = 0x2a; //ret
+                        emptyBody[0] = (byte) OpCodes.Ldc_I4_1.Value;
+                        emptyBody[1] = (byte) OpCodes.Ldc_I4_1.Value;
+                        emptyBody[2] = (byte) OpCodes.And.Value;
+                        emptyBody[^1] = (byte) OpCodes.Ret.Value;
 
                         if (info.args.retType != Enums.CorInfoType.CORINFO_TYPE_VOID)
                         {
-                            emptyBody[^2] = 0x06; //ldloc.0
+                            emptyBody[^2] = Marshal.ReadByte(info.ILCode, info.ILCodeSize-2);
                         }
+
+                        int lastIndex = ilLength % 2 == 0 ? ilLength - 1 : ilLength - 2;
+
+                        for (int i = 3; i < lastIndex; i+=2)
+                        {
+                            emptyBody[i] = (byte) OpCodes.Ldc_I4_1.Value;
+                            emptyBody[i+1] = (byte) OpCodes.And.Value;
+                        }
+
+                        int a = 10;
                     }
 
+                    info.maxStack = 2;
                     info.ILCode = ilAddress;
                     info.ILCodeSize = ilLength;
                 }
 
-                int result = OriginalCompileMethod(thisPtr, comp, ref info, flags, out nativeEntry, out nativeSizeOfCode);
+                int result = compiler.CompileMethod(thisPtr, comp, ref info, flags, out nativeEntry, out nativeSizeOfCode);
+
+                if (replaceInfo != null)
+                {
+                    Trace.WriteLine(nativeSizeOfCode);
+                    Debugger.Break();
+                }
+
 
                 //ASM can be replaced just after method already compiled by jit.
                 if (replaceInfo?.Mode == ReplaceInfo.ReplaceMode.ASM)
                 {
-                    if (nativeSizeOfCode < replaceInfo.Body.Length)
-                    {
-                        throw new Exception(nativeSizeOfCode.ToString());
-                    }
                     Marshal.Copy(replaceInfo.Body, 0, nativeEntry, replaceInfo.Body.Length);
                 }
 
@@ -267,9 +286,8 @@ namespace Jitex.JIT
         {
             IntPtr delegatePtr = Marshal.ReadIntPtr(_corJitInfoPtr, IntPtr.Size * offset);
             Delegate delegateMethod = Marshal.GetDelegateForFunctionPointer(delegatePtr, typeof(TDelegate));
-            return (TOut)delegateMethod.DynamicInvoke(_corJitInfoPtr, value);
+            return (TOut) delegateMethod.DynamicInvoke(_corJitInfoPtr, value);
         }
-
 
         public void Dispose()
         {
@@ -277,7 +295,7 @@ namespace Jitex.JIT
             {
                 if (_isDisposed) return;
 
-                InstallCompileMethod(OriginalCompiteMethodPtr);
+                InstallCompileMethod(Marshal.GetFunctionPointerForDelegate(compiler.CompileMethod));
                 _customCompileMethod = null;
                 _customCompiledMethodPtr = IntPtr.Zero;
                 _instance = null;

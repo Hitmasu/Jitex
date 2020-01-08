@@ -54,6 +54,6 @@ namespace Jitex.JIT.CORTypes
         public delegate IntPtr GetAssemblyName(IntPtr thisPtr, IntPtr assemblyHandle);
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        public delegate ulong GetName(IntPtr thisPtr);
+        public delegate bool IsJitOptimizationDisabled(IntPtr thisPtr);
     }
 }
