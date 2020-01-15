@@ -7,8 +7,13 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="dnlib" Version="3.3.1" />
-      <PackageReference Include="Microsoft.Diagnostics.Runtime" Version="1.1.61812" />
+      <Compile Remove="JIT\CORTypes\CorElementType.cs" />
+      <Compile Remove="PE\MethodBody.cs" />
+      <Compile Remove="PE\Signature\ReadTypeVariable.cs" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Builder" />
     </ItemGroup>
 
 </Project>

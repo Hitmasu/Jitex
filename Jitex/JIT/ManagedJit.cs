@@ -25,18 +25,15 @@ namespace Jitex.JIT
     public class ManagedJit : IDisposable
     {
         [DllImport("clrjit.dll", CallingConvention = CallingConvention.StdCall, SetLastError = true, EntryPoint = "getJit", BestFitMapping = true)]
-        public static extern IntPtr GetJit();
+        private static extern IntPtr GetJit();
 
         [ThreadStatic] private static CompileTls _compileTls;
 
         private static readonly IntPtr JitVTable;
-        private static readonly CorJitCompiler compiler;
-
-        private static IsJitOptimizationDisabled _isJitOptimizationDisabledOriginal;
-        private static IsJitOptimizationDisabled _customIsJitOptimizationDisabled;
+        private static readonly CorJitCompiler Compiler;
 
         private static readonly object JitLock;
-        private static readonly ConcurrentDictionary<IntPtr, AssemblyInfo> MapHandleToAssembly;
+        private static readonly ConcurrentDictionary<IntPtr, Assembly> MapHandleToAssembly;
 
         private static ManagedJit _instance;
         private static bool _hookInstalled;
@@ -55,14 +52,14 @@ namespace Jitex.JIT
         static ManagedJit()
         {
             JitLock = new object();
-            MapHandleToAssembly = new ConcurrentDictionary<IntPtr, AssemblyInfo>(IntPtrEqualityComparer.Instance);
+            MapHandleToAssembly = new ConcurrentDictionary<IntPtr, Assembly>(IntPtrEqualityComparer.Instance);
 
             //Obtém o endereço do JIT
             IntPtr jit = GetJit();
 
             //Obtém a VTable
             JitVTable = Marshal.ReadIntPtr(jit);
-            compiler = Marshal.PtrToStructure<CorJitCompiler>(JitVTable);
+            Compiler = Marshal.PtrToStructure<CorJitCompiler>(JitVTable);
         }
 
         /// <summary>
@@ -70,7 +67,7 @@ namespace Jitex.JIT
         /// </summary>
         private ManagedJit()
         {
-            if (compiler.CompileMethod == null) return;
+            if (Compiler.CompileMethod == null) return;
 
             _customCompileMethod = CompileMethod;
             _customCompiledMethodPtr = Marshal.GetFunctionPointerForDelegate(_customCompileMethod);
@@ -134,7 +131,7 @@ namespace Jitex.JIT
                 }
 
                 ReplaceInfo replaceInfo = null;
-                AssemblyInfo assemblyInfo = null;
+                MethodBase methodFound = null;
 
                 if (compileEntry.EnterCount == 1 && OnPreCompile != null)
                 {
@@ -147,24 +144,23 @@ namespace Jitex.JIT
                     {
                         IntPtr assemblyHandle = ExecuteCEEInfo<GetModuleAssemblyDelegate, IntPtr, IntPtr>(info.scope, VTable.GetModuleAssembly);
 
-                        if (!MapHandleToAssembly.TryGetValue(assemblyHandle, out assemblyInfo))
+                        if (!MapHandleToAssembly.TryGetValue(assemblyHandle, out Assembly assemblyFound))
                         {
                             IntPtr assemblyNamePtr = ExecuteCEEInfo<GetAssemblyName, IntPtr, IntPtr>(assemblyHandle, VTable.GetAssemblyName);
                             string assemblyName = Marshal.PtrToStringAnsi(assemblyNamePtr);
-                            Assembly assemblyFound = AppDomain.CurrentDomain.GetAssemblies().FirstOrDefault(assembly => assembly.GetName().Name == assemblyName);
-                            assemblyInfo = new AssemblyInfo(assemblyFound);
-                            MapHandleToAssembly.TryAdd(assemblyHandle, assemblyInfo);
+                            assemblyFound = AppDomain.CurrentDomain.GetAssemblies().FirstOrDefault(assembly => assembly.GetName().Name == assemblyName);
+                            MapHandleToAssembly.TryAdd(assemblyHandle, assemblyFound);
                         }
 
-                        if (assemblyInfo.Assembly != null)
+                        if (assemblyFound != null)
                         {
                             int methodToken = ExecuteCEEInfo<GetMethodDefFromMethodDelegate, int, IntPtr>(info.ftn, VTable.GetMethodDefFromMethod);
 
-                            foreach (Module module in assemblyInfo.Assembly.Modules)
+                            foreach (Module module in assemblyFound.Modules)
                             {
                                 try
                                 {
-                                    MethodBase methodFound = module.ResolveMethod(methodToken);
+                                    methodFound = module.ResolveMethod(methodToken);
                                     replaceInfo = OnPreCompile(methodFound);
                                 }
                                 catch
@@ -184,6 +180,7 @@ namespace Jitex.JIT
                     if (replaceInfo.Mode == ReplaceInfo.ReplaceMode.IL)
                     {
                         ilLength = replaceInfo.Body.Length;
+                        
                         unsafe
                         {
                             fixed (void* ptr = replaceInfo.Body)
@@ -200,21 +197,22 @@ namespace Jitex.JIT
                         //}
                         Span<byte> emptyBody;
 
-                        int minSize = assemblyInfo.IsJitOptmizedEnabled ? 13 : 34;
+                        //Min size generated by JIT
+                        const int minSize = 13;
 
                         if (replaceInfo.Body.Length > minSize && replaceInfo.Body.Length > 21)
                         {
                             int nextMax = replaceInfo.Body.Length + (3 - replaceInfo.Body.Length % 3);
                             ilLength = 4 + 2 * ((nextMax - 21) / 3);
+
+                            if (ilLength % 2 != 0)
+                            {
+                                ilLength++;
+                            }
                         }
                         else
                         {
                             ilLength = 4;
-                        }
-
-                        if (info.args.retType != Enums.CorInfoType.CORINFO_TYPE_VOID)
-                        {
-                            ilLength++;
                         }
 
                         unsafe
@@ -229,35 +227,26 @@ namespace Jitex.JIT
                         emptyBody[2] = (byte) OpCodes.And.Value;
                         emptyBody[^1] = (byte) OpCodes.Ret.Value;
 
-                        if (info.args.retType != Enums.CorInfoType.CORINFO_TYPE_VOID)
-                        {
-                            emptyBody[^2] = Marshal.ReadByte(info.ILCode, info.ILCodeSize-2);
-                        }
-
-                        int lastIndex = ilLength % 2 == 0 ? ilLength - 1 : ilLength - 2;
-
-                        for (int i = 3; i < lastIndex; i+=2)
+                        for (int i = 3; i < emptyBody.Length - 2; i += 2)
                         {
                             emptyBody[i] = (byte) OpCodes.Ldc_I4_1.Value;
-                            emptyBody[i+1] = (byte) OpCodes.And.Value;
+                            emptyBody[i + 1] = (byte) OpCodes.And.Value;
                         }
-
-                        int a = 10;
                     }
 
-                    info.maxStack = 2;
-                    info.ILCode = ilAddress;
+                    //Precisamos garantir que há espaço suficiente na stack
+                    if (info.maxStack < 2)
+                    {
+                        info.maxStack = 2;
+                    }
+
+                    Console.WriteLine(methodFound.GetMethodBody().LocalVariables.Count);
+                    
+                    info.ILCode = ilAddress; 
                     info.ILCodeSize = ilLength;
                 }
 
-                int result = compiler.CompileMethod(thisPtr, comp, ref info, flags, out nativeEntry, out nativeSizeOfCode);
-
-                if (replaceInfo != null)
-                {
-                    Trace.WriteLine(nativeSizeOfCode);
-                    Debugger.Break();
-                }
-
+                int result = Compiler.CompileMethod(thisPtr, comp, ref info, flags, out nativeEntry, out nativeSizeOfCode);
 
                 //ASM can be replaced just after method already compiled by jit.
                 if (replaceInfo?.Mode == ReplaceInfo.ReplaceMode.ASM)
@@ -295,7 +284,7 @@ namespace Jitex.JIT
             {
                 if (_isDisposed) return;
 
-                InstallCompileMethod(Marshal.GetFunctionPointerForDelegate(compiler.CompileMethod));
+                InstallCompileMethod(Marshal.GetFunctionPointerForDelegate(Compiler.CompileMethod));
                 _customCompileMethod = null;
                 _customCompiledMethodPtr = IntPtr.Zero;
                 _instance = null;
