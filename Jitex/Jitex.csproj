@@ -7,13 +7,11 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <Compile Remove="JIT\CORTypes\CorElementType.cs" />
-      <Compile Remove="PE\MethodBody.cs" />
-      <Compile Remove="PE\Signature\ReadTypeVariable.cs" />
+      <EmbeddedResource Remove="PE\Readers\**" />
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="Builder" />
+      <None Remove="PE\Readers\**" />
     </ItemGroup>
 
 </Project>
