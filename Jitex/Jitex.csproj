@@ -1,17 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
     <PropertyGroup>
         <TargetFramework>netcoreapp3.1</TargetFramework>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <Platforms>AnyCPU;x64</Platforms>
     </PropertyGroup>
-
-    <ItemGroup>
-      <EmbeddedResource Remove="PE\Readers\**" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <None Remove="PE\Readers\**" />
-    </ItemGroup>
-
 </Project>

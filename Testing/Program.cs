@@ -1,30 +1,25 @@
-﻿using System;
-using Jitex.JIT;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
+﻿using Jitex.JIT;
+using Jitex.PE;
 using System.Reflection;
-using System.Runtime.CompilerServices;
-using System.Threading.Tasks;
 
 namespace Testing
 {
+    public class T
+    {
+        private int a = 10;
+    }
+
     class Program
     {
         private static void Main()
         {
-            Module module = typeof(Program).Module;
-            var c =  module.ResolveSignature(0x11000003);
-            ManagedJit managedJit = ManagedJit.GetInstance();
-            managedJit.OnPreCompile = OnPreCompile;
-            int result = Somar(1, 1);
-            Console.WriteLine(result);
+            MetadataInfo info = new MetadataInfo(typeof(Program).Assembly);
         }
 
         private static ReplaceInfo OnPreCompile(MethodBase method)
-        {
+        { 
             MethodInfo somarInfo = typeof(Program).GetMethod("Somar");
-
+            
             if (somarInfo.MetadataToken == method.MetadataToken)
             {
                 MethodInfo methodHelper = typeof(Program).GetMethod("ReSomar");
@@ -75,10 +70,12 @@ namespace Testing
             double q1 = 10;
             double q2 = 10;
             int b = 20;
-            int c = 30;
+            // int c = 30;
             int d = 40;
             int e = 50;
-            return (int) (a + b + c + d + e + w + x +q);
+            ManagedJit c = null;
+            c.OnPreCompile = OnPreCompile;
+            return (int) (a + b + 0 + d + e + w + x +q);
         }       
         
         public static int ReSomar(int num1, int num2)
