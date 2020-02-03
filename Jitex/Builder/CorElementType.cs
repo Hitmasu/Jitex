@@ -3,7 +3,7 @@
 namespace Jitex.PE.Signature
 {
     [Flags]
-    internal enum CorElementType : byte
+    public enum CorElementType : byte
     {
         ELEMENT_TYPE_END = 0,
         ELEMENT_TYPE_VOID = 1,

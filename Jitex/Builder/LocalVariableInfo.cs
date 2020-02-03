@@ -2,10 +2,10 @@
 
 namespace Jitex.PE.Signature
 {
-    public class LocalVariableInfo : System.Reflection.LocalVariableInfo
+    public class LocalVariableInfo
     {
         public Type Type { get; }
-        internal CorElementType ElementType => GetElementType();
+        public CorElementType ElementType => GetElementType();
 
         public LocalVariableInfo(Type type)
         {

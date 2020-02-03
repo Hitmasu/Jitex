@@ -13,12 +13,22 @@ using Jitex.Tools;
 
 namespace Jitex.PE
 {
+    /// <summary>
+    /// Read Metadata from assembly.
+    /// </summary>
     public class MetadataInfo
     {
         private readonly Assembly _assembly;
 
-        internal ImmutableDictionary<int, TypeInfo> Types { get; }
+        /// <summary>
+        /// Types from Assembly. Key is the Metadata Token from Type.
+        /// </summary>
+        private ImmutableDictionary<int, TypeInfo> Types { get; }
 
+        /// <summary>
+        /// Read metadata from assembly.
+        /// </summary>
+        /// <param name="assembly">Assembly to read.</param>
         public MetadataInfo(Assembly assembly)
         {
             _assembly = assembly;
@@ -29,6 +39,11 @@ namespace Jitex.PE
             Types = ReadTypes(metadataReader);
         }
 
+        /// <summary>
+        /// Read types from metadata.
+        /// </summary>
+        /// <param name="reader">Instance of MetadataReader</param>
+        /// <returns>A Dictionary of types found.</returns>
         private ImmutableDictionary<int, TypeInfo> ReadTypes(MetadataReader reader)
         {
             var types = ImmutableDictionary.CreateBuilder<int, TypeInfo>();
@@ -70,16 +85,14 @@ namespace Jitex.PE
             return types.ToImmutableDictionary();
         }
 
-        private int GetRowNumber<T>()
+        /// <summary>
+        /// Get info from Type.
+        /// </summary>
+        /// <param name="type">Type to get info.</param>
+        /// <returns>A TypeInfo from type.</returns>
+        internal TypeInfo GetTypeInfo(Type type)
         {
-            if (Types.TryGetValue(typeof(T).MetadataToken, out TypeInfo type))
-            {
-                return type.RowNumber;
-            }
-
-            Debug.Assert(type != null, "Type not found!");
-
-            return -1;
+            return Types.TryGetValue(type.MetadataToken, out TypeInfo typeInfo) ? typeInfo : null;
         }
     }
 }

@@ -3,6 +3,9 @@ using System.Diagnostics;
 
 namespace Jitex.PE
 {
+    /// <summary>
+    /// Information Type from Stream Table.
+    /// </summary>
     [DebuggerDisplay("{Type.Name}")]
     internal class TypeInfo
     {
@@ -13,8 +16,19 @@ namespace Jitex.PE
             Type = type;
         }
 
+        /// <summary>
+        /// Type from row.
+        /// </summary>
         public Type Type { get; }
+        
+        /// <summary>
+        /// Row number from Type.
+        /// </summary>
         public int RowNumber { get; }
+        
+        /// <summary>
+        /// TypeDef | TypeRef | TypeSpec.
+        /// </summary>
 
         public TypeIdentifier TypeIdentifier { get; set; }
     }

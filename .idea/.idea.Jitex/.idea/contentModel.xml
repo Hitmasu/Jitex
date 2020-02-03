@@ -16,6 +16,7 @@
           <e p="CorElementType.cs" t="Include" />
           <e p="Exceptions" t="Include">
             <e p="ModuleNullException.cs" t="Include" />
+            <e p="TypeNotFoundException.cs" t="Include" />
           </e>
           <e p="LocalVariableInfo.cs" t="Include" />
           <e p="MethodBodyBuilder.cs" t="Include" />
@@ -42,18 +43,9 @@
           </e>
         </e>
         <e p="PE" t="Include">
-          <e p="Header" t="Include">
-            <e p="BaseHeader.cs" t="Include" />
-            <e p="MetadataHeader.cs" t="Include" />
-            <e p="StreamHeader.cs" t="Include" />
-          </e>
-          <e p="PE.cs" t="Include" />
-          <e p="Readers" t="Include">
-            <e p="MHReader.cs" t="Include" />
-            <e p="PEReader.cs" t="Include" />
-            <e p="ReaderBase.cs" t="Include" />
-            <e p="SHReader.cs" t="Include" />
-          </e>
+          <e p="MetadataInfo.cs" t="Include" />
+          <e p="TypeIdentifier.cs" t="Include" />
+          <e p="TypeInfo.cs" t="Include" />
         </e>
         <e p="Utils" t="Include">
           <e p="IntPtrEqualityComparer.cs" t="Include" />
