@@ -4,8 +4,7 @@ using System.Linq;
 using System.Reflection;
 using Jitex.Builder.Exceptions;
 using Jitex.PE;
-using Jitex.PE.Signature;
-using LocalVariableInfo = Jitex.PE.Signature.LocalVariableInfo;
+using LocalVariableInfo = Jitex.Builder.LocalVariableInfo;
 using TypeInfo = Jitex.PE.TypeInfo;
 
 namespace Jitex.Builder

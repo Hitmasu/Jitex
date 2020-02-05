@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Jitex.PE.Signature
+namespace Jitex.Builder
 {
     [Flags]
     public enum CorElementType : byte

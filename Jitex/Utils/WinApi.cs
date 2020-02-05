@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 
-namespace Jitex.Tools
+namespace Jitex.Utils
 {
     internal static class WinApi
     {

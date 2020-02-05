@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Jitex.Tools
+namespace Jitex.Utils
 {
     internal class IntPtrEqualityComparer : IEqualityComparer<IntPtr>
     {

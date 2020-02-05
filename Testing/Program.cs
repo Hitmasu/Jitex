@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using Jitex.Builder;
-using Jitex.PE.Signature;
 
 namespace Testing
 {

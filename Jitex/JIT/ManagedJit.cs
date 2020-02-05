@@ -1,5 +1,4 @@
 ﻿using Jitex.JIT.CORTypes;
-using Jitex.Tools;
 using System;
 using System.Collections.Concurrent;
 using System.Diagnostics;
@@ -8,10 +7,11 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.InteropServices;
+using Jitex.Utils;
 using static Jitex.JIT.CORTypes.Delegates;
 using static Jitex.JIT.CORTypes.Structs;
-using static Jitex.Tools.Memory;
-using static Jitex.Tools.WinApi;
+using static Jitex.Utils.Memory;
+using static Jitex.Utils.WinApi;
 using VTable = Jitex.JIT.CORTypes.VTable;
 
 namespace Jitex.JIT
