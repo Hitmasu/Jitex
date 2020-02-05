@@ -1,56 +1,164 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Reflection.Emit;
 using Jitex.Builder.Exceptions;
+using Jitex.Builder.IL;
 using Jitex.PE;
-using LocalVariableInfo = Jitex.Builder.LocalVariableInfo;
+
 using TypeInfo = Jitex.PE.TypeInfo;
 
 namespace Jitex.Builder
 {
     public class MethodBodyBuilder
     {
+        private byte[] _il;
+
         /// <summary>
         /// Module from method body.
         /// </summary>
         public Module Module { get; set; }
-        
+
         /// <summary>
         /// IL from body.
         /// </summary>
-        public byte[] IL { get; set; }
-        
+        public byte[] IL
+        {
+
+            get => _il;
+
+            set
+            {
+                _il = value;
+                ReadOperations();
+                CalculateMaxStack();
+            }
+        }
+
+        /// <summary>
+        /// Operations from IL.
+        /// </summary>
+        public IEnumerable<Operation> Operations { get; private set; }
+
         /// <summary>
         /// Local variables from method.
         /// </summary>
         public IList<LocalVariableInfo> LocalVariables { get; set; }
-        
+
         /// <summary>
         /// If body contains some local variable.
         /// </summary>
         public bool HasLocalVariable => LocalVariables.Count > 0;
+
+        public int MaxStackSize { get; set; }
 
         /// <summary>
         /// Create a new method body.
         /// </summary>
         /// <param name="il">IL of method.</param>
         /// <param name="localVariables">Local variables of method.</param>
-        /// <param name="module">Module from local variables.</param>
+        /// <param name="module">Module from body.</param>
         public MethodBodyBuilder(byte[] il, IList<LocalVariableInfo> localVariables, Module module)
         {
             IL = il;
             LocalVariables = localVariables;
+            Module = module;
         }
 
         /// <summary>
         /// Create a new method body.
         /// </summary>
         /// <param name="il">IL of method.</param>
-        public MethodBodyBuilder(byte[] il)
+        /// <param name="module">Module from body.</param>
+        public MethodBodyBuilder(byte[] il, Module module)
         {
             IL = il;
-            LocalVariables = new List<LocalVariableInfo>();
+            Module = module;
+        }
+
+        private void ReadOperations()
+        {
+            ILReader reader = new ILReader(_il, Module);
+            Operations = reader;
+        }
+
+        /// <summary>
+        /// Calculate .maxstack from body.
+        /// </summary>
+        private void CalculateMaxStack()
+        {
+            int maxStackSize = 0;
+            foreach (Operation operation in Operations)
+            {
+                switch (operation.OpCode.StackBehaviourPush)
+                {
+                    case StackBehaviour.Push0:
+                        break;
+
+                    case StackBehaviour.Push1:
+                    case StackBehaviour.Pushi:
+                    case StackBehaviour.Pushi8:
+                    case StackBehaviour.Pushr4:
+                    case StackBehaviour.Pushr8:
+                    case StackBehaviour.Pushref:
+                    case StackBehaviour.Varpush:
+                        maxStackSize++;
+                        break;
+
+                    case StackBehaviour.Push1_push1:
+                        maxStackSize += 2;
+                        break;
+                    case StackBehaviour.Popref_popi_pop1:
+                        maxStackSize += 3;
+                        break;
+
+                    default:
+                        throw new NotImplementedException();
+                }
+
+                switch (operation.OpCode.StackBehaviourPop)
+                {
+                    case StackBehaviour.Pop0:
+                        break;
+
+                    case StackBehaviour.Popref:
+                    case StackBehaviour.Popi:
+                    case StackBehaviour.Pop1:
+                    case StackBehaviour.Varpop:
+                        maxStackSize--;
+                        break;
+
+                    case StackBehaviour.Popi_popr4:
+                    case StackBehaviour.Popi_popr8:
+                    case StackBehaviour.Popref_pop1:
+                    case StackBehaviour.Popref_popi:
+                    case StackBehaviour.Pop1_pop1:
+                    case StackBehaviour.Popi_popi:
+                    case StackBehaviour.Popi_pop1:
+                    case StackBehaviour.Popi_popi8:
+                        maxStackSize -= 2;
+                        break;
+
+                    case StackBehaviour.Popi_popi_popi:
+                    case StackBehaviour.Popref_popi_popi:
+                    case StackBehaviour.Popref_popi_popi8:
+                    case StackBehaviour.Popref_popi_popr4:
+                    case StackBehaviour.Popref_popi_popr8:
+                    case StackBehaviour.Popref_popi_popref:
+                        maxStackSize -= 3;
+                        break;
+
+                    default:
+                        throw new NotImplementedException();
+                }
+
+                if (maxStackSize > MaxStackSize)
+                {
+                    MaxStackSize = maxStackSize;
+                }
+            }
         }
 
         /// <summary>
@@ -74,19 +182,20 @@ namespace Jitex.Builder
                 {
                     if (Module == null)
                         throw new ModuleNullException("Module can't be null with Local Variable of type Class ");
-                    
-                    if(metadataInfo == null)
+
+                    if (metadataInfo == null)
                         metadataInfo = new MetadataInfo(Module.Assembly);
-                    
+
                     TypeInfo typeInfo = metadataInfo.GetTypeInfo(localVariable.Type);
 
                     if (typeInfo == null)
                         throw new TypeNotFoundException($"{Module.Assembly.FullName} dont contains reference for type {localVariable.Type.Name}");
 
                     bool[] bitsRow = GetMinimalBits(typeInfo.RowNumber);
-                    bool[] bitsTypeSpec = GetMinimalBits((int) typeInfo.TypeIdentifier);
+                    bool[] bitsTypeSpec = GetMinimalBits((int)typeInfo.TypeIdentifier);
 
                     byte[] compressedType = new byte[8];
+
                     bitsTypeSpec.CopyTo(compressedType, 0);
                     bitsRow.CopyTo(compressedType, 2);
 
@@ -98,10 +207,10 @@ namespace Jitex.Builder
                 }
             }
 
-            signature.Insert(0, (byte) signature.Count);
+            signature.Insert(0, (byte)signature.Count);
             return signature.Cast<byte>().ToArray();
         }
-        
+
         private static bool[] GetMinimalBits(int number)
         {
             BitArray bits = new BitArray(number);

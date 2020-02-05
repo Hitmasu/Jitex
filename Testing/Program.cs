@@ -1,9 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using Jitex.Builder;
+using System;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using Jitex.Builder;
-using LocalVariableInfo = Jitex.Builder.LocalVariableInfo;
 
 namespace Testing
 {
@@ -14,15 +12,8 @@ namespace Testing
         
         private static void Main()
         {
-            IList<LocalVariableInfo> localVariables = new List<LocalVariableInfo>();
-            localVariables.Add(new LocalVariableInfo(typeof(float)));
-            localVariables.Add(new LocalVariableInfo(typeof(float)));
-            localVariables.Add(new LocalVariableInfo(typeof(float)));
-            localVariables.Add(new LocalVariableInfo(typeof(float)));
-            localVariables.Add(new LocalVariableInfo(typeof(float)));
-            localVariables.Add(new LocalVariableInfo(typeof(float)));
-            
-            MethodBodyBuilder builder = new MethodBodyBuilder(null, localVariables, null);
+            MethodInfo t = typeof(Program).GetMethod("ReSomar");
+            MethodBodyBuilder builder = new MethodBodyBuilder(t.GetMethodBody().GetILAsByteArray(), typeof(Program).Module);
             byte[] signature = builder.GetSignature();
             int a = 10;
         }
