@@ -1,10 +1,17 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Reflection;
+using System.Runtime.CompilerServices;
 using Jitex.Builder;
+using LocalVariableInfo = Jitex.Builder.LocalVariableInfo;
 
 namespace Testing
 {
     class Program
     {
+        [MethodImpl (MethodImplOptions.InternalCall)]
+        internal static extern CorElementType GetCorElementType (RuntimeTypeHandle type);
+        
         private static void Main()
         {
             IList<LocalVariableInfo> localVariables = new List<LocalVariableInfo>();
