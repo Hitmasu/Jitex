@@ -1,31 +1,61 @@
-﻿using Jitex.Builder;
-using System;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
-using System.Runtime.CompilerServices;
+using Jitex.JIT;
+using LocalVariableInfo = Jitex.Builder.LocalVariableInfo;
+using MethodBody = Jitex.Builder.MethodBody;
 
 namespace Testing
 {
     class Program
     {
-        [MethodImpl (MethodImplOptions.InternalCall)]
-        internal static extern CorElementType GetCorElementType (RuntimeTypeHandle type);
-        
         private static void Main()
         {
-            MethodInfo t = typeof(Program).GetMethod("ReSomar");
-            MethodBodyBuilder builder = new MethodBodyBuilder(t.GetMethodBody().GetILAsByteArray(), typeof(Program).Module);
-            byte[] signature = builder.GetSignature();
-            int a = 10;
+            ManagedJit managedJit = ManagedJit.GetInstance();
+            managedJit.OnPreCompile = OnPreCompile;
+            var result = ReSomar();
+            Console.WriteLine(result);
+            Console.ReadKey();
         }
 
-        public static float ReSomar(int num1, int num2)
+        private static ReplaceInfo OnPreCompile(MethodBase method)
+        {
+            MethodInfo Somar = typeof(Program).GetMethod("ReSomar");
+
+            if (Somar.MetadataToken == method.MetadataToken)
+            {
+                MethodInfo ReplaceSomar = typeof(Program).GetMethod("ReplaceSomar");
+                byte[] il = ReplaceSomar.GetMethodBody().GetILAsByteArray();
+                List<LocalVariableInfo> variables = ReplaceSomar.GetMethodBody().LocalVariables.Select(lv => new LocalVariableInfo(lv.LocalType)).ToList();
+                return new ReplaceInfo(new MethodBody(il, variables, typeof(Program).Module));
+            }
+
+            return null;
+        }
+
+        public static float ReSomar()
+        {
+            float c = 10;
+            float a = 10;
+            float d = 10;
+            float e = 10;
+            float z = 10;
+            return a + c + d + e + z;
+        }
+
+        public static float ReplaceSomar()
         {
             float b = 10;
             float c = 10;
             float a = 10;
             float d = 10;
             float e = 10;
-            return a + b + c + d + e;
+            float z = 10;
+            int idade = 4500;
+            int lol = 900;
+            double abc = 500d;
+            return (float) (a + b + c + d + e+z + idade + lol+abc);
         }
     }
 }

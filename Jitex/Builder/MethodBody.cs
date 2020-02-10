@@ -12,7 +12,7 @@ using TypeInfo = Jitex.PE.TypeInfo;
 
 namespace Jitex.Builder
 {
-    public class MethodBodyBuilder
+    public class MethodBody
     {
         private byte[] _il;
 
@@ -52,7 +52,7 @@ namespace Jitex.Builder
         /// </summary>
         public bool HasLocalVariable => LocalVariables.Count > 0;
 
-        public int MaxStackSize { get; set; }
+        public uint MaxStackSize { get; private set; }
 
         /// <summary>
         /// Create a new method body.
@@ -60,11 +60,11 @@ namespace Jitex.Builder
         /// <param name="il">IL of method.</param>
         /// <param name="localVariables">Local variables of method.</param>
         /// <param name="module">Module from body.</param>
-        public MethodBodyBuilder(byte[] il, IList<LocalVariableInfo> localVariables, Module module)
+        public MethodBody(byte[] il, IList<LocalVariableInfo> localVariables, Module module)
         {
-            IL = il;
             LocalVariables = localVariables;
             Module = module;
+            IL = il;
         }
 
         /// <summary>
@@ -72,7 +72,7 @@ namespace Jitex.Builder
         /// </summary>
         /// <param name="il">IL of method.</param>
         /// <param name="module">Module from body.</param>
-        public MethodBodyBuilder(byte[] il, Module module)
+        public MethodBody(byte[] il, Module module)
         {
             IL = il;
             Module = module;
@@ -89,7 +89,8 @@ namespace Jitex.Builder
         /// </summary>
         private void CalculateMaxStack()
         {
-            int maxStackSize = 0;
+            uint maxStackSize = 0;
+
             foreach (Operation operation in Operations)
             {
                 switch (operation.OpCode.StackBehaviourPush)
@@ -165,7 +166,7 @@ namespace Jitex.Builder
         /// Get compressed signature from local variables.
         /// </summary>
         /// <returns>Byte array - compressed signature.</returns>
-        public byte[] GetSignature()
+        public byte[] GetSignatureVariables()
         {
             List<byte> signature = new List<byte>
             {
@@ -211,6 +212,11 @@ namespace Jitex.Builder
             return signature.Cast<byte>().ToArray();
         }
 
+        /// <summary>
+        /// Get bits from integer.
+        /// </summary>
+        /// <param name="number"></param>
+        /// <returns></returns>
         private static bool[] GetMinimalBits(int number)
         {
             BitArray bits = new BitArray(number);

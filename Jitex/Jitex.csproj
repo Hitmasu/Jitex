@@ -4,4 +4,7 @@
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <Platforms>AnyCPU;x64</Platforms>
     </PropertyGroup>
+    <ItemGroup>
+      <ProjectReference Include="..\CoreRT\CoreRT.csproj" />
+    </ItemGroup>
 </Project>

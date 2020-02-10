@@ -1,8 +1,10 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Reflection;
 
 namespace Jitex.Builder
 {
+    [DebuggerDisplay("{Type.Name}")]
     public class LocalVariableInfo
     {
         private static readonly MethodInfo GetCorElementType;

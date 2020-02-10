@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Runtime.InteropServices;
-using static Jitex.JIT.CORTypes.Structs;
+using CoreRT.JitInterface;
 
 namespace Jitex.JIT.CORTypes
 {

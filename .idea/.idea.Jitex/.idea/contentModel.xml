@@ -18,6 +18,10 @@
             <e p="ModuleNullException.cs" t="Include" />
             <e p="TypeNotFoundException.cs" t="Include" />
           </e>
+          <e p="IL" t="Include">
+            <e p="ILReader.cs" t="Include" />
+            <e p="Operation.cs" t="Include" />
+          </e>
           <e p="LocalVariableInfo.cs" t="Include" />
           <e p="MethodBodyBuilder.cs" t="Include" />
         </e>

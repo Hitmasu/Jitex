@@ -1,11 +1,18 @@
-﻿namespace Jitex.JIT
+﻿using MethodBody = Jitex.Builder.MethodBody;
+
+namespace Jitex.JIT
 {
     public class ReplaceInfo
     {
-        public ReplaceInfo(ReplaceMode mode, byte[] body)
+
+        public ReplaceInfo(byte[] byteCode)
         {
-            Mode = mode;
-            Body = body;
+            ByteCode = byteCode;
+        }
+
+        public ReplaceInfo(MethodBody methodBody)
+        {
+            MethodBody = methodBody;
         }
 
         public enum ReplaceMode
@@ -14,7 +21,8 @@
             ASM
         }
 
-        public ReplaceMode Mode { get; }
-        public byte[] Body { get; }
+        public MethodBody MethodBody { get; }
+        public byte[] ByteCode { get; }
+        public ReplaceMode Mode => ByteCode != null ? ReplaceMode.ASM : ReplaceMode.IL;
     }
 }

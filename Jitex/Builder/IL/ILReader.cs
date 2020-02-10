@@ -3,11 +3,10 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Reflection.Emit;
-using System.Text;
 
 namespace Jitex.Builder.IL
 {
-internal class ILReader : IEnumerable<Operation>
+    internal class ILReader : IEnumerable<Operation>
     {
         /// <summary>
         /// Instructions IL.
