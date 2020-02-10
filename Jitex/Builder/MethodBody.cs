@@ -111,9 +111,6 @@ namespace Jitex.Builder
                     case StackBehaviour.Push1_push1:
                         maxStackSize += 2;
                         break;
-                    case StackBehaviour.Popref_popi_pop1:
-                        maxStackSize += 3;
-                        break;
 
                     default:
                         throw new NotImplementedException();
