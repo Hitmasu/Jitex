@@ -226,7 +226,7 @@ namespace Jitex.Builder
                 {
                     bool[] subBits = new bool[i];
 
-                    for (int j = 0; j < i; j++)
+                    for (int j = 0; j <= i; j++)
                     {
                         subBits[j] = bits[j];
                     }
