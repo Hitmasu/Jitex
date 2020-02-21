@@ -6,21 +6,6 @@ namespace Jitex.JIT.CORTypes
 {
     internal static class Delegates
     {
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        public delegate IntPtr GetJitDelegate();
-
-        /// <summary>
-        /// Wrap delegate to compileMethod from ICorJitCompiler.
-        /// <see cref="https://github.com/dotnet/runtime/blob/f8eabc47a04a25e3cfa4afc78161e0d47209eb57/src/coreclr/src/inc/corjit.h#L238"/>
-        /// </summary>
-        /// <param name="thisPtr">this parameter.</param>
-        /// <param name="comp">(IN) - Pointer to ICorJitInfo.</param>
-        /// <param name="info">(IN) - Pointer to CORINFO_METHOD_INFO.</param>
-        /// <param name="flags">(IN) - Pointer to CorJitFlag.</param>
-        /// <param name="nativeEntry">(OUT) - Pointer to NativeEntry.</param>
-        /// <param name="nativeSizeOfCode">(OUT) - Size of NativeEntry.</param>
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        public delegate int CompileMethodDelegate(IntPtr thisPtr, IntPtr comp, ref CORINFO_METHOD_INFO info, uint flags, out IntPtr nativeEntry, out int nativeSizeOfCode);
 
         /// <summary>
         /// Wrap delegate to getMethodDefFromMethodDelegate from ICorJitInfo.
@@ -40,8 +25,7 @@ namespace Jitex.JIT.CORTypes
         /// <param name="thisPtr">this parameter.</param>
         /// <param name="moduleHandle">(IN) - Pointer to module handle.</param>
         /// <returns>Handle from assembly.</returns>
-        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        public delegate IntPtr GetModuleAssemblyDelegate(IntPtr thisPtr, IntPtr moduleHandle);
+
 
         /// <summary>
         /// Wrap delegate to getNameAssembly from ICorJitInfo.

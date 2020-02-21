@@ -1,11 +1,13 @@
-﻿using Jitex.Utils;
+﻿using CoreRT.JitInterface;
+using Jitex.Utils;
 using System;
 using System.Collections.Concurrent;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.InteropServices;
-using CoreRT.JitInterface;
+using static CoreRT.JitInterface.CorInfoImplTest;
+using static CoreRT.JitInterface.CorJitCompiler;
 using static Jitex.JIT.CORTypes.Delegates;
 using static Jitex.Utils.Memory;
 using static Jitex.Utils.WinApi;
@@ -14,13 +16,6 @@ using VTable = Jitex.JIT.CORTypes.VTable;
 
 namespace Jitex.JIT
 {
-    
-    internal struct CorJitCompiler
-    {
-        public CompileMethodDelegate CompileMethod { get; set; }
-    }
-
-
     /// <summary>
     /// Hook current jit.
     /// </summary>
@@ -42,6 +37,7 @@ namespace Jitex.JIT
 
         private static ManagedJit _instance;
         private static bool _hookInstalled;
+
         private static IntPtr _corJitInfoPtr = IntPtr.Zero;
 
         private CompileMethodDelegate _customCompileMethod;
@@ -50,8 +46,7 @@ namespace Jitex.JIT
         private bool _isDisposed;
 
         public delegate ReplaceInfo PreCompile(MethodBase method);
-
-
+        
         public PreCompile OnPreCompile { get; set; }
 
         static ManagedJit()
@@ -59,10 +54,8 @@ namespace Jitex.JIT
             JitLock = new object();
             MapHandleToAssembly = new ConcurrentDictionary<IntPtr, Assembly>(IntPtrEqualityComparer.Instance);
 
-            //Obtém o endereço do JIT
             IntPtr jit = GetJit();
 
-            //Obtém a VTable
             JitVTable = Marshal.ReadIntPtr(jit);
             Compiler = Marshal.PtrToStructure<CorJitCompiler>(JitVTable);
         }
@@ -89,10 +82,6 @@ namespace Jitex.JIT
             _hookInstalled = true;
         }
 
-        /// <summary>
-        /// Get instance of ManagedJIT.
-        /// </summary>
-        /// <returns></returns>
         public static ManagedJit GetInstance()
         {
             lock (JitLock)
@@ -139,15 +128,15 @@ namespace Jitex.JIT
 
                 if (compileEntry.EnterCount == 1 && OnPreCompile != null)
                 {
-                    if (_corJitInfoPtr == IntPtr.Zero)
-                    {
-                        _corJitInfoPtr = Marshal.ReadIntPtr(comp);
-                    }
-
                     lock (JitLock)
                     {
+                        if (_corJitInfoPtr == IntPtr.Zero)
+                            _corJitInfoPtr = Marshal.ReadIntPtr(comp);
 
-                        IntPtr assemblyHandle = ExecuteCEEInfo<GetModuleAssemblyDelegate, IntPtr, IntPtr>(info.scope, VTable.GetModuleAssembly);
+                        IntPtr assemblyHandle = default; //ExecuteCEEInfo<GetModuleAssemblyDelegate, IntPtr, IntPtr>(info.scope, VTable.GetModuleAssembly);
+
+                        var c = Marshal.PtrToStructure<CorInfoImplTest>(_corJitInfoPtr);
+                        var k = c.GetMethodAttribs(_corJitInfoPtr, info.ftn);
 
                         if (!MapHandleToAssembly.TryGetValue(assemblyHandle, out Assembly assemblyFound))
                         {
@@ -203,7 +192,7 @@ namespace Jitex.JIT
                                     info.locals.args = sig + 3;
                                 }
 
-                                info.locals.numArgs = (ushort) methodBody.LocalVariables.Count;
+                                info.locals.numArgs = (ushort)methodBody.LocalVariables.Count;
                             }
                         }
 
@@ -227,7 +216,7 @@ namespace Jitex.JIT
                             //IL with 3 bitwise = 27 bytes
                             //...
                             int nextMax = replaceInfo.ByteCode.Length + (3 - replaceInfo.ByteCode.Length % 3);
-                            ilLength = 4 + 2 * ((nextMax - minSize) / 3);
+                            ilLength = 4 + (2 * ((nextMax - minSize) / 3));
 
                             if (ilLength % 2 != 0)
                             {

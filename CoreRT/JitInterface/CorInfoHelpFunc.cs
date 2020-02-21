@@ -44,7 +44,7 @@ namespace CoreRT.JitInterface
         CORINFO_HELP_FLTROUND,
         CORINFO_HELP_DBLROUND,
 
-        /* Allocating a new object. Always use ICorClassInfo::getNewHelper() to decide 
+        /* Allocating a new object. Always use ICorClassInfo::getNewHelper() to decide
            which is the right helper to use to allocate an object of a given type. */
 
         CORINFO_HELP_NEW_CROSSCONTEXT,  // cross context new object
@@ -80,7 +80,7 @@ namespace CoreRT.JitInterface
         CORINFO_HELP_CHKCASTARRAY,
         CORINFO_HELP_CHKCASTCLASS,
         CORINFO_HELP_CHKCASTANY,
-        CORINFO_HELP_CHKCASTCLASS_SPECIAL, // Optimized helper for classes. Assumes that the trivial cases 
+        CORINFO_HELP_CHKCASTCLASS_SPECIAL, // Optimized helper for classes. Assumes that the trivial cases
                                            // has been taken care of by the inlined check
 
         CORINFO_HELP_BOX,
@@ -121,7 +121,7 @@ namespace CoreRT.JitInterface
         CORINFO_HELP_MON_EXIT_STATIC,
 
         CORINFO_HELP_GETCLASSFROMMETHODPARAM, // Given a generics method handle, returns a class handle
-        CORINFO_HELP_GETSYNCFROMCLASSHANDLE,  // Given a generics class handle, returns the sync monitor 
+        CORINFO_HELP_GETSYNCFROMCLASSHANDLE,  // Given a generics class handle, returns the sync monitor
                                               // in its ManagedClassObject
 
         /* Security callout support */
@@ -156,12 +156,12 @@ namespace CoreRT.JitInterface
         CORINFO_HELP_ASSIGN_BYREF,
         CORINFO_HELP_ASSIGN_STRUCT,
 
-
         /* Accessing fields */
 
         // For COM object support (using COM get/set routines to update object)
         // and EnC and cross-context support
         CORINFO_HELP_GETFIELD8,
+
         CORINFO_HELP_SETFIELD8,
         CORINFO_HELP_GETFIELD16,
         CORINFO_HELP_SETFIELD16,
@@ -183,11 +183,12 @@ namespace CoreRT.JitInterface
         CORINFO_HELP_GETSTATICFIELDADDR_CONTEXT,    // Helper for context-static fields
         CORINFO_HELP_GETSTATICFIELDADDR_TLS,        // Helper for PE TLS fields
 
-        // There are a variety of specialized helpers for accessing static fields. The JIT should use 
+        // There are a variety of specialized helpers for accessing static fields. The JIT should use
         // ICorClassInfo::getSharedStaticsOrCCtorHelper to determine which helper to use
 
         // Helpers for regular statics
         CORINFO_HELP_GETGENERICS_GCSTATIC_BASE,
+
         CORINFO_HELP_GETGENERICS_NONGCSTATIC_BASE,
         CORINFO_HELP_GETSHARED_GCSTATIC_BASE,
         CORINFO_HELP_GETSHARED_NONGCSTATIC_BASE,
@@ -195,11 +196,13 @@ namespace CoreRT.JitInterface
         CORINFO_HELP_GETSHARED_NONGCSTATIC_BASE_NOCTOR,
         CORINFO_HELP_GETSHARED_GCSTATIC_BASE_DYNAMICCLASS,
         CORINFO_HELP_GETSHARED_NONGCSTATIC_BASE_DYNAMICCLASS,
+
         // Helper to class initialize shared generic with dynamicclass, but not get static field address
         CORINFO_HELP_CLASSINIT_SHARED_DYNAMICCLASS,
 
         // Helpers for thread statics
         CORINFO_HELP_GETGENERICS_GCTHREADSTATIC_BASE,
+
         CORINFO_HELP_GETGENERICS_NONGCTHREADSTATIC_BASE,
         CORINFO_HELP_GETSHARED_GCTHREADSTATIC_BASE,
         CORINFO_HELP_GETSHARED_NONGCTHREADSTATIC_BASE,
@@ -250,6 +253,7 @@ namespace CoreRT.JitInterface
 
         // Not a real helpers. Instead of taking handle arguments, these helpers point to a small stub that loads the handle argument and calls the static helper.
         CORINFO_HELP_READYTORUN_NEW,
+
         CORINFO_HELP_READYTORUN_NEWARR_1,
         CORINFO_HELP_READYTORUN_ISINSTANCEOF,
         CORINFO_HELP_READYTORUN_CHKCAST,
@@ -278,6 +282,7 @@ namespace CoreRT.JitInterface
         //
         // NOTE: these helpers are only used for x86.
         CORINFO_HELP_ASSIGN_REF_EAX,    // EAX holds GC ptr, do a 'mov [EDX], EAX' and inform GC
+
         CORINFO_HELP_ASSIGN_REF_EBX,    // EBX holds GC ptr, do a 'mov [EDX], EBX' and inform GC
         CORINFO_HELP_ASSIGN_REF_ECX,    // ECX holds GC ptr, do a 'mov [EDX], ECX' and inform GC
         CORINFO_HELP_ASSIGN_REF_ESI,    // ESI holds GC ptr, do a 'mov [EDX], ESI' and inform GC
