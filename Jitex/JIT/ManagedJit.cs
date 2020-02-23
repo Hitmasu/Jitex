@@ -6,13 +6,10 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.InteropServices;
-using static CoreRT.JitInterface.CorInfoImplTest;
 using static CoreRT.JitInterface.CorJitCompiler;
-using static Jitex.JIT.CORTypes.Delegates;
 using static Jitex.Utils.Memory;
 using static Jitex.Utils.WinApi;
 using MethodBody = Jitex.Builder.MethodBody;
-using VTable = Jitex.JIT.CORTypes.VTable;
 
 namespace Jitex.JIT
 {
@@ -39,6 +36,7 @@ namespace Jitex.JIT
         private static bool _hookInstalled;
 
         private static IntPtr _corJitInfoPtr = IntPtr.Zero;
+        private static CorInfoImpl _corInfoImpl;
 
         private CompileMethodDelegate _customCompileMethod;
         private IntPtr _customCompiledMethodPtr;
@@ -131,16 +129,18 @@ namespace Jitex.JIT
                     lock (JitLock)
                     {
                         if (_corJitInfoPtr == IntPtr.Zero)
+                        {
                             _corJitInfoPtr = Marshal.ReadIntPtr(comp);
+                            _corInfoImpl = Marshal.PtrToStructure<CorInfoImpl>(_corJitInfoPtr);
+                        }
 
-                        IntPtr assemblyHandle = default; //ExecuteCEEInfo<GetModuleAssemblyDelegate, IntPtr, IntPtr>(info.scope, VTable.GetModuleAssembly);
+                        IntPtr assemblyHandle = _corInfoImpl.GetModuleAssembly(_corJitInfoPtr, info.scope); //ExecuteCEEInfo<GetModuleAssemblyDelegate, IntPtr, IntPtr>(info.scope, VTable.GetModuleAssembly);
 
-                        var c = Marshal.PtrToStructure<CorInfoImplTest>(_corJitInfoPtr);
-                        var k = c.GetMethodAttribs(_corJitInfoPtr, info.ftn);
+                       _corInfoImpl.GetMethodAttribs(_corJitInfoPtr, info.ftn);
 
                         if (!MapHandleToAssembly.TryGetValue(assemblyHandle, out Assembly assemblyFound))
                         {
-                            IntPtr assemblyNamePtr = ExecuteCEEInfo<GetAssemblyName, IntPtr, IntPtr>(assemblyHandle, VTable.GetAssemblyName);
+                            IntPtr assemblyNamePtr = _corInfoImpl.GetAssemblyName(_corJitInfoPtr, assemblyHandle);
                             string assemblyName = Marshal.PtrToStringAnsi(assemblyNamePtr);
                             assemblyFound = AppDomain.CurrentDomain.GetAssemblies().FirstOrDefault(assembly => assembly.GetName().Name == assemblyName);
                             MapHandleToAssembly.TryAdd(assemblyHandle, assemblyFound);
@@ -148,13 +148,13 @@ namespace Jitex.JIT
 
                         if (assemblyFound != null)
                         {
-                            int methodToken = ExecuteCEEInfo<GetMethodDefFromMethodDelegate, int, IntPtr>(info.ftn, VTable.GetMethodDefFromMethod);
+                            uint methodToken = _corInfoImpl.GetMethodDefFromMethod(_corJitInfoPtr, info.ftn);
 
                             foreach (Module module in assemblyFound.Modules)
                             {
                                 try
                                 {
-                                    var methodFound = module.ResolveMethod(methodToken);
+                                    var methodFound = module.ResolveMethod((int)methodToken);
                                     replaceInfo = OnPreCompile(methodFound);
                                 }
                                 catch (Exception)
@@ -270,22 +270,6 @@ namespace Jitex.JIT
             {
                 compileEntry.EnterCount--;
             }
-        }
-
-        /// <summary>
-        /// Execute function from CEEInfo interface.
-        /// </summary>
-        /// <typeparam name="TDelegate">Type of delegate to excecute.</typeparam>
-        /// <typeparam name="TOut">Type of return from method.</typeparam>
-        /// <typeparam name="TValue">Type of parameter value.</typeparam>
-        /// <param name="value">Value parameter.</param>
-        /// <param name="offset">Offset in <see cref="VTable"/>.</param>
-        /// <returns>Return from method delegate.</returns>
-        private static TOut ExecuteCEEInfo<TDelegate, TOut, TValue>(TValue value, int offset)
-        {
-            IntPtr delegatePtr = Marshal.ReadIntPtr(_corJitInfoPtr, IntPtr.Size * offset);
-            Delegate delegateMethod = Marshal.GetDelegateForFunctionPointer(delegatePtr, typeof(TDelegate));
-            return (TOut)delegateMethod.DynamicInvoke(_corJitInfoPtr, value);
         }
 
         public void Dispose()

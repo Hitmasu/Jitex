@@ -101,8 +101,6 @@ namespace CoreRT.JitInterface
         public CORINFO_CLASS_STRUCT_** methInst; // (representative, not exact) instantiation for method type variables in signature
     }
 
-    public enum mdToken : uint
-    { }
 
     public enum HRESULT {
         E_NOTIMPL = -2147467263
@@ -121,7 +119,7 @@ namespace CoreRT.JitInterface
         public byte* pSig;
         public uint cbSig;
         public CORINFO_MODULE_STRUCT_* scope;          // passed to getArgClass
-        public mdToken token;
+        public uint token;
 
         public CorInfoType retType { get { return (CorInfoType)_retType; } set { _retType = (byte)value; } }
         private CorInfoCallConv getCallConv() { return (CorInfoCallConv)((callConv & CorInfoCallConv.CORINFO_CALLCONV_MASK)); }
@@ -293,7 +291,7 @@ namespace CoreRT.JitInterface
         //
         public CORINFO_CONTEXT_STRUCT* tokenContext;       //Context for resolution of generic arguments
         public CORINFO_MODULE_STRUCT_* tokenScope;
-        public mdToken token;              //The source token
+        public uint token;              //The source token
         public CorInfoTokenKind tokenType;
 
         //
