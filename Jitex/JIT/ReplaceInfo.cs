@@ -23,6 +23,6 @@ namespace Jitex.JIT
 
         public MethodBody MethodBody { get; }
         public byte[] ByteCode { get; }
-        public ReplaceMode Mode => ByteCode != null ? ReplaceMode.ASM : ReplaceMode.IL;
+        public ReplaceMode Mode => ByteCode == null ? ReplaceMode.IL : ReplaceMode.ASM;
     }
 }

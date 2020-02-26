@@ -133,13 +133,18 @@ namespace Jitex.Builder.IL
                     case OperandType.InlineMethod:
                         if (opCode == OpCodes.Newobj)
                         {
-                            var constructor = ReadConstructor();
-                            operation = new Operation(opCode, constructor.Constructor, constructor.Token);
+                            int a = 10;
                         }
-                        else
+                        try
                         {
                             var method = ReadMethod();
                             operation = new Operation(opCode, method.Method, method.Token);
+                        }
+                        catch (InvalidCastException)
+                        {
+                            _position -= 4;
+                            var constructor = ReadConstructor();
+                            operation = new Operation(opCode, constructor.Constructor, constructor.Token);
                         }
 
                         break;

@@ -8,6 +8,16 @@ using MethodBody = Jitex.Builder.MethodBody;
 
 namespace Testing
 {
+    public struct Teste
+    {
+        public int idade;
+
+        public Teste(int num)
+        {
+            idade = new Random().Next();
+        }
+    }
+
     class Program
     {
         private static void Main()
@@ -36,26 +46,18 @@ namespace Testing
 
         public static float ReSomar()
         {
+            Teste t = new Teste();
+            float b = 10;
             float c = 10;
-            float a = 10;
-            float d = 10;
-            float e = 10;
-            float z = 10;
-            return a + c + d + e + z;
+            return b + c;
         }
 
         public static float ReplaceSomar()
         {
+            Teste t = new Teste();
             float b = 10;
             float c = 10;
-            float a = 10;
-            float d = 10;
-            float e = 10;
-            float z = 10;
-            int idade = 4500;
-            int lol = 900;
-            double abc = 500d;
-            return (float) (a + b + c + d + e+z + idade + lol+abc);
+            return b + c;
         }
     }
 }

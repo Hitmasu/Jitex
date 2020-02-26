@@ -1,14 +1,16 @@
 ﻿using System;
+using System.Buffers;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Reflection.Metadata;
+using System.Reflection.Metadata.Ecma335;
 using Jitex.Builder.Exceptions;
 using Jitex.Builder.IL;
 using Jitex.PE;
-
-using TypeInfo = Jitex.PE.TypeInfo;
 
 namespace Jitex.Builder
 {
@@ -89,13 +91,14 @@ namespace Jitex.Builder
         /// </summary>
         private void CalculateMaxStack()
         {
-            uint maxStackSize = 0;
+            int maxStackSize = 0;
 
             foreach (Operation operation in Operations)
             {
                 switch (operation.OpCode.StackBehaviourPush)
                 {
                     case StackBehaviour.Push0:
+                    case StackBehaviour.Varpush:
                         break;
 
                     case StackBehaviour.Push1:
@@ -104,7 +107,6 @@ namespace Jitex.Builder
                     case StackBehaviour.Pushr4:
                     case StackBehaviour.Pushr8:
                     case StackBehaviour.Pushref:
-                    case StackBehaviour.Varpush:
                         maxStackSize++;
                         break;
 
@@ -119,12 +121,12 @@ namespace Jitex.Builder
                 switch (operation.OpCode.StackBehaviourPop)
                 {
                     case StackBehaviour.Pop0:
+                    case StackBehaviour.Varpop:
                         break;
 
                     case StackBehaviour.Popref:
                     case StackBehaviour.Popi:
                     case StackBehaviour.Pop1:
-                    case StackBehaviour.Varpop:
                         maxStackSize--;
                         break;
 
@@ -154,7 +156,7 @@ namespace Jitex.Builder
 
                 if (maxStackSize > MaxStackSize)
                 {
-                    MaxStackSize = maxStackSize;
+                    MaxStackSize = (uint)maxStackSize;
                 }
             }
         }
@@ -165,10 +167,10 @@ namespace Jitex.Builder
         /// <returns>Byte array - compressed signature.</returns>
         public byte[] GetSignatureVariables()
         {
-            List<byte> signature = new List<byte>
-            {
-                0x07, (byte) LocalVariables.Count
-            };
+            BlobBuilder blob = new BlobBuilder();
+
+            blob.WriteByte(0x07);
+            blob.WriteCompressedInteger(LocalVariables.Count);
 
             MetadataInfo metadataInfo = null;
 
@@ -176,63 +178,32 @@ namespace Jitex.Builder
             {
                 CorElementType elementType = localVariable.ElementType;
 
-                if (elementType == CorElementType.ELEMENT_TYPE_CLASS)
+                if (elementType == CorElementType.ELEMENT_TYPE_CLASS || elementType == CorElementType.ELEMENT_TYPE_VALUETYPE)
                 {
                     if (Module == null)
-                        throw new ModuleNullException("Module can't be null with Local Variable of type Class ");
+                        throw new ModuleNullException("Module can't be null with a Local Variable of type Class ");
 
                     if (metadataInfo == null)
                         metadataInfo = new MetadataInfo(Module.Assembly);
 
-                    TypeInfo typeInfo = metadataInfo.GetTypeInfo(localVariable.Type);
+                    EntityHandle typeHandle = metadataInfo.GetTypeHandle(localVariable.Type);
 
-                    if (typeInfo == null)
-                        throw new TypeNotFoundException($"{Module.Assembly.FullName} dont contains reference for type {localVariable.Type.Name}");
+                    int typeInfo = CodedIndex.TypeDefOrRefOrSpec(typeHandle);
 
-                    bool[] bitsRow = GetMinimalBits(typeInfo.RowNumber);
-                    bool[] bitsTypeSpec = GetMinimalBits((int)typeInfo.TypeIdentifier);
-
-                    byte[] compressedType = new byte[8];
-
-                    bitsTypeSpec.CopyTo(compressedType, 0);
-                    bitsRow.CopyTo(compressedType, 2);
-
-                    signature.AddRange(compressedType);
+                    blob.WriteByte((byte)elementType);
+                    blob.WriteCompressedInteger(typeInfo);
                 }
                 else
                 {
-                    signature.Add((byte)elementType);
+                    blob.WriteByte((byte)elementType);
                 }
             }
 
-            signature.Insert(0, (byte)signature.Count);
-            return signature.Cast<byte>().ToArray();
-        }
-
-        /// <summary>
-        /// Get bits from integer.
-        /// </summary>
-        /// <param name="number"></param>
-        /// <returns></returns>
-        private static bool[] GetMinimalBits(int number)
-        {
-            BitArray bits = new BitArray(number);
-            for (int i = bits.Length - 1; i >= 0; i--)
-            {
-                if (bits[i])
-                {
-                    bool[] subBits = new bool[i];
-
-                    for (int j = 0; j <= i; j++)
-                    {
-                        subBits[j] = bits[j];
-                    }
-
-                    return subBits;
-                }
-            }
-
-            return null;
+            BlobBuilder blobSize = new BlobBuilder();
+            blobSize.WriteCompressedInteger(blob.Count);
+            blob.LinkPrefix(blobSize);
+            
+            return blob.ToArray();
         }
     }
 }

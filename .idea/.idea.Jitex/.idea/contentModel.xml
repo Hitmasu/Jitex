@@ -10,6 +10,25 @@
     <e p="C:\Users\Flávio\.Rider2019.3\system\extResources" t="IncludeRecursive" />
     <e p="C:\Users\Flávio\.Rider2019.3\system\resharper-host\local\Transient\ReSharperHost\v193\SolutionCaches\_Jitex.-1362067967.00" t="ExcludeRecursive" />
     <e p="C:\Users\Flávio\source\repos\Hitmasu\Jitex" t="IncludeFlat">
+      <e p="CoreRT" t="IncludeRecursive">
+        <e p="bin" t="ExcludeRecursive" />
+        <e p="CoreRT.csproj" t="IncludeRecursive" />
+        <e p="JitInterface" t="Include">
+          <e p="CorInfoHelpFunc.cs" t="Include" />
+          <e p="CorInfoImpl.cs" t="Include" />
+          <e p="CorInfoTypes.cs" t="Include" />
+          <e p="CorInfoTypes.VarInfo.cs" t="Include" />
+          <e p="CorJitCompiler.cs" t="Include" />
+          <e p="MemoryHelper.cs" t="Include" />
+        </e>
+        <e p="obj" t="ExcludeRecursive">
+          <e p="Debug" t="Include">
+            <e p="netcoreapp3.1" t="Include">
+              <e p="CoreRT.AssemblyInfo.cs" t="Include" />
+            </e>
+          </e>
+        </e>
+      </e>
       <e p="Jitex" t="IncludeRecursive">
         <e p="bin" t="ExcludeRecursive" />
         <e p="Builder" t="Include">
@@ -23,26 +42,18 @@
             <e p="Operation.cs" t="Include" />
           </e>
           <e p="LocalVariableInfo.cs" t="Include" />
-          <e p="MethodBodyBuilder.cs" t="Include" />
+          <e p="MethodBody.cs" t="Include" />
         </e>
         <e p="JIT" t="Include">
           <e p="CompileTls.cs" t="Include" />
-          <e p="CORTypes" t="Include">
-            <e p="Delegates.cs" t="Include" />
-            <e p="Enums.cs" t="Include" />
-            <e p="Structs.cs" t="Include" />
-            <e p="VTable.cs" t="Include" />
-          </e>
           <e p="ManagedJit.cs" t="Include" />
           <e p="ReplaceInfo.cs" t="Include" />
         </e>
         <e p="Jitex.csproj" t="IncludeRecursive" />
         <e p="obj" t="ExcludeRecursive">
-          <e p="x64" t="Include">
-            <e p="Debug" t="Include">
-              <e p="netcoreapp3.1" t="Include">
-                <e p="Jitex.AssemblyInfo.cs" t="Include" />
-              </e>
+          <e p="Debug" t="Include">
+            <e p="netcoreapp3.1" t="Include">
+              <e p="Jitex.AssemblyInfo.cs" t="Include" />
             </e>
           </e>
         </e>
@@ -63,11 +74,9 @@
         <e p="Jitex.Test.csproj" t="IncludeRecursive" />
         <e p="ManagedJitTest.cs" t="Include" />
         <e p="obj" t="ExcludeRecursive">
-          <e p="x64" t="Include">
-            <e p="Debug" t="Include">
-              <e p="netcoreapp3.1" t="Include">
-                <e p="Jitex.Test.AssemblyInfo.cs" t="Include" />
-              </e>
+          <e p="Debug" t="Include">
+            <e p="netcoreapp3.1" t="Include">
+              <e p="Jitex.Test.AssemblyInfo.cs" t="Include" />
             </e>
           </e>
         </e>
@@ -76,11 +85,9 @@
       <e p="Testing" t="IncludeRecursive">
         <e p="bin" t="ExcludeRecursive" />
         <e p="obj" t="ExcludeRecursive">
-          <e p="x64" t="Include">
-            <e p="Debug" t="Include">
-              <e p="netcoreapp3.1" t="Include">
-                <e p="Testing.AssemblyInfo.cs" t="Include" />
-              </e>
+          <e p="Debug" t="Include">
+            <e p="netcoreapp3.1" t="Include">
+              <e p="Testing.AssemblyInfo.cs" t="Include" />
             </e>
           </e>
         </e>

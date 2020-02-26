@@ -134,9 +134,7 @@ namespace Jitex.JIT
                             _corInfoImpl = Marshal.PtrToStructure<CorInfoImpl>(_corJitInfoPtr);
                         }
 
-                        IntPtr assemblyHandle = _corInfoImpl.GetModuleAssembly(_corJitInfoPtr, info.scope); //ExecuteCEEInfo<GetModuleAssemblyDelegate, IntPtr, IntPtr>(info.scope, VTable.GetModuleAssembly);
-
-                       _corInfoImpl.GetMethodAttribs(_corJitInfoPtr, info.ftn);
+                        IntPtr assemblyHandle = _corInfoImpl.GetModuleAssembly(_corJitInfoPtr, info.scope);
 
                         if (!MapHandleToAssembly.TryGetValue(assemblyHandle, out Assembly assemblyFound))
                         {
@@ -157,7 +155,7 @@ namespace Jitex.JIT
                                     var methodFound = module.ResolveMethod((int)methodToken);
                                     replaceInfo = OnPreCompile(methodFound);
                                 }
-                                catch (Exception)
+                                catch
                                 {
                                     // ignored
                                 }
@@ -216,7 +214,7 @@ namespace Jitex.JIT
                             //IL with 3 bitwise = 27 bytes
                             //...
                             int nextMax = replaceInfo.ByteCode.Length + (3 - replaceInfo.ByteCode.Length % 3);
-                            ilLength = 4 + (2 * ((nextMax - minSize) / 3));
+                            ilLength = 4 + 2 * ((nextMax - minSize) / 3);
 
                             if (ilLength % 2 != 0)
                             {

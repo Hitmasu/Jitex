@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
@@ -22,7 +21,7 @@ namespace Jitex.PE
         /// <summary>
         /// Types from Assembly. Key is the Metadata Token from Type.
         /// </summary>
-        private ImmutableDictionary<int, TypeInfo> Types { get; }
+        private ImmutableDictionary<int, EntityHandle> Types { get; }
 
         /// <summary>
         /// Read metadata from assembly.
@@ -43,16 +42,15 @@ namespace Jitex.PE
         /// </summary>
         /// <param name="reader">Instance of MetadataReader</param>
         /// <returns>A Dictionary of types found.</returns>
-        private ImmutableDictionary<int, TypeInfo> ReadTypes(MetadataReader reader)
+        private ImmutableDictionary<int, EntityHandle> ReadTypes(MetadataReader reader)
         {
-            var types = ImmutableDictionary.CreateBuilder<int, TypeInfo>();
+            var types = ImmutableDictionary.CreateBuilder<int, EntityHandle>();
 
             IEnumerable<EntityHandle> typesDef = reader.TypeDefinitions.Select(typeDef => (EntityHandle)typeDef);
             IEnumerable<EntityHandle> typesRef = reader.TypeReferences.Select(typeRef => (EntityHandle)typeRef); ;
 
             foreach (EntityHandle entityHandle in typesDef.Concat(typesRef))
             {
-                int rowNumber = reader.GetRowNumber(entityHandle);
                 int token = reader.GetToken(entityHandle);
 
                 Type type = null;
@@ -70,15 +68,10 @@ namespace Jitex.PE
                     }
                 }
 
-                Debug.Assert(type != null || token == 0x02000001, "Type can't be null");
+                if (type == null && token != 0x02000001)
+                    throw new NullReferenceException("Type not referenced on assembly.");
 
-                if (type != null)
-                {
-                    TypeIdentifier typeIdentifier = entityHandle.Kind == HandleKind.TypeDefinition ? TypeIdentifier.TypeDef : TypeIdentifier.TypeRef;
-
-                    TypeInfo typeInfo = new TypeInfo(type, rowNumber, typeIdentifier);
-                    types.Add(token, typeInfo);
-                }
+                types.Add(token, entityHandle);
             }
 
             return types.ToImmutableDictionary();
@@ -89,9 +82,12 @@ namespace Jitex.PE
         /// </summary>
         /// <param name="type">Type to get info.</param>
         /// <returns>A TypeInfo from type.</returns>
-        internal TypeInfo GetTypeInfo(Type type)
+        internal EntityHandle GetTypeHandle(Type type)
         {
-            return Types.TryGetValue(type.MetadataToken, out TypeInfo typeInfo) ? typeInfo : null;
+            if (Types.TryGetValue(type.MetadataToken, out EntityHandle typeInfo))
+                return typeInfo;
+
+            throw new NullReferenceException("Type not referenced on assembly.");
         }
     }
 }

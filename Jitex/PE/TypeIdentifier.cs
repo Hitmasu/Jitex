@@ -7,6 +7,7 @@ namespace Jitex.PE
     internal enum TypeIdentifier
     {
         TypeDef = 0,
-        TypeRef = 1
+        TypeRef = 1,
+        TypeSpec = 2
     }
 }
