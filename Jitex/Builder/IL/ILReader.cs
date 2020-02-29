@@ -131,21 +131,24 @@ namespace Jitex.Builder.IL
                         break;
 
                     case OperandType.InlineMethod:
-                        if (opCode == OpCodes.Newobj)
-                        {
-                            int a = 10;
-                        }
-                        try
-                        {
+                        //if (opCode == OpCodes.Newobj)
+                        //{
                             var method = ReadMethod();
-                            operation = new Operation(opCode, method.Method, method.Token);
-                        }
-                        catch (InvalidCastException)
-                        {
-                            _position -= 4;
-                            var constructor = ReadConstructor();
-                            operation = new Operation(opCode, constructor.Constructor, constructor.Token);
-                        }
+                            operation = new Operation(opCode, method, method.Token);
+                            break;
+                        //}
+
+                        //try
+                        //{
+                            //var method = ReadMethod();
+                            //operation = new Operation(opCode, method.Method, method.Token);
+                        //}
+                        //catch (ArgumentOutOfRangeException)
+                        //{
+                        //    _position -= 4;
+                        //    var constructor = ReadConstructor();
+                        //    operation = new Operation(opCode, constructor.Constructor, constructor.Token);
+                        //}
 
                         break;
 
@@ -257,10 +260,10 @@ namespace Jitex.Builder.IL
             /// Read <see cref="MethodInfo" /> reference from module.
             /// </summary>
             /// <returns><see cref="MethodInfo" /> referenced.</returns>
-            private (MethodInfo Method, int Token) ReadMethod()
+            private (MethodBase Method, int Token) ReadMethod()
             {
                 int token = ReadInt32();
-                MethodInfo method = (MethodInfo)_module.ResolveMethod(token);
+                MethodBase method = _module.ResolveMethod(token);
                 return (method, token);
             }
 

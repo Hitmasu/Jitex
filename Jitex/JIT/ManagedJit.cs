@@ -2,6 +2,7 @@
 using Jitex.Utils;
 using System;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -155,7 +156,7 @@ namespace Jitex.JIT
                                     var methodFound = module.ResolveMethod((int)methodToken);
                                     replaceInfo = OnPreCompile(methodFound);
                                 }
-                                catch
+                                catch (Exception ex)
                                 {
                                     // ignored
                                 }

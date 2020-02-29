@@ -4,6 +4,10 @@ namespace Jitex.JIT
 {
     public class ReplaceInfo
     {
+        public ReplaceInfo()
+        {
+                
+        }
 
         public ReplaceInfo(byte[] byteCode)
         {

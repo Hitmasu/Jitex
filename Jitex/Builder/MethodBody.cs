@@ -1,16 +1,13 @@
-﻿using System;
-using System.Buffers;
-using System.Collections;
+﻿using Jitex.Builder.Exceptions;
+using Jitex.Builder.IL;
+using Jitex.PE;
+using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
-using Jitex.Builder.Exceptions;
-using Jitex.Builder.IL;
-using Jitex.PE;
 
 namespace Jitex.Builder
 {
@@ -92,7 +89,7 @@ namespace Jitex.Builder
         private void CalculateMaxStack()
         {
             int maxStackSize = 0;
-
+            var p = Operations.ToList();
             foreach (Operation operation in Operations)
             {
                 switch (operation.OpCode.StackBehaviourPush)
@@ -180,6 +177,9 @@ namespace Jitex.Builder
 
                 if (elementType == CorElementType.ELEMENT_TYPE_CLASS || elementType == CorElementType.ELEMENT_TYPE_VALUETYPE)
                 {
+                    //TODO
+                    //Is Pinned
+
                     if (Module == null)
                         throw new ModuleNullException("Module can't be null with a Local Variable of type Class ");
 
