@@ -1,11 +1,7 @@
 ﻿using Jitex.JIT;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
 using Jitex.PE;
-using LocalVariableInfo = Jitex.Builder.LocalVariableInfo;
-using MethodBody = Jitex.Builder.MethodBody;
+using System;
+using FrameworkTeste;
 
 namespace Testing
 {
@@ -14,8 +10,7 @@ namespace Testing
         private static MetadataInfo _metadata;
         private static void Main()
         {
-            ManagedJit managedJit = ManagedJit.GetInstance();
-            managedJit.OnPreCompile = OnPreCompile;
+            Initializer initialzer = new Initializer(typeof(Program).Module);
             var result = Somar();
             Console.WriteLine(result);
             Console.ReadKey();

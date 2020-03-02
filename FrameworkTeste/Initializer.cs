@@ -1,9 +1,8 @@
-﻿using System;
+﻿using Jitex.JIT;
+using Jitex.PE;
+using System;
 using System.Collections.Generic;
 using System.Reflection;
-using System.Reflection.Metadata;
-using Jitex.JIT;
-using Jitex.PE;
 using LocalVariableInfo = Jitex.Builder.LocalVariableInfo;
 using MethodBody = Jitex.Builder.MethodBody;
 
@@ -25,7 +24,7 @@ namespace FrameworkTeste
 
         private ReplaceInfo OnPreCompile(MethodBase method)
         {
-            if (method.MetadataToken == 0x06000003)
+            if (method.Name == "Somar")
             {
                 byte[] il =
                 {
@@ -33,7 +32,6 @@ namespace FrameworkTeste
                     0x0,0x0,0x0,0x0, //.ctor Random
                     0xD,0x6,0x6B,0x7,0x58,0x6C,0x8,0x58,0x9,0x16,0x6,0x6F,0x26,0x0,0x0,0xA,0x6C,0x58,0x2A
                 };
-
 
                 var ctorRandom = typeof(Random)
                     .GetConstructor(BindingFlags.Public | BindingFlags.Instance, null, CallingConventions.Any, Type.EmptyTypes, null);
