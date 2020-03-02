@@ -131,25 +131,8 @@ namespace Jitex.Builder.IL
                         break;
 
                     case OperandType.InlineMethod:
-                        //if (opCode == OpCodes.Newobj)
-                        //{
-                            var method = ReadMethod();
-                            operation = new Operation(opCode, method, method.Token);
-                            break;
-                        //}
-
-                        //try
-                        //{
-                            //var method = ReadMethod();
-                            //operation = new Operation(opCode, method.Method, method.Token);
-                        //}
-                        //catch (ArgumentOutOfRangeException)
-                        //{
-                        //    _position -= 4;
-                        //    var constructor = ReadConstructor();
-                        //    operation = new Operation(opCode, constructor.Constructor, constructor.Token);
-                        //}
-
+                        var method = ReadMethod();
+                        operation = new Operation(opCode, method, method.Token);
                         break;
 
                     case OperandType.InlineString:
