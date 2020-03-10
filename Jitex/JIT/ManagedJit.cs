@@ -2,6 +2,7 @@
 using Jitex.Utils.Comparer;
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
@@ -25,13 +26,16 @@ namespace Jitex.JIT
         [DllImport("clrjit.dll", CallingConvention = CallingConvention.StdCall, SetLastError = true, EntryPoint = "getJit", BestFitMapping = true)]
         private static extern IntPtr GetJit();
 
-        [ThreadStatic] private static CompileTls _compileTls;
+        private static readonly FieldInfo m_pData;
+
+        [ThreadStatic]
+        private static CompileTls _compileTls;
 
         private static readonly IntPtr JitVTable;
         private static readonly CorJitCompiler Compiler;
 
         private static readonly object JitLock;
-        private static readonly ConcurrentDictionary<IntPtr, Assembly> MapHandleToAssembly;
+        private static readonly IDictionary<IntPtr, Module> MapHandleToModule;
 
         private static ManagedJit _instance;
         private static bool _hookInstalled;
@@ -45,23 +49,20 @@ namespace Jitex.JIT
         private bool _isDisposed;
 
         public delegate ReplaceInfo PreCompile(MethodBase method);
-        
+
         public PreCompile OnPreCompile { get; set; }
 
         static ManagedJit()
         {
             JitLock = new object();
-            MapHandleToAssembly = new ConcurrentDictionary<IntPtr, Assembly>(IntPtrEqualityComparer.Instance);
+            MapHandleToModule = new Dictionary<IntPtr, Module>(IntPtrEqualityComparer.Instance);
 
             IntPtr jit = GetJit();
 
             JitVTable = Marshal.ReadIntPtr(jit);
-
-#if DEBUG
-            IntPtr compileMethodAddress = Marshal.ReadIntPtr(JitVTable, IntPtr.Size * 0);
-            Debug.WriteLine($"Compile method original address: {compileMethodAddress.ToString("X")}");
-#endif
             Compiler = Marshal.PtrToStructure<CorJitCompiler>(JitVTable);
+
+            m_pData = Type.GetType("System.Reflection.RuntimeModule").GetField("m_pData", BindingFlags.NonPublic | BindingFlags.Instance);
         }
 
         /// <summary>
@@ -140,32 +141,23 @@ namespace Jitex.JIT
                             _corInfoImpl = Marshal.PtrToStructure<CorInfoImpl>(_corJitInfoPtr);
                         }
 
-                        IntPtr assemblyHandle = _corInfoImpl.GetModuleAssembly(_corJitInfoPtr, info.scope);
-
-                        if (!MapHandleToAssembly.TryGetValue(assemblyHandle, out Assembly assemblyFound))
+                        if (!MapHandleToModule.TryGetValue(info.scope, out Module module))
                         {
-                            IntPtr assemblyNamePtr = _corInfoImpl.GetAssemblyName(_corJitInfoPtr, assemblyHandle);
-                            string assemblyName = Marshal.PtrToStringAnsi(assemblyNamePtr);
-                            assemblyFound = AppDomain.CurrentDomain.GetAssemblies().FirstOrDefault(assembly => assembly.GetName().Name == assemblyName);
-                            MapHandleToAssembly.TryAdd(assemblyHandle, assemblyFound);
+                            IntPtr scope = info.scope;
+
+                            module = AppDomain.CurrentDomain.GetAssemblies()
+                                .FirstOrDefault(assembly => GetPointerModule(assembly.Modules.First()) == scope)
+                                ?.Modules.First();
+
+                            MapHandleToModule.Add(scope, module);
                         }
 
-                        if (assemblyFound != null)
+                        if (module != null)
                         {
                             uint methodToken = _corInfoImpl.GetMethodDefFromMethod(_corJitInfoPtr, info.ftn);
 
-                            foreach (Module module in assemblyFound.Modules)
-                            {
-                                try
-                                {
-                                    var methodFound = module.ResolveMethod((int)methodToken);
-                                    replaceInfo = OnPreCompile(methodFound);
-                                }
-                                catch (Exception ex)
-                                {
-                                    // ignored
-                                }
-                            }
+                            var methodFound = module.ResolveMethod((int)methodToken);
+                            replaceInfo = OnPreCompile(methodFound);
                         }
                     }
                 }
@@ -268,10 +260,10 @@ namespace Jitex.JIT
                 //Trace.WriteLine("After compile-method");
 
                 //ASM can be replaced just after method already compiled by jit.
-                //if (replaceInfo?.Mode == ReplaceInfo.ReplaceMode.ASM)
-                //{
-                //    Marshal.Copy(replaceInfo.ByteCode, 0, nativeEntry, replaceInfo.ByteCode.Length);
-                //}
+                if (replaceInfo?.Mode == ReplaceInfo.ReplaceMode.ASM)
+                {
+                    Marshal.Copy(replaceInfo.ByteCode, 0, nativeEntry, replaceInfo.ByteCode.Length);
+                }
 
                 return result;
             }
@@ -281,10 +273,10 @@ namespace Jitex.JIT
             }
         }
 
-        //private static IntPtr GetPointerModule()
-        //{
-
-        //}
+        private static IntPtr GetPointerModule(Module module)
+        {
+            return (IntPtr)m_pData.GetValue(module);
+        }
 
         public void Dispose()
         {

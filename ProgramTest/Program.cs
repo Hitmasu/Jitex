@@ -1,12 +1,8 @@
 ﻿using FrameworkTest;
+using Jitex.JIT;
 using System;
 using System.Diagnostics;
 using System.Reflection;
-using System.Reflection.Emit;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using Jitex.Builder;
-using Jitex.JIT;
 
 namespace ProgramTest
 {
@@ -17,7 +13,7 @@ namespace ProgramTest
             //Framework framework = new Framework(typeof(Program).Module);
             ManagedJit jit = ManagedJit.GetInstance();
             jit.OnPreCompile = OnPreCompile;
-
+            Debugger.Break();
 
 
 
