@@ -1,4 +1,5 @@
-﻿using MethodBody = Jitex.Builder.MethodBody;
+﻿using System.Reflection.Emit;
+using MethodBody = Jitex.Builder.MethodBody;
 
 namespace Jitex.JIT
 {

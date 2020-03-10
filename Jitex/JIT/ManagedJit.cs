@@ -1,5 +1,5 @@
 ﻿using CoreRT.JitInterface;
-using Jitex.Utils;
+using Jitex.Utils.Comparer;
 using System;
 using System.Collections.Concurrent;
 using System.Diagnostics;
@@ -15,7 +15,7 @@ using MethodBody = Jitex.Builder.MethodBody;
 namespace Jitex.JIT
 {
     /// <summary>
-    /// Hook current jit.
+    /// Detour current jit.
     /// </summary>
     /// <remarks>
     /// Source: https://xoofx.com/blog/2018/04/12/writing-managed-jit-in-csharp-with-coreclr/
@@ -56,6 +56,11 @@ namespace Jitex.JIT
             IntPtr jit = GetJit();
 
             JitVTable = Marshal.ReadIntPtr(jit);
+
+#if DEBUG
+            IntPtr compileMethodAddress = Marshal.ReadIntPtr(JitVTable, IntPtr.Size * 0);
+            Debug.WriteLine($"Compile method original address: {compileMethodAddress.ToString("X")}");
+#endif
             Compiler = Marshal.PtrToStructure<CorJitCompiler>(JitVTable);
         }
 
@@ -254,14 +259,19 @@ namespace Jitex.JIT
                     info.ILCode = ilAddress;
                     info.ILCodeSize = ilLength;
                 }
+                //Debugger.Break();
+                //Trace.WriteLine("Pré compile-method");
 
                 int result = Compiler.CompileMethod(thisPtr, comp, ref info, flags, out nativeEntry, out nativeSizeOfCode);
 
+                //Debugger.Break();
+                //Trace.WriteLine("After compile-method");
+
                 //ASM can be replaced just after method already compiled by jit.
-                if (replaceInfo?.Mode == ReplaceInfo.ReplaceMode.ASM)
-                {
-                    Marshal.Copy(replaceInfo.ByteCode, 0, nativeEntry, replaceInfo.ByteCode.Length);
-                }
+                //if (replaceInfo?.Mode == ReplaceInfo.ReplaceMode.ASM)
+                //{
+                //    Marshal.Copy(replaceInfo.ByteCode, 0, nativeEntry, replaceInfo.ByteCode.Length);
+                //}
 
                 return result;
             }
@@ -270,6 +280,11 @@ namespace Jitex.JIT
                 compileEntry.EnterCount--;
             }
         }
+
+        //private static IntPtr GetPointerModule()
+        //{
+
+        //}
 
         public void Dispose()
         {

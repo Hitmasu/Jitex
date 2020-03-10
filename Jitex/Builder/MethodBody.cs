@@ -1,5 +1,5 @@
 ﻿using Jitex.Builder.Exceptions;
-using Jitex.Builder.IL;
+using Jitex.IL;
 using Jitex.PE;
 using System;
 using System.Collections.Generic;
@@ -8,30 +8,26 @@ using System.Reflection;
 using System.Reflection.Emit;
 using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
+using Jitex.Utils.Extensions;
 
 namespace Jitex.Builder
 {
     public class MethodBody
     {
-        private byte[] _il;
-
         /// <summary>
         /// Module from method body.
         /// </summary>
         public Module Module { get; set; }
 
-        /// <summary>
-        /// IL from body.
-        /// </summary>
+        private byte[] _il;
+
         public byte[] IL
         {
-
             get => _il;
-
             set
             {
                 _il = value;
-                ReadOperations();
+                Operations = new ILReader(_il, Module);
                 CalculateMaxStack();
             }
         }
@@ -49,21 +45,29 @@ namespace Jitex.Builder
         /// <summary>
         /// If body contains some local variable.
         /// </summary>
-        public bool HasLocalVariable => LocalVariables.Count > 0;
+        public bool HasLocalVariable => LocalVariables?.Count > 0;
 
-        public uint MaxStackSize { get; private set; }
+        public uint MaxStackSize { get; set; }
 
-        /// <summary>
-        /// Create a new method body.
-        /// </summary>
-        /// <param name="il">IL of method.</param>
-        /// <param name="localVariables">Local variables of method.</param>
-        /// <param name="module">Module from body.</param>
-        public MethodBody(byte[] il, IList<LocalVariableInfo> localVariables, Module module)
+        public MethodBody(MethodBase methodBase)
         {
-            LocalVariables = localVariables;
-            Module = module;
-            IL = il;
+            Module = methodBase.Module;
+
+            if (methodBase is DynamicMethod dynamicMethod)
+            {
+                _il = methodBase.GetILBytes();
+                LocalVariables = new List<LocalVariableInfo>
+                {
+                    new LocalVariableInfo(typeof(long))
+                };
+                dynamicMethod.Invoke(null, null);
+                Operations = new ILReader(dynamicMethod).ToList();
+                MaxStackSize = 8;
+            }
+            else
+            {
+                IL = methodBase.GetILBytes();
+            }
         }
 
         /// <summary>
@@ -73,14 +77,8 @@ namespace Jitex.Builder
         /// <param name="module">Module from body.</param>
         public MethodBody(byte[] il, Module module)
         {
-            IL = il;
             Module = module;
-        }
-
-        private void ReadOperations()
-        {
-            ILReader reader = new ILReader(_il, Module);
-            Operations = reader;
+            IL = il;
         }
 
         /// <summary>
@@ -89,13 +87,11 @@ namespace Jitex.Builder
         private void CalculateMaxStack()
         {
             int maxStackSize = 0;
-            var p = Operations.ToList();
             foreach (Operation operation in Operations)
             {
                 switch (operation.OpCode.StackBehaviourPush)
                 {
                     case StackBehaviour.Push0:
-                    case StackBehaviour.Varpush:
                         break;
 
                     case StackBehaviour.Push1:
@@ -104,6 +100,7 @@ namespace Jitex.Builder
                     case StackBehaviour.Pushr4:
                     case StackBehaviour.Pushr8:
                     case StackBehaviour.Pushref:
+                    case StackBehaviour.Varpush:
                         maxStackSize++;
                         break;
 
@@ -178,7 +175,7 @@ namespace Jitex.Builder
                 if (elementType == CorElementType.ELEMENT_TYPE_CLASS || elementType == CorElementType.ELEMENT_TYPE_VALUETYPE)
                 {
                     //TODO
-                    //Is Pinned
+                    //Pinned variable
 
                     if (Module == null)
                         throw new ModuleNullException("Module can't be null with a Local Variable of type Class ");
@@ -202,7 +199,7 @@ namespace Jitex.Builder
             BlobBuilder blobSize = new BlobBuilder();
             blobSize.WriteCompressedInteger(blob.Count);
             blob.LinkPrefix(blobSize);
-            
+
             return blob.ToArray();
         }
     }

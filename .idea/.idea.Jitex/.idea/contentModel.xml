@@ -1,12 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ContentModelStore">
-    <e p="C:\Users\Flávio\.nuget\packages\microsoft.net.test.sdk\16.2.0\build\netcoreapp1.0" t="Include">
-      <e p="Microsoft.NET.Test.Sdk.Program.cs" t="Include" />
-    </e>
-    <e p="C:\Users\Flávio\.nuget\packages\xunit.runner.visualstudio\2.4.0\build\netcoreapp1.0\xunit.runner.reporters.netcoreapp10.dll" t="Include" />
-    <e p="C:\Users\Flávio\.nuget\packages\xunit.runner.visualstudio\2.4.0\build\netcoreapp1.0\xunit.runner.utility.netcoreapp10.dll" t="Include" />
-    <e p="C:\Users\Flávio\.nuget\packages\xunit.runner.visualstudio\2.4.0\build\netcoreapp1.0\xunit.runner.visualstudio.dotnetcore.testadapter.dll" t="Include" />
     <e p="C:\Users\Flávio\.Rider2019.3\system\extResources" t="IncludeRecursive" />
     <e p="C:\Users\Flávio\.Rider2019.3\system\resharper-host\local\Transient\ReSharperHost\v193\SolutionCaches\_Jitex.-1362067967.00" t="ExcludeRecursive" />
     <e p="C:\Users\Flávio\source\repos\Hitmasu\Jitex" t="IncludeFlat">
@@ -29,7 +23,25 @@
           </e>
         </e>
       </e>
+      <e p="FrameworkTest" t="IncludeRecursive">
+        <e p="bin" t="ExcludeRecursive" />
+        <e p="Framework.cs" t="Include" />
+        <e p="FrameworkTest.csproj" t="IncludeRecursive" />
+        <e p="MethodParser.cs" t="Include" />
+        <e p="obj" t="ExcludeRecursive">
+          <e p="Debug" t="Include">
+            <e p="netcoreapp3.1" t="Include">
+              <e p="FrameworkTest.AssemblyInfo.cs" t="Include" />
+            </e>
+          </e>
+        </e>
+        <e p="SomarReplace.cs" t="Include" />
+      </e>
       <e p="Jitex" t="IncludeRecursive">
+        <e p="Attributes" t="Include">
+          <e p="DetourAttribute.cs" t="Include" />
+          <e p="DetourByMethodNameAttribute.cs" t="Include" />
+        </e>
         <e p="bin" t="ExcludeRecursive" />
         <e p="Builder" t="Include">
           <e p="CorElementType.cs" t="Include" />
@@ -43,6 +55,9 @@
           </e>
           <e p="LocalVariableInfo.cs" t="Include" />
           <e p="MethodBody.cs" t="Include" />
+        </e>
+        <e p="Hook" t="Include">
+          <e p="Detour.cs" t="Include" />
         </e>
         <e p="JIT" t="Include">
           <e p="CompileTls.cs" t="Include" />
@@ -59,40 +74,29 @@
         </e>
         <e p="PE" t="Include">
           <e p="MetadataInfo.cs" t="Include" />
-          <e p="TypeIdentifier.cs" t="Include" />
-          <e p="TypeInfo.cs" t="Include" />
         </e>
         <e p="Utils" t="Include">
-          <e p="IntPtrEqualityComparer.cs" t="Include" />
+          <e p="Comparer" t="Include">
+            <e p="IntPtrEqualityComparer.cs" t="Include" />
+            <e p="TypeComparer.cs" t="Include" />
+          </e>
           <e p="Memory.cs" t="Include" />
           <e p="WinAPI.cs" t="Include" />
         </e>
       </e>
       <e p="Jitex.sln" t="IncludeFlat" />
-      <e p="Jitex.Test" t="IncludeRecursive">
-        <e p="bin" t="ExcludeRecursive" />
-        <e p="Jitex.Test.csproj" t="IncludeRecursive" />
-        <e p="ManagedJitTest.cs" t="Include" />
-        <e p="obj" t="ExcludeRecursive">
-          <e p="Debug" t="Include">
-            <e p="netcoreapp3.1" t="Include">
-              <e p="Jitex.Test.AssemblyInfo.cs" t="Include" />
-            </e>
-          </e>
-        </e>
-      </e>
       <e p="packages" t="ExcludeRecursive" />
-      <e p="Testing" t="IncludeRecursive">
+      <e p="ProgramTest" t="IncludeRecursive">
         <e p="bin" t="ExcludeRecursive" />
         <e p="obj" t="ExcludeRecursive">
           <e p="Debug" t="Include">
             <e p="netcoreapp3.1" t="Include">
-              <e p="Testing.AssemblyInfo.cs" t="Include" />
+              <e p="ProgramTest.AssemblyInfo.cs" t="Include" />
             </e>
           </e>
         </e>
         <e p="Program.cs" t="Include" />
-        <e p="Testing.csproj" t="IncludeRecursive" />
+        <e p="ProgramTest.csproj" t="IncludeRecursive" />
       </e>
     </e>
   </component>

@@ -1,24 +1,34 @@
-﻿using System;
+﻿using Jitex.IL.Resolver;
+using Jitex.Utils;
+using Jitex.Utils.Extensions;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Reflection.Emit;
 
-namespace Jitex.Builder.IL
+namespace Jitex.IL
 {
-    internal class ILReader : IEnumerable<Operation>
+    public class ILReader : IEnumerable<Operation>
     {
         /// <summary>
         /// Instructions IL.
         /// </summary>
         private readonly byte[] _il;
 
-        /// <summary>
-        /// Module of IL.
-        /// </summary>
-        private readonly Module _module;
-
         private readonly bool _forceTypeOnGeneric;
+
+        private readonly ITokenResolver _resolver;
+
+        public ILReader(MethodBase methodBase)
+        {
+            _il = methodBase.GetILBytes();
+
+            if(methodBase is DynamicMethod dynamicMethod)
+                _resolver = new DynamicMethodTokenResolver(dynamicMethod);
+            else
+                _resolver = new ModuleTokenResolver(methodBase.Module);
+        }
 
         /// <summary>
         /// Create a new instance of ILReader.
@@ -29,13 +39,13 @@ namespace Jitex.Builder.IL
         public ILReader(byte[] il, Module module, bool forceTypeOnGeneric = true)
         {
             _il = il;
-            _module = module;
             _forceTypeOnGeneric = forceTypeOnGeneric;
+            _resolver = new ModuleTokenResolver(module);
         }
 
         public IEnumerator<Operation> GetEnumerator()
         {
-            return new ILEnumerator(_il, _module, _forceTypeOnGeneric);
+            return new ILEnumerator(_il, _resolver, _forceTypeOnGeneric);
         }
 
         IEnumerator IEnumerable.GetEnumerator()
@@ -53,10 +63,7 @@ namespace Jitex.Builder.IL
             /// </summary>
             private readonly byte[] _il;
 
-            /// <summary>
-            /// Module of IL.
-            /// </summary>
-            private readonly Module _module;
+            private readonly ITokenResolver _resolver;
 
             private readonly bool _forceTypeOnGeneric;
 
@@ -73,10 +80,10 @@ namespace Jitex.Builder.IL
             /// <param name="il">Instructions to read.</param>
             /// <param name="module">Module of instructions.</param>
             /// <param name="forceTypeOnGeneric">Force read token from generic method</param>
-            public ILEnumerator(byte[] il, Module module, bool forceTypeOnGeneric)
+            public ILEnumerator(byte[] il, ITokenResolver resolver, bool forceTypeOnGeneric)
             {
                 _il = il;
-                _module = module;
+                _resolver = resolver;
                 _forceTypeOnGeneric = forceTypeOnGeneric;
             }
 
@@ -225,7 +232,7 @@ namespace Jitex.Builder.IL
             private (Type @Type, int Token) ReadType()
             {
                 int token = ReadInt32();
-                Type type = _module.ResolveType(token);
+                Type type = _resolver.ResolveType(token);
                 return (type, token);
             }
 
@@ -236,7 +243,7 @@ namespace Jitex.Builder.IL
             private (string @String, int Token) ReadString()
             {
                 int token = ReadInt32();
-                return (_module.ResolveString(token), token);
+                return (_resolver.ResolveString(token), token);
             }
 
             /// <summary>
@@ -246,7 +253,7 @@ namespace Jitex.Builder.IL
             private (MethodBase Method, int Token) ReadMethod()
             {
                 int token = ReadInt32();
-                MethodBase method = _module.ResolveMethod(token);
+                MethodBase method = _resolver.ResolveMethod(token);
                 return (method, token);
             }
 
@@ -257,7 +264,7 @@ namespace Jitex.Builder.IL
             private (ConstructorInfo Constructor, int Token) ReadConstructor()
             {
                 int token = ReadInt32();
-                ConstructorInfo constructor = (ConstructorInfo)_module.ResolveMethod(token);
+                ConstructorInfo constructor = (ConstructorInfo)_resolver.ResolveMethod(token);
                 return (constructor, token);
             }
 
@@ -268,7 +275,7 @@ namespace Jitex.Builder.IL
             private (FieldInfo Field, int Token) ReadField()
             {
                 int token = ReadInt32();
-                FieldInfo field = _module.ResolveField(token);
+                FieldInfo field = _resolver.ResolveField(token);
                 return (field, token);
             }
 
@@ -279,7 +286,7 @@ namespace Jitex.Builder.IL
             private (byte[] Signature, int Token) ReadSignature()
             {
                 int token = ReadInt32();
-                byte[] signature = _module.ResolveSignature(token);
+                byte[] signature = _resolver.ResolveSignature(token);
                 return (signature, token);
             }
 
@@ -290,7 +297,7 @@ namespace Jitex.Builder.IL
             private (MemberInfo Member, int Token) ReadMember()
             {
                 int token = ReadInt32();
-                MemberInfo member = _module.ResolveMember(token);
+                MemberInfo member = _resolver.ResolveMember(token);
                 return (member, token);
             }
 

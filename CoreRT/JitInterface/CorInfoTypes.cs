@@ -118,7 +118,7 @@ namespace CoreRT.JitInterface
         public byte* args;
         public byte* pSig;
         public uint cbSig;
-        public CORINFO_MODULE_STRUCT_* scope;          // passed to getArgClass
+        public IntPtr scope;          // passed to getArgClass
         public uint token;
 
         public CorInfoType retType { get { return (CorInfoType)_retType; } set { _retType = (byte)value; } }
