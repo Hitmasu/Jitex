@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -30,12 +29,25 @@ namespace Jitex.PE
         {
             _module = assembly.ManifestModule;
 
-            using Stream assemblyFile = File.OpenRead(assembly.Location);
-            using PEReader peReader = new PEReader(assemblyFile);
+            Stream assemblyStream;
+
+            if (assembly.IsDynamic)
+            {
+                var generator = new Lokad.ILPack.AssemblyGenerator();
+                byte[] buffer = generator.GenerateAssemblyBytes(assembly);
+                assemblyStream = new MemoryStream(buffer);
+            }
+            else
+            {
+                assemblyStream = File.OpenRead(assembly.Location);
+            }
+
+            using PEReader peReader = new PEReader(assemblyStream);
             MetadataReader metadataReader = peReader.GetMetadataReader();
 
             Types = ReadTypes(metadataReader);
-            MembersRef = ReadReferences(metadataReader);
+
+            assemblyStream.Dispose();
         }
 
         /// <summary>
@@ -53,6 +65,9 @@ namespace Jitex.PE
             foreach (EntityHandle entityHandle in typesDef.Concat(typesRef))
             {
                 int token = reader.GetToken(entityHandle);
+
+                if (token == 0x02000001)
+                    continue;
 
                 Type type = null;
 
@@ -72,19 +87,6 @@ namespace Jitex.PE
             return types.ToImmutableDictionary();
         }
 
-        private ImmutableDictionary<int, int> ReadReferences(MetadataReader reader)
-        {
-            var references = ImmutableDictionary.CreateBuilder<int, int>();
-
-            foreach (int tokenRef in reader.MemberReferences.Select(reference => reader.GetToken(reference)))
-            {
-                MemberInfo memberRef = _module.ResolveMember(tokenRef);
-                references.Add(memberRef.MetadataToken, tokenRef);
-            }
-
-            return references.ToImmutableDictionary();
-        }
-
         /// <summary>
         /// Get handle from Type.
         /// </summary>
@@ -94,14 +96,6 @@ namespace Jitex.PE
         {
             if (Types.TryGetValue(type, out EntityHandle typeInfo))
                 return typeInfo;
-
-            throw new NullReferenceException("Type not referenced on assembly.");
-        }
-
-        public int GetMemberRefToken(int metadataToken)
-        {
-            if (MembersRef.TryGetValue(metadataToken, out int memberRefToken))
-                return memberRefToken;
 
             throw new NullReferenceException("Type not referenced on assembly.");
         }

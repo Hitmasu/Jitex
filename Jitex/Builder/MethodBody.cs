@@ -49,7 +49,7 @@ namespace Jitex.Builder
 
         public uint MaxStackSize { get; set; }
 
-        public MethodBody(MethodBase methodBase)
+        public MethodBody(MethodInfo methodBase)
         {
             Module = methodBase.Module;
 
@@ -67,7 +67,15 @@ namespace Jitex.Builder
             else
             {
                 IL = methodBase.GetILBytes();
+                LocalVariables = methodBase.GetMethodBody().LocalVariables.Select(s => new LocalVariableInfo(s.LocalType)).ToList();
             }
+        }
+
+        public MethodBody(byte[] il, Module module, params Type[] variables)
+        {
+            Module = module;
+            LocalVariables = variables.Select(s => new LocalVariableInfo(s)).ToList();
+            IL = il;
         }
 
         /// <summary>
@@ -166,11 +174,9 @@ namespace Jitex.Builder
             blob.WriteByte(0x07);
             blob.WriteCompressedInteger(LocalVariables.Count);
 
-            MetadataInfo metadataInfo = null;
-
-            foreach (LocalVariableInfo localVariable in LocalVariables)
+            foreach (LocalVariableInfo variable in LocalVariables)
             {
-                CorElementType elementType = localVariable.ElementType;
+                CorElementType elementType = variable.ElementType;
 
                 if (elementType == CorElementType.ELEMENT_TYPE_CLASS || elementType == CorElementType.ELEMENT_TYPE_VALUETYPE)
                 {
@@ -180,10 +186,8 @@ namespace Jitex.Builder
                     if (Module == null)
                         throw new ModuleNullException("Module can't be null with a Local Variable of type Class ");
 
-                    if (metadataInfo == null)
-                        metadataInfo = new MetadataInfo(Module.Assembly);
-
-                    EntityHandle typeHandle = metadataInfo.GetTypeHandle(localVariable.Type);
+                    MetadataInfo metadataInfo = new MetadataInfo(variable.Type.Assembly);
+                    EntityHandle typeHandle = metadataInfo.GetTypeHandle(variable.Type);
 
                     int typeInfo = CodedIndex.TypeDefOrRefOrSpec(typeHandle);
 

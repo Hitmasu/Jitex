@@ -10,12 +10,6 @@ namespace Jitex.Builder
         private static readonly MethodInfo GetCorElementType;
         private static readonly FieldInfo GetRuntimeType;
 
-        static LocalVariableInfo()
-        {
-            GetCorElementType = typeof(RuntimeTypeHandle).GetMethod("GetCorElementType", BindingFlags.Static | BindingFlags.NonPublic);
-            GetRuntimeType = typeof(RuntimeTypeHandle).GetField("m_type", BindingFlags.Instance | BindingFlags.NonPublic);
-        }
-
         public Type Type { get; }
 
         public CorElementType ElementType
@@ -23,7 +17,7 @@ namespace Jitex.Builder
             get
             {
                 object runtime = GetRuntimeType.GetValue(Type.TypeHandle);
-                object corElementType = GetCorElementType.Invoke(null, new[] {runtime});
+                object corElementType = GetCorElementType.Invoke(null, new[] { runtime });
                 return (CorElementType)(byte)corElementType;
             }
         }
@@ -31,6 +25,12 @@ namespace Jitex.Builder
         public LocalVariableInfo(Type type)
         {
             Type = type;
+        }
+
+        static LocalVariableInfo()
+        {
+            GetCorElementType = typeof(RuntimeTypeHandle).GetMethod("GetCorElementType", BindingFlags.Static | BindingFlags.NonPublic);
+            GetRuntimeType = typeof(RuntimeTypeHandle).GetField("m_type", BindingFlags.Instance | BindingFlags.NonPublic);
         }
     }
 }

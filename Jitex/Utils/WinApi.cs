@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Jitex.Utils
 {
-    internal static class WinApi
+    public static class WinApi
     {
         [Flags]
         public enum FreeType
