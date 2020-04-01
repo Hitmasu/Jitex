@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Runtime.InteropServices;
-using static Jitex.Utils.WinApi;
 
 namespace Jitex.Utils
 {
@@ -13,27 +12,27 @@ namespace Jitex.Utils
             // jmp rax
             0xFF, 0xE0
         };
-        
+
         /// <summary>
-        /// Create trampoline a 64 bits. 
+        ///     Create trampoline a 64 bits.
         /// </summary>
         /// <param name="address"></param>
         /// <returns></returns>
         public static IntPtr AllocateTrampoline(IntPtr address)
         {
-            IntPtr jmpNative = VirtualAlloc(IntPtr.Zero, TrampolineInstruction.Length, AllocationType.Commit, MemoryProtection.ExecuteReadWrite);
+            IntPtr jmpNative = WinApi.VirtualAlloc(IntPtr.Zero, TrampolineInstruction.Length, WinApi.AllocationType.Commit, WinApi.MemoryProtection.ExecuteReadWrite);
             Marshal.Copy(TrampolineInstruction, 0, jmpNative, TrampolineInstruction.Length);
             Marshal.WriteIntPtr(jmpNative, 2, address);
             return jmpNative;
         }
 
         /// <summary>
-        /// Free memory trampoline.
+        ///     Free memory trampoline.
         /// </summary>
         /// <param name="address"></param>
         public static void FreeTrampoline(IntPtr address)
         {
-            VirtualFree(address, new IntPtr(TrampolineInstruction.Length), FreeType.Release);
+            WinApi.VirtualFree(address, new IntPtr(TrampolineInstruction.Length), WinApi.FreeType.Release);
         }
     }
 }

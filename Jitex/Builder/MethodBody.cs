@@ -1,5 +1,5 @@
 ﻿using Jitex.Builder.Exceptions;
-using Jitex.Builder.IL;
+using Jitex.IL;
 using Jitex.PE;
 using System;
 using System.Collections.Generic;
@@ -8,6 +8,7 @@ using System.Reflection;
 using System.Reflection.Emit;
 using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
+using Jitex.Utils.Extensions;
 
 namespace Jitex.Builder
 {
@@ -16,86 +17,89 @@ namespace Jitex.Builder
         private byte[] _il;
 
         /// <summary>
-        /// Module from method body.
+        ///     Module from method body.
         /// </summary>
         public Module Module { get; set; }
 
-        /// <summary>
-        /// IL from body.
-        /// </summary>
         public byte[] IL
         {
-
             get => _il;
-
             set
             {
                 _il = value;
-                ReadOperations();
+                Operations = new ILReader(_il, Module);
                 CalculateMaxStack();
             }
         }
 
         /// <summary>
-        /// Operations from IL.
+        ///     Operations from IL.
         /// </summary>
         public IEnumerable<Operation> Operations { get; private set; }
 
         /// <summary>
-        /// Local variables from method.
+        ///     Local variables from method.
         /// </summary>
         public IList<LocalVariableInfo> LocalVariables { get; set; }
 
         /// <summary>
-        /// If body contains some local variable.
+        ///     If body contains some local variable.
         /// </summary>
-        public bool HasLocalVariable => LocalVariables.Count > 0;
+        public bool HasLocalVariable => LocalVariables?.Count > 0;
 
-        public uint MaxStackSize { get; private set; }
+        public uint MaxStackSize { get; set; }
 
-        /// <summary>
-        /// Create a new method body.
-        /// </summary>
-        /// <param name="il">IL of method.</param>
-        /// <param name="localVariables">Local variables of method.</param>
-        /// <param name="module">Module from body.</param>
-        public MethodBody(byte[] il, IList<LocalVariableInfo> localVariables, Module module)
+        public MethodBody(MethodInfo methodBase)
         {
-            LocalVariables = localVariables;
+            Module = methodBase.Module;
+
+            if (methodBase is DynamicMethod dynamicMethod)
+            {
+                _il = methodBase.GetILBytes();
+                LocalVariables = new List<LocalVariableInfo>
+                {
+                    new LocalVariableInfo(typeof(long))
+                };
+                dynamicMethod.Invoke(null, null);
+                Operations = new ILReader(dynamicMethod).ToList();
+                MaxStackSize = 8;
+            }
+            else
+            {
+                IL = methodBase.GetILBytes();
+                LocalVariables = methodBase.GetMethodBody().LocalVariables.Select(s => new LocalVariableInfo(s.LocalType)).ToList();
+            }
+        }
+
+        public MethodBody(byte[] il, Module module, params Type[] variables)
+        {
             Module = module;
+            LocalVariables = variables.Select(s => new LocalVariableInfo(s)).ToList();
             IL = il;
         }
 
         /// <summary>
-        /// Create a new method body.
+        ///     Create a new method body.
         /// </summary>
         /// <param name="il">IL of method.</param>
         /// <param name="module">Module from body.</param>
         public MethodBody(byte[] il, Module module)
         {
-            IL = il;
             Module = module;
-        }
-
-        private void ReadOperations()
-        {
-            ILReader reader = new ILReader(_il, Module);
-            Operations = reader;
+            IL = il;
         }
 
         /// <summary>
-        /// Calculate .maxstack from body.
+        ///     Calculate .maxstack from body.
         /// </summary>
         private void CalculateMaxStack()
         {
             int maxStackSize = 0;
-            var p = Operations.ToList();
             foreach (Operation operation in Operations)
             {
                 switch (operation.OpCode.StackBehaviourPush)
                 {
                     case StackBehaviour.Push0:
-                    case StackBehaviour.Varpush:
                         break;
 
                     case StackBehaviour.Push1:
@@ -104,6 +108,7 @@ namespace Jitex.Builder
                     case StackBehaviour.Pushr4:
                     case StackBehaviour.Pushr8:
                     case StackBehaviour.Pushref:
+                    case StackBehaviour.Varpush:
                         maxStackSize++;
                         break;
 
@@ -153,13 +158,13 @@ namespace Jitex.Builder
 
                 if (maxStackSize > MaxStackSize)
                 {
-                    MaxStackSize = (uint)maxStackSize;
+                    MaxStackSize = (uint) maxStackSize;
                 }
             }
         }
 
         /// <summary>
-        /// Get compressed signature from local variables.
+        ///     Get compressed signature from local variables.
         /// </summary>
         /// <returns>Byte array - compressed signature.</returns>
         public byte[] GetSignatureVariables()
@@ -169,40 +174,36 @@ namespace Jitex.Builder
             blob.WriteByte(0x07);
             blob.WriteCompressedInteger(LocalVariables.Count);
 
-            MetadataInfo metadataInfo = null;
-
-            foreach (LocalVariableInfo localVariable in LocalVariables)
+            foreach (LocalVariableInfo variable in LocalVariables)
             {
-                CorElementType elementType = localVariable.ElementType;
+                CorElementType elementType = variable.ElementType;
 
                 if (elementType == CorElementType.ELEMENT_TYPE_CLASS || elementType == CorElementType.ELEMENT_TYPE_VALUETYPE)
                 {
                     //TODO
-                    //Is Pinned
+                    //Pinned variable
 
                     if (Module == null)
                         throw new ModuleNullException("Module can't be null with a Local Variable of type Class ");
 
-                    if (metadataInfo == null)
-                        metadataInfo = new MetadataInfo(Module.Assembly);
-
-                    EntityHandle typeHandle = metadataInfo.GetTypeHandle(localVariable.Type);
+                    MetadataInfo metadataInfo = new MetadataInfo(variable.Type.Assembly);
+                    EntityHandle typeHandle = metadataInfo.GetTypeHandle(variable.Type);
 
                     int typeInfo = CodedIndex.TypeDefOrRefOrSpec(typeHandle);
 
-                    blob.WriteByte((byte)elementType);
+                    blob.WriteByte((byte) elementType);
                     blob.WriteCompressedInteger(typeInfo);
                 }
                 else
                 {
-                    blob.WriteByte((byte)elementType);
+                    blob.WriteByte((byte) elementType);
                 }
             }
 
             BlobBuilder blobSize = new BlobBuilder();
             blobSize.WriteCompressedInteger(blob.Count);
             blob.LinkPrefix(blobSize);
-            
+
             return blob.ToArray();
         }
     }

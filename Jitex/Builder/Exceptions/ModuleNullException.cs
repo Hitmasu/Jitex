@@ -6,7 +6,6 @@ namespace Jitex.Builder.Exceptions
     {
         public ModuleNullException(string message) : base(message)
         {
-            
         }
     }
 }

@@ -5,6 +5,6 @@
         <Platforms>AnyCPU;x64</Platforms>
     </PropertyGroup>
     <ItemGroup>
-      <ProjectReference Include="..\CoreRT\CoreRT.csproj" />
+      <PackageReference Include="Lokad.ILPack" Version="0.1.4" />
     </ItemGroup>
 </Project>

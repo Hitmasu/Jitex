@@ -1,17 +1,29 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Diagnostics;
 using System.Reflection;
 using System.Reflection.Emit;
-using System.Text;
 
-namespace Jitex.Builder.IL
+namespace Jitex.IL
 {
     [DebuggerDisplay("{OpCode} - {Instance}")]
     public partial class Operation
     {
+        public int? MetadataToken { get; }
+
+        public int Index { get; set; }
+
         /// <summary>
-        /// Create new operation.
+        ///     Operation Code IL.
+        /// </summary>
+        public OpCode OpCode { get; }
+
+        /// <summary>
+        ///     Instance value of operation.
+        /// </summary>
+        public dynamic Instance { get; set; }
+
+        /// <summary>
+        ///     Create new operation.
         /// </summary>
         /// <param name="opCode">Operation Code IL.</param>
         /// <param name="instance">Operation value instance.</param>
@@ -32,20 +44,6 @@ namespace Jitex.Builder.IL
             Instance = instance;
             MetadataToken = metadataToken;
         }
-
-        public int? MetadataToken { get; }
-
-        public int Index { get; set; }
-
-        /// <summary>
-        /// Operation Code IL.
-        /// </summary>
-        public OpCode OpCode { get; }
-
-        /// <summary>
-        /// Instance value of operation.
-        /// </summary>
-        public dynamic Instance { get; set; }
     }
 
     public partial class Operation
@@ -53,31 +51,12 @@ namespace Jitex.Builder.IL
         private static readonly object LockState = new object();
 
         /// <summary>
-        /// All Operation Codes.
+        ///     All Operation Codes.
         /// </summary>
         private static IDictionary<short, OpCode> _opCodes;
 
         /// <summary>
-        /// Get <see cref="OpCode" /> from instruction.
-        /// </summary>
-        /// <param name="b">Instruction IL.</param>
-        /// <returns>Operation code of instruction.</returns>
-        public static OpCode Translate(byte b)
-        {
-            lock (LockState)
-            {
-                if (_opCodes == null)
-                {
-                    _opCodes = new Dictionary<short, OpCode>();
-                    LoadOpCodes();
-                }
-            }
-
-            return _opCodes[b];
-        }
-
-        /// <summary>
-        /// Load all operation codes.
+        ///     Load all operation codes.
         /// </summary>
         private static void LoadOpCodes()
         {
@@ -93,6 +72,25 @@ namespace Jitex.Builder.IL
                 else
                     _opCodes.Add(opCode.Value, opCode);
             }
+        }
+
+        /// <summary>
+        ///     Get <see cref="OpCode" /> from instruction.
+        /// </summary>
+        /// <param name="b">Instruction IL.</param>
+        /// <returns>Operation code of instruction.</returns>
+        public static OpCode Translate(byte b)
+        {
+            lock (LockState)
+            {
+                if (_opCodes == null)
+                {
+                    _opCodes = new Dictionary<short, OpCode>();
+                    LoadOpCodes();
+                }
+            }
+
+            return _opCodes[b];
         }
     }
 }

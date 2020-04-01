@@ -2,18 +2,18 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
 using System.Reflection.PortableExecutable;
+using Lokad.ILPack;
 
 namespace Jitex.PE
 {
     /// <summary>
-    /// Read Metadata from assembly.
+    ///     Read Metadata from assembly.
     /// </summary>
     public class MetadataInfo
     {
@@ -23,23 +23,49 @@ namespace Jitex.PE
         private ImmutableDictionary<int, int> MembersRef { get; }
 
         /// <summary>
-        /// Read metadata from assembly.
+        ///     Read metadata from assembly.
         /// </summary>
         /// <param name="assembly">Assembly to read.</param>
         public MetadataInfo(Assembly assembly)
         {
             _module = assembly.ManifestModule;
 
-            using Stream assemblyFile = File.OpenRead(assembly.Location);
-            using PEReader peReader = new PEReader(assemblyFile);
+            Stream assemblyStream;
+
+            if (assembly.IsDynamic)
+            {
+                var generator = new AssemblyGenerator();
+                byte[] buffer = generator.GenerateAssemblyBytes(assembly);
+                assemblyStream = new MemoryStream(buffer);
+            }
+            else
+            {
+                assemblyStream = File.OpenRead(assembly.Location);
+            }
+
+            using PEReader peReader = new PEReader(assemblyStream);
             MetadataReader metadataReader = peReader.GetMetadataReader();
 
             Types = ReadTypes(metadataReader);
-            MembersRef = ReadReferences(metadataReader);
+
+            assemblyStream.Dispose();
         }
 
         /// <summary>
-        /// Read types from metadata.
+        ///     Get handle from Type.
+        /// </summary>
+        /// <param name="type">Type to get handle.</param>
+        /// <returns>EntityHandle from Type.</returns>
+        internal EntityHandle GetTypeHandle(Type type)
+        {
+            if (Types.TryGetValue(type, out EntityHandle typeInfo))
+                return typeInfo;
+
+            throw new NullReferenceException("Type not referenced on assembly.");
+        }
+
+        /// <summary>
+        ///     Read types from metadata.
         /// </summary>
         /// <param name="reader">Instance of MetadataReader</param>
         /// <returns>A Dictionary of types found.</returns>
@@ -47,12 +73,16 @@ namespace Jitex.PE
         {
             var types = ImmutableDictionary.CreateBuilder<Type, EntityHandle>(TypeComparer.Instance);
 
-            IEnumerable<EntityHandle> typesDef = reader.TypeDefinitions.Select(typeDef => (EntityHandle)typeDef);
-            IEnumerable<EntityHandle> typesRef = reader.TypeReferences.Select(typeRef => (EntityHandle)typeRef); ;
+            IEnumerable<EntityHandle> typesDef = reader.TypeDefinitions.Select(typeDef => (EntityHandle) typeDef);
+            IEnumerable<EntityHandle> typesRef = reader.TypeReferences.Select(typeRef => (EntityHandle) typeRef);
+            ;
 
             foreach (EntityHandle entityHandle in typesDef.Concat(typesRef))
             {
                 int token = reader.GetToken(entityHandle);
+
+                if (token == 0x02000001)
+                    continue;
 
                 Type type = null;
 
@@ -70,40 +100,6 @@ namespace Jitex.PE
             }
 
             return types.ToImmutableDictionary();
-        }
-
-        private ImmutableDictionary<int, int> ReadReferences(MetadataReader reader)
-        {
-            var references = ImmutableDictionary.CreateBuilder<int, int>();
-
-            foreach (int tokenRef in reader.MemberReferences.Select(reference => reader.GetToken(reference)))
-            {
-                MemberInfo memberRef = _module.ResolveMember(tokenRef);
-                references.Add(memberRef.MetadataToken, tokenRef);
-            }
-
-            return references.ToImmutableDictionary();
-        }
-
-        /// <summary>
-        /// Get handle from Type.
-        /// </summary>
-        /// <param name="type">Type to get handle.</param>
-        /// <returns>EntityHandle from Type.</returns>
-        internal EntityHandle GetTypeHandle(Type type)
-        {
-            if (Types.TryGetValue(type, out EntityHandle typeInfo))
-                return typeInfo;
-
-            throw new NullReferenceException("Type not referenced on assembly.");
-        }
-
-        public int GetMemberRefToken(int metadataToken)
-        {
-            if (MembersRef.TryGetValue(metadataToken, out int memberRefToken))
-                return memberRefToken;
-
-            throw new NullReferenceException("Type not referenced on assembly.");
         }
     }
 }
