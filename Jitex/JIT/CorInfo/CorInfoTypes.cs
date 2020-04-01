@@ -17,16 +17,16 @@ namespace Jitex.JIT.CorInfo
     internal unsafe struct CORINFO_SIG_INFO
     {
         public CorInfoCallConv callConv;
-        public IntPtr retTypeClass;   // if the return type is a value class, this is its handle (enums are normalized)
-        public IntPtr retTypeSigClass;// returns the value class as it is in the sig (enums are not converted to primitives)
+        public IntPtr retTypeClass; // if the return type is a value class, this is its handle (enums are normalized)
+        public IntPtr retTypeSigClass; // returns the value class as it is in the sig (enums are not converted to primitives)
         public byte _retType;
-        public CorInfoSigInfoFlags flags;    // used by IL stubs code
+        public CorInfoSigInfoFlags flags; // used by IL stubs code
         public ushort numArgs;
-        public CORINFO_SIG_INST sigInst;  // information about how type variables are being instantiated in generic code
+        public CORINFO_SIG_INST sigInst; // information about how type variables are being instantiated in generic code
         public byte* args;
         public byte* pSig;
         public uint cbSig;
-        public IntPtr scope;          // passed to getArgClass
+        public IntPtr scope; // passed to getArgClass
         public uint token;
     }
 
@@ -35,9 +35,9 @@ namespace Jitex.JIT.CorInfo
         //
         // [In] arguments of resolveToken
         //
-        public IntPtr tokenContext;       //Context for resolution of generic arguments
+        public IntPtr tokenContext; //Context for resolution of generic arguments
         public IntPtr tokenScope;
-        public int token;              //The source token
+        public int token; //The source token
         public TokenKind tokenType;
 
         //
@@ -75,13 +75,13 @@ namespace Jitex.JIT.CorInfo
         CORINFO_CALLCONV_FIELD = 0x6,
         CORINFO_CALLCONV_LOCAL_SIG = 0x7,
         CORINFO_CALLCONV_PROPERTY = 0x8,
-        CORINFO_CALLCONV_NATIVEVARARG = 0xb,    // used ONLY for IL stub PInvoke vararg calls
+        CORINFO_CALLCONV_NATIVEVARARG = 0xb, // used ONLY for IL stub PInvoke vararg calls
 
-        CORINFO_CALLCONV_MASK = 0x0f,     // Calling convention is bottom 4 bits
+        CORINFO_CALLCONV_MASK = 0x0f, // Calling convention is bottom 4 bits
         CORINFO_CALLCONV_GENERIC = 0x10,
         CORINFO_CALLCONV_HASTHIS = 0x20,
         CORINFO_CALLCONV_EXPLICITTHIS = 0x40,
-        CORINFO_CALLCONV_PARAMTYPE = 0x80,     // Passed last. Same as CORINFO_GENERICS_CTXT_FROM_PARAMTYPEARG
+        CORINFO_CALLCONV_PARAMTYPE = 0x80, // Passed last. Same as CORINFO_GENERICS_CTXT_FROM_PARAMTYPEARG
     }
 
     internal enum CorInfoSigInfoFlags : byte
@@ -99,9 +99,10 @@ namespace Jitex.JIT.CorInfo
         CORINFO_GENERICS_CTXT_FROM_THIS = 0x00000020, // is this shared generic code that access the generic context from the this pointer?  If so, then if the method has SEH then the 'this' pointer must always be reported and kept alive.
         CORINFO_GENERICS_CTXT_FROM_METHODDESC = 0x00000040, // is this shared generic code that access the generic context from the ParamTypeArg(that is a MethodDesc)?  If so, then if the method has SEH then the 'ParamTypeArg' must always be reported and kept alive. Same as CORINFO_CALLCONV_PARAMTYPE
         CORINFO_GENERICS_CTXT_FROM_METHODTABLE = 0x00000080, // is this shared generic code that access the generic context from the ParamTypeArg(that is a MethodTable)?  If so, then if the method has SEH then the 'ParamTypeArg' must always be reported and kept alive. Same as CORINFO_CALLCONV_PARAMTYPE
-        CORINFO_GENERICS_CTXT_MASK = (CORINFO_GENERICS_CTXT_FROM_THIS |
-                                                   CORINFO_GENERICS_CTXT_FROM_METHODDESC |
-                                                   CORINFO_GENERICS_CTXT_FROM_METHODTABLE),
+
+        CORINFO_GENERICS_CTXT_MASK = CORINFO_GENERICS_CTXT_FROM_THIS |
+                                     CORINFO_GENERICS_CTXT_FROM_METHODDESC |
+                                     CORINFO_GENERICS_CTXT_FROM_METHODTABLE,
         CORINFO_GENERICS_CTXT_KEEP_ALIVE = 0x00000100, // Keep the generics context alive throughout the method even if there is no explicit use, and report its location to the CLR
     }
 
@@ -118,6 +119,7 @@ namespace Jitex.JIT.CorInfo
         public CORINFO_SIG_INFO args;
         public CORINFO_SIG_INFO locals;
     }
+
     //
     // what type of code region we are in
     //
@@ -135,11 +137,11 @@ namespace Jitex.JIT.CorInfo
         // Note that I dont use FACILITY_NULL for the facility number,
         // we may want to get a 'real' facility number
         CORJIT_OK = 0 /*NO_ERROR*/,
-        CORJIT_BADCODE = unchecked((int)0x80000001)/*MAKE_HRESULT(SEVERITY_ERROR, FACILITY_NULL, 1)*/,
-        CORJIT_OUTOFMEM = unchecked((int)0x80000002)/*MAKE_HRESULT(SEVERITY_ERROR, FACILITY_NULL, 2)*/,
-        CORJIT_INTERNALERROR = unchecked((int)0x80000003)/*MAKE_HRESULT(SEVERITY_ERROR, FACILITY_NULL, 3)*/,
-        CORJIT_SKIPPED = unchecked((int)0x80000004)/*MAKE_HRESULT(SEVERITY_ERROR, FACILITY_NULL, 4)*/,
-        CORJIT_RECOVERABLEERROR = unchecked((int)0x80000005)/*MAKE_HRESULT(SEVERITY_ERROR, FACILITY_NULL, 5)*/
+        CORJIT_BADCODE = unchecked((int) 0x80000001) /*MAKE_HRESULT(SEVERITY_ERROR, FACILITY_NULL, 1)*/,
+        CORJIT_OUTOFMEM = unchecked((int) 0x80000002) /*MAKE_HRESULT(SEVERITY_ERROR, FACILITY_NULL, 2)*/,
+        CORJIT_INTERNALERROR = unchecked((int) 0x80000003) /*MAKE_HRESULT(SEVERITY_ERROR, FACILITY_NULL, 3)*/,
+        CORJIT_SKIPPED = unchecked((int) 0x80000004) /*MAKE_HRESULT(SEVERITY_ERROR, FACILITY_NULL, 4)*/,
+        CORJIT_RECOVERABLEERROR = unchecked((int) 0x80000005) /*MAKE_HRESULT(SEVERITY_ERROR, FACILITY_NULL, 5)*/
     };
 
     public enum TokenKind

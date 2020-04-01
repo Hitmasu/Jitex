@@ -12,19 +12,14 @@ namespace Jitex.IL.Resolver
             _module = module;
         }
 
-        public MemberInfo ResolveMember(int token)
-        {
-            return _module.ResolveMember(token);
-        }
-
-        public Type ResolveType(int token)
-        {
-            return _module.ResolveType(token);
-        }
-
         public FieldInfo ResolveField(int token)
         {
             return _module.ResolveField(token);
+        }
+
+        public MemberInfo ResolveMember(int token)
+        {
+            return _module.ResolveMember(token);
         }
 
         public MethodBase ResolveMethod(int token)
@@ -40,6 +35,11 @@ namespace Jitex.IL.Resolver
         public string ResolveString(int token)
         {
             return _module.ResolveString(token);
+        }
+
+        public Type ResolveType(int token)
+        {
+            return _module.ResolveType(token);
         }
     }
 }

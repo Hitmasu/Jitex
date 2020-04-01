@@ -24,16 +24,16 @@ namespace Jitex.JIT
             AppDomain.CurrentDomain.AssemblyLoad += CurrentDomainOnAssemblyLoad;
         }
 
-        private static void CurrentDomainOnAssemblyLoad(object? sender, AssemblyLoadEventArgs args)
-        {
-            AddAssembly(args.LoadedAssembly);
-        }
-
         private static void AddAssembly(Assembly assembly)
         {
             Module module = assembly.Modules.First();
             IntPtr scope = GetPointerFromModule(module);
             MapScopeToHandle.Add(scope, module);
+        }
+
+        private static void CurrentDomainOnAssemblyLoad(object? sender, AssemblyLoadEventArgs args)
+        {
+            AddAssembly(args.LoadedAssembly);
         }
 
         public static Module GetModuleByPointer(IntPtr scope)
@@ -43,7 +43,7 @@ namespace Jitex.JIT
 
         public static IntPtr GetPointerFromModule(Module module)
         {
-            return (IntPtr)m_pData.GetValue(module);
+            return (IntPtr) m_pData.GetValue(module);
         }
     }
 }

@@ -11,12 +11,12 @@ namespace Jitex.IL
 {
     public class ILReader : IEnumerable<Operation>
     {
+        private readonly bool _forceTypeOnGeneric;
+
         /// <summary>
-        /// Instructions IL.
+        ///     Instructions IL.
         /// </summary>
         private readonly byte[] _il;
-
-        private readonly bool _forceTypeOnGeneric;
 
         private readonly ITokenResolver _resolver;
 
@@ -24,14 +24,14 @@ namespace Jitex.IL
         {
             _il = methodBase.GetILBytes();
 
-            if(methodBase is DynamicMethod dynamicMethod)
+            if (methodBase is DynamicMethod dynamicMethod)
                 _resolver = new DynamicMethodTokenResolver(dynamicMethod);
             else
                 _resolver = new ModuleTokenResolver(methodBase.Module);
         }
 
         /// <summary>
-        /// Create a new instance of ILReader.
+        ///     Create a new instance of ILReader.
         /// </summary>
         /// <param name="il">Instructions to read.</param>
         /// <param name="module">Module of instructions.</param>
@@ -54,28 +54,38 @@ namespace Jitex.IL
         }
 
         /// <summary>
-        /// Enumerator to read instructions.
+        ///     Enumerator to read instructions.
         /// </summary>
         private class ILEnumerator : IEnumerator<Operation>
         {
+            private readonly bool _forceTypeOnGeneric;
+
             /// <summary>
-            /// Instructions IL.
+            ///     Instructions IL.
             /// </summary>
             private readonly byte[] _il;
 
             private readonly ITokenResolver _resolver;
 
-            private readonly bool _forceTypeOnGeneric;
-
             private int _index;
 
             /// <summary>
-            /// Current position of read.
+            ///     Current position of read.
             /// </summary>
             private int _position;
 
             /// <summary>
-            /// Create a new enumerator to read instructions.
+            ///     Current operation.
+            /// </summary>
+            public Operation Current => ReadNextOperation();
+
+            /// <summary>
+            ///     Current operation.
+            /// </summary>
+            object IEnumerator.Current => Current;
+
+            /// <summary>
+            ///     Create a new enumerator to read instructions.
             /// </summary>
             /// <param name="il">Instructions to read.</param>
             /// <param name="module">Module of instructions.</param>
@@ -87,16 +97,6 @@ namespace Jitex.IL
                 _forceTypeOnGeneric = forceTypeOnGeneric;
             }
 
-            /// <summary>
-            /// Current operation.
-            /// </summary>
-            public Operation Current => ReadNextOperation();
-
-            /// <summary>
-            /// Current operation.
-            /// </summary>
-            object IEnumerator.Current => Current;
-
             public void Dispose()
             {
                 //throw new NotImplementedException();
@@ -107,13 +107,8 @@ namespace Jitex.IL
                 return _position < _il.Length;
             }
 
-            public void Reset()
-            {
-                _position = 0;
-            }
-
             /// <summary>
-            /// Read next operation from IL.
+            ///     Read next operation from IL.
             /// </summary>
             /// <returns>The next operation.</returns>
             private Operation ReadNextOperation()
@@ -173,9 +168,11 @@ namespace Jitex.IL
                             {
                                 throw ex;
                             }
+
                             _position -= 4;
                             operation = new Operation(opCode, ReadInt32());
                         }
+
                         break;
 
                     case OperandType.InlineBrTarget:
@@ -193,7 +190,7 @@ namespace Jitex.IL
                     case OperandType.ShortInlineBrTarget: //Repeat jump from original IL.
                     case OperandType.ShortInlineI:
                         if (opCode == OpCodes.Ldc_I4_S)
-                            operation = new Operation(opCode, (sbyte)ReadByte());
+                            operation = new Operation(opCode, (sbyte) ReadByte());
                         else
                             operation = new Operation(opCode, ReadByte());
                         break;
@@ -223,10 +220,15 @@ namespace Jitex.IL
                 return operation;
             }
 
+            public void Reset()
+            {
+                _position = 0;
+            }
+
             #region ReadTypes
 
             /// <summary>
-            /// Read <see cref="Type" /> reference from module.
+            ///     Read <see cref="Type" /> reference from module.
             /// </summary>
             /// <returns><see cref="Type" /> referenced.</returns>
             private (Type @Type, int Token) ReadType()
@@ -237,7 +239,7 @@ namespace Jitex.IL
             }
 
             /// <summary>
-            /// Read <see cref="string" /> reference from module.
+            ///     Read <see cref="string" /> reference from module.
             /// </summary>
             /// <returns><see cref="string" /> referenced.</returns>
             private (string @String, int Token) ReadString()
@@ -247,7 +249,7 @@ namespace Jitex.IL
             }
 
             /// <summary>
-            /// Read <see cref="MethodInfo" /> reference from module.
+            ///     Read <see cref="MethodInfo" /> reference from module.
             /// </summary>
             /// <returns><see cref="MethodInfo" /> referenced.</returns>
             private (MethodBase Method, int Token) ReadMethod()
@@ -258,18 +260,18 @@ namespace Jitex.IL
             }
 
             /// <summary>
-            /// Read <see cref="ConstructorInfo" /> reference from module.
+            ///     Read <see cref="ConstructorInfo" /> reference from module.
             /// </summary>
             /// <returns><see cref="ConstructorInfo" /> referenced.</returns>
             private (ConstructorInfo Constructor, int Token) ReadConstructor()
             {
                 int token = ReadInt32();
-                ConstructorInfo constructor = (ConstructorInfo)_resolver.ResolveMethod(token);
+                ConstructorInfo constructor = (ConstructorInfo) _resolver.ResolveMethod(token);
                 return (constructor, token);
             }
 
             /// <summary>
-            /// Read <see cref="FieldInfo" /> reference from module.
+            ///     Read <see cref="FieldInfo" /> reference from module.
             /// </summary>
             /// <returns><see cref="FieldInfo" /> referenced.</returns>
             private (FieldInfo Field, int Token) ReadField()
@@ -280,7 +282,7 @@ namespace Jitex.IL
             }
 
             /// <summary>
-            /// Read Signature reference from module.
+            ///     Read Signature reference from module.
             /// </summary>
             /// <returns></returns>
             private (byte[] Signature, int Token) ReadSignature()
@@ -291,7 +293,7 @@ namespace Jitex.IL
             }
 
             /// <summary>
-            /// Read <see cref="MemberInfo" /> reference from module.
+            ///     Read <see cref="MemberInfo" /> reference from module.
             /// </summary>
             /// <returns></returns>
             private (MemberInfo Member, int Token) ReadMember()
@@ -302,7 +304,7 @@ namespace Jitex.IL
             }
 
             /// <summary>
-            /// Read <see cref="long" /> value.
+            ///     Read <see cref="long" /> value.
             /// </summary>
             /// <returns><see cref="long" /> value.</returns>
             private long ReadInt64()
@@ -313,7 +315,7 @@ namespace Jitex.IL
             }
 
             /// <summary>
-            /// Read <see cref="int" /> value.
+            ///     Read <see cref="int" /> value.
             /// </summary>
             /// <returns><see cref="int" /> value.</returns>
             private int ReadInt32()
@@ -334,7 +336,7 @@ namespace Jitex.IL
             }
 
             /// <summary>
-            /// Read <see cref="double" /> value.
+            ///     Read <see cref="double" /> value.
             /// </summary>
             /// <returns><see cref="double" /> value.</returns>
             private double ReadDouble()
@@ -345,7 +347,7 @@ namespace Jitex.IL
             }
 
             /// <summary>
-            /// Read <see cref="byte" /> value.
+            ///     Read <see cref="byte" /> value.
             /// </summary>
             /// <returns><see cref="byte" /> value.</returns>
             private byte ReadByte()

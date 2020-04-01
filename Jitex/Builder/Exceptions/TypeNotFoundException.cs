@@ -6,7 +6,6 @@ namespace Jitex.Builder.Exceptions
     {
         public TypeNotFoundException(string message) : base(message)
         {
-            
         }
     }
 }

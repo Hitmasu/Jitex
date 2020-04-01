@@ -6,11 +6,12 @@ namespace Jitex.Utils.Comparer
     internal class TypeComparer : IEqualityComparer<Type>
     {
         public static readonly TypeComparer Instance = new TypeComparer();
+
         public bool Equals(Type x, Type y)
         {
             if (x == null && y == null)
                 return true;
-            
+
             if (x == null || y == null)
                 return false;
 

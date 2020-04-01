@@ -12,6 +12,7 @@ namespace Jitex.Hook
     public class Detour
     {
         private readonly IList<DetourInfo> _methodsLoaded = new List<DetourInfo>();
+
         public Detour(Module module)
         {
             foreach (MethodInfo method in module.GetTypes().SelectMany(t => t.GetMethods()))
@@ -24,6 +25,11 @@ namespace Jitex.Hook
                     _methodsLoaded.Add(detourInfo);
                 }
             }
+        }
+
+        private DetourInfo GetDetour(MethodBase method)
+        {
+            return _methodsLoaded.FirstOrDefault(m => m.DetourAttribute.Equals(method));
         }
 
         public ReplaceInfo TryDetourMethod(MethodBase method)
@@ -44,26 +50,21 @@ namespace Jitex.Hook
             dm.Invoke(null, null);
             return new ReplaceInfo(new MethodBody(dm));
         }
-
-        private DetourInfo GetDetour(MethodBase method)
-        {
-            return _methodsLoaded.FirstOrDefault(m => m.DetourAttribute.Equals(method));
-        }
     }
 
     internal class DetourInfo
     {
-        public DetourInfo(DetourAttribute detourAttribute, MethodBase method)
-        {
-            DetourAttribute = detourAttribute;
-            Method = (MethodInfo)method;
-        }
-
         public DetourAttribute DetourAttribute { get; }
 
         /// <summary>
-        /// Method to Replace.
+        ///     Method to Replace.
         /// </summary>
         public MethodInfo Method { get; }
+
+        public DetourInfo(DetourAttribute detourAttribute, MethodBase method)
+        {
+            DetourAttribute = detourAttribute;
+            Method = (MethodInfo) method;
+        }
     }
 }

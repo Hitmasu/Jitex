@@ -17,20 +17,20 @@ namespace Jitex.Builder
             get
             {
                 object runtime = GetRuntimeType.GetValue(Type.TypeHandle);
-                object corElementType = GetCorElementType.Invoke(null, new[] { runtime });
-                return (CorElementType)(byte)corElementType;
+                object corElementType = GetCorElementType.Invoke(null, new[] {runtime});
+                return (CorElementType) (byte) corElementType;
             }
-        }
-
-        public LocalVariableInfo(Type type)
-        {
-            Type = type;
         }
 
         static LocalVariableInfo()
         {
             GetCorElementType = typeof(RuntimeTypeHandle).GetMethod("GetCorElementType", BindingFlags.Static | BindingFlags.NonPublic);
             GetRuntimeType = typeof(RuntimeTypeHandle).GetField("m_type", BindingFlags.Instance | BindingFlags.NonPublic);
+        }
+
+        public LocalVariableInfo(Type type)
+        {
+            Type = type;
         }
     }
 }

@@ -8,11 +8,12 @@ using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
 using System.Reflection.PortableExecutable;
+using Lokad.ILPack;
 
 namespace Jitex.PE
 {
     /// <summary>
-    /// Read Metadata from assembly.
+    ///     Read Metadata from assembly.
     /// </summary>
     public class MetadataInfo
     {
@@ -22,7 +23,7 @@ namespace Jitex.PE
         private ImmutableDictionary<int, int> MembersRef { get; }
 
         /// <summary>
-        /// Read metadata from assembly.
+        ///     Read metadata from assembly.
         /// </summary>
         /// <param name="assembly">Assembly to read.</param>
         public MetadataInfo(Assembly assembly)
@@ -33,7 +34,7 @@ namespace Jitex.PE
 
             if (assembly.IsDynamic)
             {
-                var generator = new Lokad.ILPack.AssemblyGenerator();
+                var generator = new AssemblyGenerator();
                 byte[] buffer = generator.GenerateAssemblyBytes(assembly);
                 assemblyStream = new MemoryStream(buffer);
             }
@@ -51,7 +52,20 @@ namespace Jitex.PE
         }
 
         /// <summary>
-        /// Read types from metadata.
+        ///     Get handle from Type.
+        /// </summary>
+        /// <param name="type">Type to get handle.</param>
+        /// <returns>EntityHandle from Type.</returns>
+        internal EntityHandle GetTypeHandle(Type type)
+        {
+            if (Types.TryGetValue(type, out EntityHandle typeInfo))
+                return typeInfo;
+
+            throw new NullReferenceException("Type not referenced on assembly.");
+        }
+
+        /// <summary>
+        ///     Read types from metadata.
         /// </summary>
         /// <param name="reader">Instance of MetadataReader</param>
         /// <returns>A Dictionary of types found.</returns>
@@ -59,8 +73,9 @@ namespace Jitex.PE
         {
             var types = ImmutableDictionary.CreateBuilder<Type, EntityHandle>(TypeComparer.Instance);
 
-            IEnumerable<EntityHandle> typesDef = reader.TypeDefinitions.Select(typeDef => (EntityHandle)typeDef);
-            IEnumerable<EntityHandle> typesRef = reader.TypeReferences.Select(typeRef => (EntityHandle)typeRef); ;
+            IEnumerable<EntityHandle> typesDef = reader.TypeDefinitions.Select(typeDef => (EntityHandle) typeDef);
+            IEnumerable<EntityHandle> typesRef = reader.TypeReferences.Select(typeRef => (EntityHandle) typeRef);
+            ;
 
             foreach (EntityHandle entityHandle in typesDef.Concat(typesRef))
             {
@@ -85,19 +100,6 @@ namespace Jitex.PE
             }
 
             return types.ToImmutableDictionary();
-        }
-
-        /// <summary>
-        /// Get handle from Type.
-        /// </summary>
-        /// <param name="type">Type to get handle.</param>
-        /// <returns>EntityHandle from Type.</returns>
-        internal EntityHandle GetTypeHandle(Type type)
-        {
-            if (Types.TryGetValue(type, out EntityHandle typeInfo))
-                return typeInfo;
-
-            throw new NullReferenceException("Type not referenced on assembly.");
         }
     }
 }

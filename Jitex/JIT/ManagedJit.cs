@@ -13,21 +13,26 @@ using MethodBody = Jitex.Builder.MethodBody;
 namespace Jitex.JIT
 {
     /// <summary>
-    /// Detour current jit.
+    ///     Detour current jit.
     /// </summary>
     /// <remarks>
-    /// Source: https://xoofx.com/blog/2018/04/12/writing-managed-jit-in-csharp-with-coreclr/
+    ///     Source: https://xoofx.com/blog/2018/04/12/writing-managed-jit-in-csharp-with-coreclr/
     /// </remarks>
     public class ManagedJit : IDisposable
     {
         [DllImport("clrjit.dll", CallingConvention = CallingConvention.StdCall, SetLastError = true, EntryPoint = "getJit", BestFitMapping = true)]
         private static extern IntPtr GetJit();
 
-        [ThreadStatic]
-        private static CompileTls _compileTls;
+        private readonly HookManager _hookManager = new HookManager();
+        private CompileMethodDelegate _compileMethod;
 
-        [ThreadStatic]
-        private static TokenTls _tokenTls;
+        private bool _isDisposed;
+
+        private ResolveTokenDelegate _resolveToken;
+
+        [ThreadStatic] private static CompileTls _compileTls;
+
+        [ThreadStatic] private static TokenTls _tokenTls;
 
         private static readonly object JitLock;
 
@@ -42,20 +47,13 @@ namespace Jitex.JIT
         private static IntPtr _corJitInfoPtr = IntPtr.Zero;
         private static CEEInfo _ceeInfo;
 
-        private ResolveTokenDelegate _resolveToken;
-        private CompileMethodDelegate _compileMethod;
+        public PreCompileHandle OnPreCompile { get; set; }
 
-        private readonly HookManager _hookManager = new HookManager();
-
-        private bool _isDisposed;
+        public ResolveTokenHandle OnResolveToken { get; set; }
 
         public delegate ReplaceInfo PreCompileHandle(MethodBase method);
 
-        public PreCompileHandle OnPreCompile { get; set; }
-
         public delegate void ResolveTokenHandle(TokenContext token);
-
-        public ResolveTokenHandle OnResolveToken { get; set; }
 
         static ManagedJit()
         {
@@ -68,7 +66,7 @@ namespace Jitex.JIT
         }
 
         /// <summary>
-        /// Prepare custom JIT.
+        ///     Prepare custom JIT.
         /// </summary>
         private ManagedJit()
         {
@@ -81,23 +79,15 @@ namespace Jitex.JIT
             CORINFO_METHOD_INFO emptyInfo = default;
             CORINFO_RESOLVED_TOKEN corinfoResolvedToken = default;
 
-            RuntimeHelperExtension.PrepareDelegate(_compileMethod, IntPtr.Zero, IntPtr.Zero, emptyInfo, (uint)0, IntPtr.Zero, 0);
+            RuntimeHelperExtension.PrepareDelegate(_compileMethod, IntPtr.Zero, IntPtr.Zero, emptyInfo, (uint) 0, IntPtr.Zero, 0);
             RuntimeHelperExtension.PrepareDelegate(_resolveToken, IntPtr.Zero, corinfoResolvedToken);
 
             _hookManager.InjectHook(JitVTable, _compileMethod);
             _hookCompilerInstalled = true;
         }
 
-        public static ManagedJit GetInstance()
-        {
-            lock (JitLock)
-            {
-                return _instance ??= new ManagedJit();
-            }
-        }
-
         /// <summary>
-        /// Wrap delegate to compileMethod from ICorJitCompiler.
+        ///     Wrap delegate to compileMethod from ICorJitCompiler.
         /// </summary>
         /// <param name="thisPtr">this parameter.</param>
         /// <param name="comp">(IN) - Pointer to ICorJitInfo.</param>
@@ -131,7 +121,7 @@ namespace Jitex.JIT
                             _ceeInfo = new CEEInfo(_corJitInfoPtr);
                         }
 
-                        //Just hook if ResolveToken was assigned by user.
+                        //Just hook if _resolveToken was assigned by user.
                         if (!_hookResolveTokenInstalled && OnResolveToken != null)
                         {
                             //Just to compile type, without that, will raise stackoverflow.
@@ -146,8 +136,8 @@ namespace Jitex.JIT
                         if (module != null)
                         {
                             uint methodToken = _ceeInfo.GetMethodDefFromMethod(info.ftn);
-                            var methodFound = module.ResolveMethod((int)methodToken);
-                            _tokenTls = new TokenTls { Root = methodFound };
+                            var methodFound = module.ResolveMethod((int) methodToken);
+                            _tokenTls = new TokenTls {Root = methodFound};
                             replaceInfo = OnPreCompile(methodFound);
                         }
                     }
@@ -174,7 +164,6 @@ namespace Jitex.JIT
                                 {
                                     fixed (byte* sig = methodBody.GetSignatureVariables())
                                     {
-
                                         //pSig starts after length of signature
                                         info.locals.pSig = sig + 1;
 
@@ -182,7 +171,7 @@ namespace Jitex.JIT
                                         info.locals.args = sig + 3;
                                     }
 
-                                    info.locals.numArgs = (ushort)methodBody.LocalVariables.Count;
+                                    info.locals.numArgs = (ushort) methodBody.LocalVariables.Count;
                                 }
                             }
 
@@ -226,15 +215,15 @@ namespace Jitex.JIT
                             }
 
                             //populate IL with bitwise operations
-                            emptyBody[0] = (byte)OpCodes.Ldc_I4_1.Value;
-                            emptyBody[1] = (byte)OpCodes.Ldc_I4_1.Value;
-                            emptyBody[2] = (byte)OpCodes.And.Value;
-                            emptyBody[^1] = (byte)OpCodes.Ret.Value;
+                            emptyBody[0] = (byte) OpCodes.Ldc_I4_1.Value;
+                            emptyBody[1] = (byte) OpCodes.Ldc_I4_1.Value;
+                            emptyBody[2] = (byte) OpCodes.And.Value;
+                            emptyBody[^1] = (byte) OpCodes.Ret.Value;
 
                             for (int i = 3; i < emptyBody.Length - 2; i += 2)
                             {
-                                emptyBody[i] = (byte)OpCodes.Ldc_I4_1.Value;
-                                emptyBody[i + 1] = (byte)OpCodes.And.Value;
+                                emptyBody[i] = (byte) OpCodes.Ldc_I4_1.Value;
+                                emptyBody[i + 1] = (byte) OpCodes.And.Value;
                             }
 
                             if (info.maxStack < 2)
@@ -266,6 +255,33 @@ namespace Jitex.JIT
             }
         }
 
+        public void Dispose()
+        {
+            lock (JitLock)
+            {
+                if (_isDisposed)
+                    return;
+
+                _hookManager.RemoveHook(_resolveToken);
+                _hookManager.RemoveHook(_compileMethod);
+                _compileMethod = null;
+                _resolveToken = null;
+                _instance = null;
+                _hookCompilerInstalled = false;
+                _isDisposed = true;
+            }
+
+            GC.SuppressFinalize(this);
+        }
+
+        public static ManagedJit GetInstance()
+        {
+            lock (JitLock)
+            {
+                return _instance ??= new ManagedJit();
+            }
+        }
+
         private void ResolveToken(IntPtr thisHandle, ref CORINFO_RESOLVED_TOKEN pResolvedToken)
         {
             if (!_hookCompilerInstalled)
@@ -286,32 +302,12 @@ namespace Jitex.JIT
 
                     pResolvedToken = context.ResolvedToken;
                 }
-
             }
             finally
             {
                 _ceeInfo.ResolveToken(thisHandle, ref pResolvedToken);
                 _tokenTls.EnterCount--;
             }
-        }
-
-        public void Dispose()
-        {
-            lock (JitLock)
-            {
-                if (_isDisposed)
-                    return;
-
-                _hookManager.RemoveHook(_resolveToken);
-                _hookManager.RemoveHook(_compileMethod);
-                _compileMethod = null;
-                _resolveToken = null;
-                _instance = null;
-                _hookCompilerInstalled = false;
-                _isDisposed = true;
-            }
-
-            GC.SuppressFinalize(this);
         }
     }
 }

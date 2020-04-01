@@ -12,9 +12,9 @@ namespace Jitex.Utils
             // jmp rax
             0xFF, 0xE0
         };
-        
+
         /// <summary>
-        /// Create trampoline a 64 bits. 
+        ///     Create trampoline a 64 bits.
         /// </summary>
         /// <param name="address"></param>
         /// <returns></returns>
@@ -27,7 +27,7 @@ namespace Jitex.Utils
         }
 
         /// <summary>
-        /// Free memory trampoline.
+        ///     Free memory trampoline.
         /// </summary>
         /// <param name="address"></param>
         public static void FreeTrampoline(IntPtr address)

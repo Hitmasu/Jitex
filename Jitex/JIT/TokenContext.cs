@@ -9,14 +9,14 @@ namespace Jitex.JIT
 {
     public class TokenContext
     {
-        private static CEEInfo _ceeInfo;
         private CORINFO_RESOLVED_TOKEN _resolvedToken;
+        private static CEEInfo _ceeInfo;
         internal CORINFO_RESOLVED_TOKEN ResolvedToken => _resolvedToken;
 
         public TokenKind TokenType => _resolvedToken.tokenType;
         public IntPtr Scope => _resolvedToken.tokenScope;
         public IntPtr Context => _resolvedToken.tokenContext;
-        public int MetadataToken => (int)_resolvedToken.token;
+        public int MetadataToken => (int) _resolvedToken.token;
         public IntPtr MethodHandle => _resolvedToken.hMethod;
         public IntPtr FieldHandle => _resolvedToken.hField;
         public Module Module { get; }
@@ -33,15 +33,6 @@ namespace Jitex.JIT
             Module = AppModules.GetModuleByPointer(resolvedToken.tokenScope);
 
             Source = source;
-        }
-
-        public void ResolveMethod(MethodBase method)
-        {
-            if (method is DynamicMethod)
-                throw new NotImplementedException();
-
-            _resolvedToken.tokenScope = _ceeInfo.GetMethodModule(method.MethodHandle.Value);
-            _resolvedToken.token = method.MetadataToken;
         }
 
         public void ResolveFromModule(Module module)
@@ -62,6 +53,15 @@ namespace Jitex.JIT
                     int a = 10;
                     break;
             }
+        }
+
+        public void ResolveMethod(MethodBase method)
+        {
+            if (method is DynamicMethod)
+                throw new NotImplementedException();
+
+            _resolvedToken.tokenScope = _ceeInfo.GetMethodModule(method.MethodHandle.Value);
+            _resolvedToken.token = method.MetadataToken;
         }
     }
 }

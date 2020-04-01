@@ -14,12 +14,12 @@ namespace Jitex.Builder
 {
     public class MethodBody
     {
+        private byte[] _il;
+
         /// <summary>
-        /// Module from method body.
+        ///     Module from method body.
         /// </summary>
         public Module Module { get; set; }
-
-        private byte[] _il;
 
         public byte[] IL
         {
@@ -33,17 +33,17 @@ namespace Jitex.Builder
         }
 
         /// <summary>
-        /// Operations from IL.
+        ///     Operations from IL.
         /// </summary>
         public IEnumerable<Operation> Operations { get; private set; }
 
         /// <summary>
-        /// Local variables from method.
+        ///     Local variables from method.
         /// </summary>
         public IList<LocalVariableInfo> LocalVariables { get; set; }
 
         /// <summary>
-        /// If body contains some local variable.
+        ///     If body contains some local variable.
         /// </summary>
         public bool HasLocalVariable => LocalVariables?.Count > 0;
 
@@ -79,7 +79,7 @@ namespace Jitex.Builder
         }
 
         /// <summary>
-        /// Create a new method body.
+        ///     Create a new method body.
         /// </summary>
         /// <param name="il">IL of method.</param>
         /// <param name="module">Module from body.</param>
@@ -90,7 +90,7 @@ namespace Jitex.Builder
         }
 
         /// <summary>
-        /// Calculate .maxstack from body.
+        ///     Calculate .maxstack from body.
         /// </summary>
         private void CalculateMaxStack()
         {
@@ -158,13 +158,13 @@ namespace Jitex.Builder
 
                 if (maxStackSize > MaxStackSize)
                 {
-                    MaxStackSize = (uint)maxStackSize;
+                    MaxStackSize = (uint) maxStackSize;
                 }
             }
         }
 
         /// <summary>
-        /// Get compressed signature from local variables.
+        ///     Get compressed signature from local variables.
         /// </summary>
         /// <returns>Byte array - compressed signature.</returns>
         public byte[] GetSignatureVariables()
@@ -191,12 +191,12 @@ namespace Jitex.Builder
 
                     int typeInfo = CodedIndex.TypeDefOrRefOrSpec(typeHandle);
 
-                    blob.WriteByte((byte)elementType);
+                    blob.WriteByte((byte) elementType);
                     blob.WriteCompressedInteger(typeInfo);
                 }
                 else
                 {
-                    blob.WriteByte((byte)elementType);
+                    blob.WriteByte((byte) elementType);
                 }
             }
 
