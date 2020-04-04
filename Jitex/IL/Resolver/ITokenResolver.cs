@@ -10,7 +10,7 @@ namespace Jitex.IL.Resolver
     ///     Created by jnm2
     ///     https://stackoverflow.com/a/35711376
     /// </remarks>
-    public interface ITokenResolver
+    internal interface ITokenResolver
     {
         FieldInfo ResolveField(int token);
         MemberInfo ResolveMember(int token);

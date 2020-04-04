@@ -7,4 +7,7 @@
     <ItemGroup>
       <PackageReference Include="Lokad.ILPack" Version="0.1.4" />
     </ItemGroup>
+    <ItemGroup>
+      <Folder Include="Attributes\" />
+    </ItemGroup>
 </Project>
