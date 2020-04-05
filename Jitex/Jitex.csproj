@@ -5,6 +5,11 @@
         <Platforms>AnyCPU;x64</Platforms>
     </PropertyGroup>
     <ItemGroup>
+      <Compile Remove="Attributes\**" />
+      <EmbeddedResource Remove="Attributes\**" />
+      <None Remove="Attributes\**" />
+    </ItemGroup>
+    <ItemGroup>
       <PackageReference Include="Lokad.ILPack" Version="0.1.4" />
     </ItemGroup>
 </Project>
