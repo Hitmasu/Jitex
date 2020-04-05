@@ -15,7 +15,7 @@ namespace Jitex.PE
     /// <summary>
     ///     Read Metadata from assembly.
     /// </summary>
-    public class MetadataInfo
+    internal class MetadataInfo
     {
         private readonly Module _module;
 
@@ -55,20 +55,17 @@ namespace Jitex.PE
         ///     Get handle from Type.
         /// </summary>
         /// <param name="type">Type to get handle.</param>
-        /// <returns>EntityHandle from Type.</returns>
+        /// <returns>EntityHandle from Type or default if not found on assembly.</returns>
         internal EntityHandle GetTypeHandle(Type type)
         {
-            if (Types.TryGetValue(type, out EntityHandle typeInfo))
-                return typeInfo;
-
-            throw new NullReferenceException("Type not referenced on assembly.");
+            return Types.TryGetValue(type, out EntityHandle typeInfo) ? typeInfo : default;
         }
 
         /// <summary>
         ///     Read types from metadata.
         /// </summary>
         /// <param name="reader">Instance of MetadataReader</param>
-        /// <returns>A Dictionary of types found.</returns>
+        /// <returns>A Dictionary of types found on metadata..</returns>
         private ImmutableDictionary<Type, EntityHandle> ReadTypes(MetadataReader reader)
         {
             var types = ImmutableDictionary.CreateBuilder<Type, EntityHandle>(TypeComparer.Instance);

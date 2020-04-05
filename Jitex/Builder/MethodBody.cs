@@ -174,6 +174,8 @@ namespace Jitex.Builder
             blob.WriteByte(0x07);
             blob.WriteCompressedInteger(LocalVariables.Count);
 
+            MetadataInfo medatataModule = new MetadataInfo(Module.Assembly);
+
             foreach (LocalVariableInfo variable in LocalVariables)
             {
                 CorElementType elementType = variable.ElementType;
@@ -181,13 +183,20 @@ namespace Jitex.Builder
                 if (elementType == CorElementType.ELEMENT_TYPE_CLASS || elementType == CorElementType.ELEMENT_TYPE_VALUETYPE)
                 {
                     //TODO
-                    //Pinned variable
+                    //Pinned variables
 
                     if (Module == null)
                         throw new ModuleNullException("Module can't be null with a Local Variable of type Class ");
 
-                    MetadataInfo metadataInfo = new MetadataInfo(variable.Type.Assembly);
-                    EntityHandle typeHandle = metadataInfo.GetTypeHandle(variable.Type);
+                    EntityHandle typeHandle = medatataModule.GetTypeHandle(variable.Type);
+
+                    //Firstly we check if type was already referenced on metadata from module
+                    //If not, we should get reference from assembly of type.
+                    if (typeHandle == default)
+                    {
+                        MetadataInfo metadataAssembly = new MetadataInfo(variable.Type.Assembly);
+                        typeHandle = metadataAssembly.GetTypeHandle(variable.Type);
+                    }
 
                     int typeInfo = CodedIndex.TypeDefOrRefOrSpec(typeHandle);
 

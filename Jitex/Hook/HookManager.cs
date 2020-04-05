@@ -10,12 +10,12 @@ namespace Jitex.Hook
     {
         private readonly IList<VTableHook> _hooks = new List<VTableHook>();
 
-        public void InjectHook(IntPtr addressTarget, Delegate delToInject)
+        public void InjectHook(IntPtr pointerAddress, Delegate delToInject)
         {
-            IntPtr originalAdress = Marshal.ReadIntPtr(addressTarget);
+            IntPtr originalAdress = Marshal.ReadIntPtr(pointerAddress);
             IntPtr hookAddress = Marshal.GetFunctionPointerForDelegate(delToInject);
             VTableHook hook = new VTableHook(delToInject, originalAdress, hookAddress);
-            WritePointer(addressTarget, hookAddress);
+            WritePointer(pointerAddress, hookAddress);
             _hooks.Add(hook);
         }
 
