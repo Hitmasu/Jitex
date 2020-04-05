@@ -16,16 +16,6 @@ namespace Jitex.Builder
         {
             get
             {
-                if (Type == typeof(object))
-                {
-                    return CorElementType.ELEMENT_TYPE_OBJECT;
-                } 
-                
-                if (Type == typeof(string))
-                {
-                    return CorElementType.ELEMENT_TYPE_STRING;
-                }
-
                 object runtime = GetRuntimeType.GetValue(Type.TypeHandle);
                 object corElementType = GetCorElementType.Invoke(null, new[] {runtime});
                 return (CorElementType) (byte) corElementType;
