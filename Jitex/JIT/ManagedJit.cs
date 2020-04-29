@@ -5,6 +5,7 @@ using System;
 using System.Diagnostics;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using static Jitex.JIT.CorInfo.CEEInfo;
 using static Jitex.JIT.CorInfo.CorJitCompiler;
@@ -39,7 +40,7 @@ namespace Jitex.JIT
         private static ManagedJit _instance;
 
         private static bool _hookCompilerInstalled;
-        private static bool _hookResolveTokenInstalled;
+        private static bool _hookTokenInstalled;
 
         private static readonly IntPtr JitVTable;
         private static readonly CorJitCompiler Compiler;
@@ -79,8 +80,9 @@ namespace Jitex.JIT
             CORINFO_METHOD_INFO emptyInfo = default;
             CORINFO_RESOLVED_TOKEN corinfoResolvedToken = default;
 
-            RuntimeHelperExtension.PrepareDelegate(_compileMethod, IntPtr.Zero, IntPtr.Zero, emptyInfo, (uint) 0, IntPtr.Zero, 0);
             RuntimeHelperExtension.PrepareDelegate(_resolveToken, IntPtr.Zero, corinfoResolvedToken);
+            RuntimeHelperExtension.PrepareDelegate(_compileMethod, IntPtr.Zero, IntPtr.Zero, emptyInfo, (uint) 0, IntPtr.Zero, 0);
+            RuntimeHelpers.PrepareDelegate(OnResolveToken);
 
             _hookManager.InjectHook(JitVTable, _compileMethod);
             _hookCompilerInstalled = true;
@@ -119,16 +121,8 @@ namespace Jitex.JIT
                         {
                             _corJitInfoPtr = Marshal.ReadIntPtr(comp);
                             _ceeInfo = new CEEInfo(_corJitInfoPtr);
-                        }
-
-                        //Just hook if _resolveToken was assigned by user.
-                        if (!_hookResolveTokenInstalled && OnResolveToken != null)
-                        {
-                            //Just to compile type, without that, will raise stackoverflow.
-                            TokenTls junk = new TokenTls();
-
                             _hookManager.InjectHook(_ceeInfo.ResolveTokenIndex, _resolveToken);
-                            _hookResolveTokenInstalled = true;
+                            _hookTokenInstalled = true;
                         }
 
                         Module module = AppModules.GetModuleByPointer(info.scope);
@@ -136,7 +130,7 @@ namespace Jitex.JIT
                         if (module != null)
                         {
                             uint methodToken = _ceeInfo.GetMethodDefFromMethod(info.ftn);
-                            var methodFound = module.ResolveMethod((int) methodToken);
+                            MethodBase methodFound = module.ResolveMethod((int) methodToken);
                             _tokenTls = new TokenTls {Root = methodFound};
                             replaceInfo = OnPreCompile(methodFound);
                         }
@@ -284,11 +278,26 @@ namespace Jitex.JIT
 
         private void ResolveToken(IntPtr thisHandle, ref CORINFO_RESOLVED_TOKEN pResolvedToken)
         {
-            if (!_hookCompilerInstalled)
+            _tokenTls ??= new TokenTls();
+
+            if (!_hookTokenInstalled)
                 return;
 
-            _tokenTls ??= new TokenTls();
             _tokenTls.EnterCount++;
+
+            if (OnResolveToken == null)
+            {
+                try
+                {
+                    _ceeInfo.ResolveToken(thisHandle, ref pResolvedToken);
+                }
+                finally
+                {
+                    _tokenTls.EnterCount--;
+                }
+
+                return;
+            }
 
             try
             {

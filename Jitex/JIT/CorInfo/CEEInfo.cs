@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace Jitex.JIT.CorInfo
@@ -11,9 +12,8 @@ namespace Jitex.JIT.CorInfo
 
         private readonly GetMethodDefFromMethodDelegate _getMethodDefFromMethod;
 
-        private readonly ResolveTokenDelegate _resolveToken;
+        public ResolveTokenDelegate ResolveToken;
 
-        //ResolveToken is hooked by managed jit.
         public IntPtr ResolveTokenIndex { get; }
 
         [UnmanagedFunctionPointer(default)]
@@ -37,6 +37,7 @@ namespace Jitex.JIT.CorInfo
             switch (clrVersion)
             {
                 case "3.1.1":
+                case "3.1.3":
                     getMethodModuleIndex = _corJitInfo + IntPtr.Size * 10;
                     ResolveTokenIndex = _corJitInfo + IntPtr.Size * 28;
                     getMethodDefFromMethodIndex = _corJitInfo + IntPtr.Size * 116;
@@ -49,7 +50,9 @@ namespace Jitex.JIT.CorInfo
 
             _getMethodModule = Marshal.GetDelegateForFunctionPointer<GetMethodModuleDelegate>(getMethodModulePtr);
             _getMethodDefFromMethod = Marshal.GetDelegateForFunctionPointer<GetMethodDefFromMethodDelegate>(getMethodDefFromMethodPtr);
-            _resolveToken = Marshal.GetDelegateForFunctionPointer<ResolveTokenDelegate>(resolveTokenPtr);
+            ResolveToken = Marshal.GetDelegateForFunctionPointer<ResolveTokenDelegate>(resolveTokenPtr);
+
+            RuntimeHelpers.PrepareDelegate(ResolveToken);
         }
 
         public uint GetMethodDefFromMethod(IntPtr hMethod)
@@ -60,11 +63,6 @@ namespace Jitex.JIT.CorInfo
         public IntPtr GetMethodModule(IntPtr hMethod)
         {
             return _getMethodModule(_corJitInfo, hMethod);
-        }
-
-        public void ResolveToken(IntPtr thisHandle, ref CORINFO_RESOLVED_TOKEN pResolvedToken)
-        {
-            _resolveToken(thisHandle, ref pResolvedToken);
         }
     }
 }

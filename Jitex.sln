@@ -5,7 +5,9 @@ VisualStudioVersion = 16.0.29609.76
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Jitex", "Jitex\Jitex.csproj", "{B2B6EA59-C4F6-4A61-94C4-B47A6371FADA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Jitex.Tests", "Jitex.Tests\Jitex.Tests.csproj", "{7C0C8FEF-AB8B-4939-9AB4-40B09B50023F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Jitex.Tests", "Jitex.Tests\Jitex.Tests.csproj", "{7C0C8FEF-AB8B-4939-9AB4-40B09B50023F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Jitex.Tests.Context", "Jitex.Tests.Context\Jitex.Tests.Context.csproj", "{03A8DD83-A540-49DF-8545-D269EF28F788}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -31,6 +33,14 @@ Global
 		{7C0C8FEF-AB8B-4939-9AB4-40B09B50023F}.Release|Any CPU.Build.0 = Release|Any CPU
 		{7C0C8FEF-AB8B-4939-9AB4-40B09B50023F}.Release|x64.ActiveCfg = Release|Any CPU
 		{7C0C8FEF-AB8B-4939-9AB4-40B09B50023F}.Release|x64.Build.0 = Release|Any CPU
+		{03A8DD83-A540-49DF-8545-D269EF28F788}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{03A8DD83-A540-49DF-8545-D269EF28F788}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{03A8DD83-A540-49DF-8545-D269EF28F788}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{03A8DD83-A540-49DF-8545-D269EF28F788}.Debug|x64.Build.0 = Debug|Any CPU
+		{03A8DD83-A540-49DF-8545-D269EF28F788}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{03A8DD83-A540-49DF-8545-D269EF28F788}.Release|Any CPU.Build.0 = Release|Any CPU
+		{03A8DD83-A540-49DF-8545-D269EF28F788}.Release|x64.ActiveCfg = Release|Any CPU
+		{03A8DD83-A540-49DF-8545-D269EF28F788}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

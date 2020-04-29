@@ -4,6 +4,7 @@ using System;
 using System.Reflection;
 using Xunit;
 using MethodBody = Jitex.Builder.MethodBody;
+using static Jitex.Tests.Utils;
 
 namespace Jitex.Tests
 {
@@ -159,54 +160,43 @@ namespace Jitex.Tests
 
         private ReplaceInfo OnPreCompile(MethodBase method)
         {
-            if (method == GetMethod(nameof(EmptyBodyTest)))
+            if (method == GetMethod<ReplaceILTests>(nameof(EmptyBodyTest)))
             {
-                MethodBody body = new MethodBody(GetMethod(nameof(EmptyBodyReplace)));
-                return new ReplaceInfo(body);
+                return new ReplaceInfo(GetMethod<ReplaceILTests>(nameof(EmptyBodyReplace)));
             }
 
-            if (method == GetMethod(nameof(BodyImpTest)))
+            if (method == GetMethod<ReplaceILTests>(nameof(BodyImpTest)))
             {
-                MethodBody body = new MethodBody(GetMethod(nameof(BodyImpReplace)));
-                return new ReplaceInfo(body);
+                return new ReplaceInfo(GetMethod<ReplaceILTests>(nameof(BodyImpReplace)));
             }
 
-            if (method == GetMethod(nameof(ReturnSimpleInt)))
+            if (method == GetMethod<ReplaceILTests>(nameof(ReturnSimpleInt)))
             {
-                MethodBody body = new MethodBody(GetMethod(nameof(ReturnSimpleIntReplace)));
-                return new ReplaceInfo(body);
+                return new ReplaceInfo(GetMethod<ReplaceILTests>(nameof(ReturnSimpleIntReplace)));
             }
 
-            if (method == GetMethod(nameof(ReturnSimpleDouble)))
+            if (method == GetMethod<ReplaceILTests>(nameof(ReturnSimpleDouble)))
             {
-                MethodBody body = new MethodBody(GetMethod(nameof(ReturnSimpleDoubleReplace)));
-                return new ReplaceInfo(body);
+                return new ReplaceInfo(GetMethod<ReplaceILTests>(nameof(ReturnSimpleDoubleReplace)));
             }
 
-            if (method == GetMethod(nameof(ReturnSimpleObj)))
+            if (method == GetMethod<ReplaceILTests>(nameof(ReturnSimpleObj)))
             {
-                MethodBody body = new MethodBody(GetMethod(nameof(ReturnSimpleObjReplace)));
-                return new ReplaceInfo(body);
+                return new ReplaceInfo(GetMethod<ReplaceILTests>(nameof(ReturnSimpleObjReplace)));
             }
 
-            if (method == GetMethod(nameof(LocalVariableNativeType)))
+            if (method == GetMethod<ReplaceILTests>(nameof(LocalVariableNativeType)))
             {
-                MethodBody body = new MethodBody(GetMethod(nameof(LocalVariableNativeTypeReplace)));
-                return new ReplaceInfo(body);
+                return new ReplaceInfo(GetMethod<ReplaceILTests>(nameof(LocalVariableNativeTypeReplace)));
             }
 
-            if (method == GetMethod(nameof(LocalVariableReferenceType)))
+            if (method == GetMethod<ReplaceILTests>(nameof(LocalVariableReferenceType)))
             {
-                MethodBody body = new MethodBody(GetMethod(nameof(LocalVariableReferenceTypeReplace)));
-                return new ReplaceInfo(body);
+                return new ReplaceInfo(GetMethod<ReplaceILTests>(nameof(LocalVariableReferenceTypeReplace)));
             }
 
             return null;
         }
 
-        private MethodInfo GetMethod(string name)
-        {
-            return GetType().GetMethod(name, BindingFlags.Instance | BindingFlags.Public);
-        }
     }
 }

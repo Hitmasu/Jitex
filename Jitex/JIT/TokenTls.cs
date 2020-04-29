@@ -6,16 +6,16 @@ namespace Jitex.JIT
 {
     internal class TokenTls : CompileTls
     {
-        private static readonly MethodBase _compileMethod;
-        private static readonly MethodBase _resolveToken;
+        private static readonly MethodBase CompileMethod;
+        private static readonly MethodBase ResolveToken;
 
         public MethodBase Root { get; set; }
         public MemberInfo Source { get; set; }
 
         static TokenTls()
         {
-            _compileMethod = typeof(ManagedJit).GetMethod("CompileMethod", BindingFlags.Instance | BindingFlags.NonPublic);
-            _resolveToken = typeof(ManagedJit).GetMethod("ResolveToken", BindingFlags.Instance | BindingFlags.NonPublic);
+            CompileMethod = typeof(ManagedJit).GetMethod("CompileMethod", BindingFlags.Instance | BindingFlags.NonPublic);
+            ResolveToken = typeof(ManagedJit).GetMethod("ResolveToken", BindingFlags.Instance | BindingFlags.NonPublic);
         }
 
         public MethodBase GetSource()
@@ -23,8 +23,8 @@ namespace Jitex.JIT
             StackTrace stack = new StackTrace();
 
             var currentMethod = MethodBase.GetCurrentMethod();
-            var frames = stack.GetFrames().Select(m => m.GetMethod()).FirstOrDefault(m => m != _compileMethod
-                                                                                    && m != _resolveToken
+            var frames = stack.GetFrames().Select(m => m.GetMethod()).FirstOrDefault(m => m != CompileMethod
+                                                                                    && m != ResolveToken
                                                                                     && m != currentMethod);
             return frames;
         }

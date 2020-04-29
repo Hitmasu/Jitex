@@ -1,4 +1,5 @@
-﻿using MethodBody = Jitex.Builder.MethodBody;
+﻿using System.Reflection;
+using MethodBody = Jitex.Builder.MethodBody;
 
 namespace Jitex.JIT
 {
@@ -33,7 +34,7 @@ namespace Jitex.JIT
         }
 
         /// <summary>
-        ///     Create a info to inject a byte-code (ASM mode).
+        ///     Create data to inject a byte-code (ASM mode).
         /// </summary>
         /// <param name="byteCode">Bytecode</param>
         public ReplaceInfo(byte[] byteCode)
@@ -42,12 +43,21 @@ namespace Jitex.JIT
         }
 
         /// <summary>
-        ///     Create a info to inject MSIL.
+        ///     Create data to inject MSIL.
         /// </summary>
         /// <param name="methodBody">Body of new method.</param>
         public ReplaceInfo(MethodBody methodBody)
         {
             MethodBody = methodBody;
+        }
+
+        /// <summary>
+        ///     Create data to inject MSIL from already method exists.
+        /// </summary>
+        /// <param name="methodBody">Body of new method.</param>
+        public ReplaceInfo(MethodInfo method)
+        {
+            MethodBody = new MethodBody(method);
         }
     }
 }

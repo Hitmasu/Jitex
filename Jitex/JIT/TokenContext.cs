@@ -63,5 +63,10 @@ namespace Jitex.JIT
             _resolvedToken.tokenScope = _ceeInfo.GetMethodModule(method.MethodHandle.Value);
             _resolvedToken.token = method.MetadataToken;
         }
+
+        public void ResolveConstructor(ConstructorInfo constructor)
+        {
+            ResolveMethod(constructor);
+        }
     }
 }
