@@ -190,13 +190,14 @@ namespace Jitex.Builder
 
                     EntityHandle typeHandle = medatataModule.GetTypeHandle(variable.Type);
 
-                    //Firstly we check if type was already referenced on metadata from module
-                    //If not, we should get reference from assembly of type.
-                    if (typeHandle == default)
-                    {
-                        MetadataInfo metadataAssembly = new MetadataInfo(variable.Type.Assembly);
-                        typeHandle = metadataAssembly.GetTypeHandle(variable.Type);
-                    }
+                    //Check if type was already referenced on metadata from module
+                    //If not, we should get reference in assembly of type.
+                    //Ex.: String
+                    //if (typeHandle == default)
+                    //{
+                    //    MetadataInfo metadataAssembly = new MetadataInfo(variable.Type.Assembly);
+                    //    typeHandle = metadataAssembly.GetTypeHandle(variable.Type);
+                    //}
 
                     int typeInfo = CodedIndex.TypeDefOrRefOrSpec(typeHandle);
 

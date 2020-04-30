@@ -3,7 +3,6 @@ using Jitex.JIT;
 using System;
 using System.Reflection;
 using Xunit;
-using MethodBody = Jitex.Builder.MethodBody;
 using static Jitex.Tests.Utils;
 
 namespace Jitex.Tests

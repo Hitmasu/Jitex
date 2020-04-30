@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using Jitex.JIT;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -31,13 +32,13 @@ namespace Jitex.Tests
             Assert.True(number == 100, "Body not injected!");
         }
 
-        [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
+        [MethodImpl(MethodImplOptions.NoInlining)]
         public int ResolveTokenReplace()
         {
             return -2;
         }
 
-        [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
+        [MethodImpl(MethodImplOptions.NoInlining)]
         public int ResolveWithModuleReplace()
         {
             return -3;
@@ -45,6 +46,9 @@ namespace Jitex.Tests
 
         private void OnResolveToken(TokenContext token)
         {
+            //if(token.Source != null)
+            //    Trace.WriteLine(token.Source.Name);
+
             if (token.Source == GetMethod<ResolveTokenTests>(nameof(ResolveTokenReplace)))
             {
                 Type personType = typeof(Caller).Module.GetType("Jitex.Tests.Context.Person");
