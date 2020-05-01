@@ -1,9 +1,8 @@
-﻿using System;
-using System.Diagnostics;
-using Jitex.JIT;
+﻿using Jitex.JIT;
+using Jitex.Tests.Context;
+using System;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using Jitex.Tests.Context;
 using Xunit;
 using static Jitex.Tests.Utils;
 
@@ -46,9 +45,6 @@ namespace Jitex.Tests
 
         private void OnResolveToken(TokenContext token)
         {
-            //if(token.Source != null)
-            //    Trace.WriteLine(token.Source.Name);
-
             if (token.Source == GetMethod<ResolveTokenTests>(nameof(ResolveTokenReplace)))
             {
                 Type personType = typeof(Caller).Module.GetType("Jitex.Tests.Context.Person");
