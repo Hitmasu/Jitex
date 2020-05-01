@@ -13,7 +13,7 @@
         <PackageLicenseFile></PackageLicenseFile>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageTags>JIT</PackageTags>
-        <Version>1.0.0-alpha</Version>
+        <Version>1.0.1-alpha</Version>
     </PropertyGroup>
     <ItemGroup>
       <Compile Remove="Attributes\**" />
