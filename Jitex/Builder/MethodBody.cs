@@ -193,11 +193,11 @@ namespace Jitex.Builder
                     //Check if type was already referenced on metadata from module
                     //If not, we should get reference in assembly of type.
                     //Ex.: String
-                    //if (typeHandle == default)
-                    //{
-                    //    MetadataInfo metadataAssembly = new MetadataInfo(variable.Type.Assembly);
-                    //    typeHandle = metadataAssembly.GetTypeHandle(variable.Type);
-                    //}
+                    if (typeHandle == default)
+                    {
+                        MetadataInfo metadataAssembly = new MetadataInfo(variable.Type.Assembly);
+                        typeHandle = metadataAssembly.GetTypeHandle(variable.Type);
+                    }
 
                     int typeInfo = CodedIndex.TypeDefOrRefOrSpec(typeHandle);
 
