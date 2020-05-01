@@ -4,6 +4,14 @@ platform: x64
 before_build:
 - cmd: dotnet restore
 build:
-  verbosity: minimal
+  verbosity: quiet
+build_script:
+  cmd: dotnet build
 test_script:
   cmd: dotnet test
+artifacts:
+- path: '**\*.nupkg'
+deploy:
+- provider: NuGet
+  api_key:
+    secure: k+rFC8RlkjpJQPYah3A6EjWxOUVz1LScU+Id8zBlmc3xjiROtG62XmfaN3h7SMuu
