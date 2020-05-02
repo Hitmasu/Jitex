@@ -3,24 +3,31 @@ using MethodBody = Jitex.Builder.MethodBody;
 
 namespace Jitex.JIT
 {
-    public class ReplaceInfo
+    public class CompileContext
     {
+        /// <summary>
+        /// Method who will compiled.
+        /// </summary>
+        public MethodBase Method { get; }
+
+        public bool IsResolved { get; internal set; }
+
         /// <summary>
         ///     Body of method.
         /// </summary>
-        public MethodBody MethodBody { get; }
+        internal MethodBody MethodBody { get; set; }
 
         /// <summary>
         ///     Byte-code from method (Only mode ASM)
         /// </summary>
-        public byte[] ByteCode { get; }
+        internal byte[] ByteCode { get; set; }
 
         /// <summary>
         ///     Replace mode - IL to MSIL and ASM to ByteCode.
         /// </summary>
-        public ReplaceMode Mode => ByteCode == null ? ReplaceMode.IL : ReplaceMode.ASM;
+        internal ResolveMode Mode => ByteCode == null ? ResolveMode.IL : ResolveMode.ASM;
 
-        public enum ReplaceMode
+        public enum ResolveMode
         {
             /// <summary>
             ///     MSIL (pre-compile)
@@ -33,31 +40,39 @@ namespace Jitex.JIT
             ASM
         }
 
+        internal CompileContext(MethodBase method)
+        {
+            Method = method;
+        }
+
         /// <summary>
         ///     Create data to inject a byte-code (ASM mode).
         /// </summary>
         /// <param name="byteCode">Bytecode</param>
-        public ReplaceInfo(byte[] byteCode)
+        public void ResolveByteCode(byte[] byteCode)
         {
             ByteCode = byteCode;
+            IsResolved = true;
         }
 
         /// <summary>
         ///     Create data to inject MSIL.
         /// </summary>
         /// <param name="methodBody">Body of new method.</param>
-        public ReplaceInfo(MethodBody methodBody)
+        public void ResolveBody(MethodBody methodBody)
         {
             MethodBody = methodBody;
+            IsResolved = true;
         }
 
         /// <summary>
         ///     Create data to inject MSIL from already method exists.
         /// </summary>
-        /// <param name="methodBody">Body of new method.</param>
-        public ReplaceInfo(MethodInfo method)
+        /// <param name="method">Body of new method.</param>
+        public void ResolveMethod(MethodInfo method)
         {
             MethodBody = new MethodBody(method);
+            IsResolved = true;
         }
     }
 }

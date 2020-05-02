@@ -23,7 +23,7 @@ namespace Jitex.JIT
 
         public MemberInfo Source { get; set; }
 
-        public bool Resolved { get; internal set; }
+        public bool IsResolved { get; internal set; }
 
         internal TokenContext(ref CORINFO_RESOLVED_TOKEN resolvedToken, MemberInfo source, CEEInfo ceeInfo)
         {
@@ -39,7 +39,7 @@ namespace Jitex.JIT
 
         public void ResolveFromModule(Module module)
         {
-            Resolved = true;
+            IsResolved = true;
             switch (TokenType)
             {
                 case TokenKind.Newobj:
@@ -60,7 +60,7 @@ namespace Jitex.JIT
 
         public void ResolveMethod(MethodBase method)
         {
-            Resolved = true;
+            IsResolved = true;
             if (method is DynamicMethod)
                 throw new NotImplementedException();
 
@@ -71,7 +71,7 @@ namespace Jitex.JIT
         public void ResolveConstructor(ConstructorInfo constructor)
         {
             ResolveMethod(constructor);
-            Resolved = true;
+            IsResolved = true;
         }
     }
 }

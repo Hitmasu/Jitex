@@ -8,12 +8,13 @@ using static Jitex.Tests.Utils;
 
 namespace Jitex.Tests
 {
-    public class ResolveTokenTests : IClassFixture<JitexFixture>
+    public class ResolveTokenTests
     {
-        public ResolveTokenTests(JitexFixture jit)
+        public ResolveTokenTests()
         {
-            jit.OnPreCompile = OnPreCompile;
-            jit.OnResolveToken = OnResolveToken;
+            ManagedJit jit = JitexInstance.GetInstance();
+            jit.AddCompileResolver(OnResolveCompile);
+            jit.AddTokenResolver(OnResolveToken);
         }
 
         [Fact]
@@ -42,40 +43,43 @@ namespace Jitex.Tests
             return -3;
         }
 
-        private void OnResolveToken(TokenContext token)
+        private void OnResolveToken(TokenContext context)
         {
-            if (token.Source == GetMethod<ResolveTokenTests>(nameof(ResolveTokenReplace)))
+            if (context.Source == GetMethod<ResolveTokenTests>(nameof(ResolveTokenReplace)))
             {
                 Type personType = typeof(Caller).Module.GetType("Jitex.Tests.Context.Person");
 
-                switch (token.MetadataToken)
+                switch (context.MetadataToken)
                 {
                     case 0x06000005:
                         ConstructorInfo ctor = personType.GetConstructor(Type.EmptyTypes);
-                        token.ResolveConstructor(ctor);
+                        context.ResolveConstructor(ctor);
                         break;
 
                     case 0x06000003:
                         MethodBase get_Idade = personType.GetMethod("get_Idade");
-                        token.ResolveMethod(get_Idade);
+                        context.ResolveMethod(get_Idade);
                         break;
                 }
             }
-            else if (token.Source == GetMethod<ResolveTokenTests>(nameof(ResolveWithModuleReplace)))
+            else if (context.Source == GetMethod<ResolveTokenTests>(nameof(ResolveWithModuleReplace)))
             {
-                token.ResolveFromModule(typeof(Caller).Module);
+                context.ResolveFromModule(typeof(Caller).Module);
             }
         }
 
-        private ReplaceInfo OnPreCompile(MethodBase method)
+        private void OnResolveCompile(CompileContext context)
         {
-            if (method == GetMethod<ResolveTokenTests>("ResolveTokenReplace") || method == GetMethod<ResolveTokenTests>("ResolveWithModuleReplace"))
+            if (context.Method == GetMethod<ResolveTokenTests>("ResolveWithModuleReplace"))
             {
                 MethodInfo methodToReplace = GetMethod<Caller>("GetIdade");
-                return new ReplaceInfo(methodToReplace);
+                context.ResolveMethod(methodToReplace);
             }
-
-            return null;
+            else if (context.Method == GetMethod<ResolveTokenTests>("ResolveTokenReplace"))
+            {
+                MethodInfo methodToReplace = GetMethod<Caller>("GetIdade");
+                context.ResolveMethod(methodToReplace);
+            }
         }
     }
 }

@@ -1,19 +1,18 @@
 ﻿using Jitex.Builder;
 using Jitex.JIT;
-using System;
-using System.Diagnostics;
-using System.Reflection;
 using Jitex.Tests.Context;
+using System;
 using Xunit;
 using static Jitex.Tests.Utils;
 
 namespace Jitex.Tests
 {
-    public class ReplaceILTests : IClassFixture<JitexFixture>
+    public class ReplaceILTests
     {
-        public ReplaceILTests(JitexFixture jit)
-        { 
-            jit.OnPreCompile = OnPreCompile;
+        public ReplaceILTests()
+        {
+            ManagedJit jit = JitexInstance.GetInstance();
+            jit.AddCompileResolver(OnResolveCompile);
         }
 
         #region EmptyBody
@@ -158,44 +157,36 @@ namespace Jitex.Tests
 
         #endregion
 
-        private ReplaceInfo OnPreCompile(MethodBase method)
+        private void OnResolveCompile(CompileContext context)
         {
-            if (method == GetMethod<ReplaceILTests>(nameof(EmptyBodyTest)))
+            if (context.Method == GetMethod<ReplaceILTests>(nameof(EmptyBodyTest)))
             {
-                return new ReplaceInfo(GetMethod<ReplaceILTests>(nameof(EmptyBodyReplace)));
+                context.ResolveMethod(GetMethod<ReplaceILTests>(nameof(EmptyBodyReplace)));
             }
-
-            if (method == GetMethod<ReplaceILTests>(nameof(BodyImpTest)))
+            else if (context.Method == GetMethod<ReplaceILTests>(nameof(BodyImpTest)))
             {
-                return new ReplaceInfo(GetMethod<ReplaceILTests>(nameof(BodyImpReplace)));
+                context.ResolveMethod(GetMethod<ReplaceILTests>(nameof(BodyImpReplace)));
             }
-
-            if (method == GetMethod<ReplaceILTests>(nameof(ReturnSimpleInt)))
+            else if (context.Method == GetMethod<ReplaceILTests>(nameof(ReturnSimpleInt)))
             {
-                return new ReplaceInfo(GetMethod<ReplaceILTests>(nameof(ReturnSimpleIntReplace)));
+                context.ResolveMethod(GetMethod<ReplaceILTests>(nameof(ReturnSimpleIntReplace)));
             }
-
-            if (method == GetMethod<ReplaceILTests>(nameof(ReturnSimpleDouble)))
+            else if (context.Method == GetMethod<ReplaceILTests>(nameof(ReturnSimpleDouble)))
             {
-                return new ReplaceInfo(GetMethod<ReplaceILTests>(nameof(ReturnSimpleDoubleReplace)));
+                context.ResolveMethod(GetMethod<ReplaceILTests>(nameof(ReturnSimpleDoubleReplace)));
             }
-
-            if (method == GetMethod<ReplaceILTests>(nameof(ReturnSimpleObj)))
+            else if (context.Method == GetMethod<ReplaceILTests>(nameof(ReturnSimpleObj)))
             {
-                return new ReplaceInfo(GetMethod<ReplaceILTests>(nameof(ReturnSimpleObjReplace)));
+                context.ResolveMethod(GetMethod<ReplaceILTests>(nameof(ReturnSimpleObjReplace)));
             }
-
-            if (method == GetMethod<ReplaceILTests>(nameof(LocalVariableNativeType)))
+            else if (context.Method == GetMethod<ReplaceILTests>(nameof(LocalVariableNativeType)))
             {
-                return new ReplaceInfo(GetMethod<ReplaceILTests>(nameof(LocalVariableNativeTypeReplace)));
+                context.ResolveMethod(GetMethod<ReplaceILTests>(nameof(LocalVariableNativeTypeReplace)));
             }
-
-            if (method == GetMethod<ReplaceILTests>(nameof(LocalVariableReferenceType)))
+            else if (context.Method == GetMethod<ReplaceILTests>(nameof(LocalVariableReferenceType)))
             {
-                return new ReplaceInfo(GetMethod<ReplaceILTests>(nameof(LocalVariableReferenceTypeReplace)));
+                context.ResolveMethod(GetMethod<ReplaceILTests>(nameof(LocalVariableReferenceTypeReplace)));
             }
-
-            return null;
         }
     }
 }
