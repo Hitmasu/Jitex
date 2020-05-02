@@ -1,7 +1,5 @@
 ﻿using Jitex.JIT.CorInfo;
 using System;
-using System.Diagnostics;
-using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 
@@ -9,19 +7,23 @@ namespace Jitex.JIT
 {
     public class TokenContext
     {
-        private CORINFO_RESOLVED_TOKEN _resolvedToken;
         private static CEEInfo _ceeInfo;
+
+        private CORINFO_RESOLVED_TOKEN _resolvedToken;
         internal CORINFO_RESOLVED_TOKEN ResolvedToken => _resolvedToken;
 
         public TokenKind TokenType => _resolvedToken.tokenType;
         public IntPtr Scope => _resolvedToken.tokenScope;
         public IntPtr Context => _resolvedToken.tokenContext;
-        public int MetadataToken => (int) _resolvedToken.token;
+        public int MetadataToken => _resolvedToken.token;
         public IntPtr MethodHandle => _resolvedToken.hMethod;
         public IntPtr FieldHandle => _resolvedToken.hField;
+
         public Module Module { get; }
 
         public MemberInfo Source { get; set; }
+
+        public bool Resolved { get; internal set; }
 
         internal TokenContext(ref CORINFO_RESOLVED_TOKEN resolvedToken, MemberInfo source, CEEInfo ceeInfo)
         {
@@ -37,6 +39,7 @@ namespace Jitex.JIT
 
         public void ResolveFromModule(Module module)
         {
+            Resolved = true;
             switch (TokenType)
             {
                 case TokenKind.Newobj:
@@ -57,6 +60,7 @@ namespace Jitex.JIT
 
         public void ResolveMethod(MethodBase method)
         {
+            Resolved = true;
             if (method is DynamicMethod)
                 throw new NotImplementedException();
 
@@ -67,6 +71,7 @@ namespace Jitex.JIT
         public void ResolveConstructor(ConstructorInfo constructor)
         {
             ResolveMethod(constructor);
+            Resolved = true;
         }
     }
 }

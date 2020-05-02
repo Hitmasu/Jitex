@@ -14,21 +14,19 @@ namespace Jitex.Hook
         {
             IntPtr originalAdress = Marshal.ReadIntPtr(pointerAddress);
             IntPtr hookAddress = Marshal.GetFunctionPointerForDelegate(delToInject);
-            VTableHook hook = new VTableHook(delToInject, originalAdress, hookAddress);
+            VTableHook hook = new VTableHook(delToInject, originalAdress, pointerAddress);
             WritePointer(pointerAddress, hookAddress);
             _hooks.Add(hook);
         }
 
         public bool RemoveHook(Delegate del)
         {
-            var hooksFound = _hooks.Count(h => h.Delegate.Method.Equals(del.Method));
+            var hookFound = _hooks.FirstOrDefault(h => h.Delegate.Method.Equals(del.Method));
 
-            if (hooksFound != 1)
+            if (hookFound == null)
                 return false;
 
-            VTableHook hook = _hooks.First();
-
-            return RemoveHook(hook);
+            return RemoveHook(hookFound);
         }
 
         private bool RemoveHook(VTableHook hook)

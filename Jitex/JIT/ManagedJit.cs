@@ -2,6 +2,8 @@
 using Jitex.JIT.CorInfo;
 using Jitex.Utils;
 using System;
+using System.Collections;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -48,6 +50,8 @@ namespace Jitex.JIT
         private static IntPtr _corJitInfoPtr = IntPtr.Zero;
         private static CEEInfo _ceeInfo;
 
+        private readonly ConcurrentStack<bool> _currentInstances = new ConcurrentStack<bool>();
+
         public PreCompileHandle OnPreCompile { get; set; }
 
         public ResolveTokenHandle OnResolveToken { get; set; }
@@ -81,7 +85,7 @@ namespace Jitex.JIT
             CORINFO_RESOLVED_TOKEN corinfoResolvedToken = default;
 
             RuntimeHelperExtension.PrepareDelegate(_resolveToken, IntPtr.Zero, corinfoResolvedToken);
-            RuntimeHelperExtension.PrepareDelegate(_compileMethod, IntPtr.Zero, IntPtr.Zero, emptyInfo, (uint) 0, IntPtr.Zero, 0);
+            RuntimeHelperExtension.PrepareDelegate(_compileMethod, IntPtr.Zero, IntPtr.Zero, emptyInfo, (uint)0, IntPtr.Zero, 0);
             RuntimeHelpers.PrepareDelegate(OnResolveToken);
 
             _hookManager.InjectHook(JitVTable, _compileMethod);
@@ -104,12 +108,15 @@ namespace Jitex.JIT
 
             try
             {
-                if (!_hookCompilerInstalled)
+                if (thisPtr == default)
                 {
                     nativeEntry = IntPtr.Zero;
                     nativeSizeOfCode = 0;
                     return 0;
                 }
+
+                //if(!_hookCompilerInstalled)
+                //    return Compiler.CompileMethod(thisPtr, comp, ref info, flags, out nativeEntry, out nativeSizeOfCode);
 
                 ReplaceInfo replaceInfo = null;
 
@@ -130,8 +137,8 @@ namespace Jitex.JIT
                         if (module != null)
                         {
                             uint methodToken = _ceeInfo.GetMethodDefFromMethod(info.ftn);
-                            MethodBase methodFound = module.ResolveMethod((int) methodToken);
-                            _tokenTls = new TokenTls {Root = methodFound};
+                            MethodBase methodFound = module.ResolveMethod((int)methodToken);
+                            _tokenTls = new TokenTls { Root = methodFound };
                             replaceInfo = OnPreCompile(methodFound);
                         }
                     }
@@ -165,7 +172,7 @@ namespace Jitex.JIT
                                         info.locals.args = sig + 3;
                                     }
 
-                                    info.locals.numArgs = (ushort) methodBody.LocalVariables.Count;
+                                    info.locals.numArgs = (ushort)methodBody.LocalVariables.Count;
                                 }
                             }
 
@@ -209,15 +216,15 @@ namespace Jitex.JIT
                             }
 
                             //populate IL with bitwise operations
-                            emptyBody[0] = (byte) OpCodes.Ldc_I4_1.Value;
-                            emptyBody[1] = (byte) OpCodes.Ldc_I4_1.Value;
-                            emptyBody[2] = (byte) OpCodes.And.Value;
-                            emptyBody[^1] = (byte) OpCodes.Ret.Value;
+                            emptyBody[0] = (byte)OpCodes.Ldc_I4_1.Value;
+                            emptyBody[1] = (byte)OpCodes.Ldc_I4_1.Value;
+                            emptyBody[2] = (byte)OpCodes.And.Value;
+                            emptyBody[^1] = (byte)OpCodes.Ret.Value;
 
                             for (int i = 3; i < emptyBody.Length - 2; i += 2)
                             {
-                                emptyBody[i] = (byte) OpCodes.Ldc_I4_1.Value;
-                                emptyBody[i + 1] = (byte) OpCodes.And.Value;
+                                emptyBody[i] = (byte)OpCodes.Ldc_I4_1.Value;
+                                emptyBody[i + 1] = (byte)OpCodes.And.Value;
                             }
 
                             if (info.maxStack < 2)
@@ -233,7 +240,7 @@ namespace Jitex.JIT
 
                 CorJitResult result = Compiler.CompileMethod(thisPtr, comp, ref info, flags, out nativeEntry, out nativeSizeOfCode);
 
-                Debug.Assert(result == CorJitResult.CORJIT_OK, "Failed compile");
+                //Debug.Assert(result == CorJitResult.CORJIT_OK, "Failed compile");
 
                 //Write bytecode to replace
                 if (replaceInfo?.Mode == ReplaceInfo.ReplaceMode.ASM)
@@ -256,12 +263,14 @@ namespace Jitex.JIT
                 if (_isDisposed)
                     return;
 
+                _hookTokenInstalled = false;
                 _hookManager.RemoveHook(_resolveToken);
+
                 _hookManager.RemoveHook(_compileMethod);
+                _hookCompilerInstalled = false;
                 _compileMethod = null;
                 _resolveToken = null;
                 _instance = null;
-                _hookCompilerInstalled = false;
                 _isDisposed = true;
             }
 
@@ -280,8 +289,15 @@ namespace Jitex.JIT
         {
             _tokenTls ??= new TokenTls();
 
-            if (!_hookTokenInstalled)
+
+            if (thisHandle == IntPtr.Zero)
                 return;
+
+            if (!_hookTokenInstalled)
+            {
+                _ceeInfo.ResolveToken(thisHandle, ref pResolvedToken); 
+                return;
+            }
 
             _tokenTls.EnterCount++;
 
@@ -309,7 +325,10 @@ namespace Jitex.JIT
                     TokenContext context = new TokenContext(ref pResolvedToken, _tokenTls.Source, _ceeInfo);
                     OnResolveToken(context);
 
-                    pResolvedToken = context.ResolvedToken;
+                    if (context.Resolved)
+                    {
+                        pResolvedToken = context.ResolvedToken;
+                    }
                 }
             }
             finally

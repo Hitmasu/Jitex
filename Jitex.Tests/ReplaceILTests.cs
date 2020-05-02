@@ -1,17 +1,18 @@
 ﻿using Jitex.Builder;
 using Jitex.JIT;
 using System;
+using System.Diagnostics;
 using System.Reflection;
+using Jitex.Tests.Context;
 using Xunit;
 using static Jitex.Tests.Utils;
 
 namespace Jitex.Tests
 {
-    public class ReplaceILTests
+    public class ReplaceILTests : IClassFixture<JitexFixture>
     {
-        public ReplaceILTests()
-        {
-            ManagedJit jit = ManagedJit.GetInstance();
+        public ReplaceILTests(JitexFixture jit)
+        { 
             jit.OnPreCompile = OnPreCompile;
         }
 
@@ -69,7 +70,7 @@ namespace Jitex.Tests
         public void ReturnReferenceTypeTest()
         {
             object ob = ReturnSimpleObj();
-            Assert.True(ob is ReplaceILTests, $"Body not replaced. Return type {typeof(object).Name}.");
+            Assert.True(ob is Caller, $"Body not replaced. Return type {typeof(object).Name}.");
         }
 
         public int ReturnSimpleInt()
@@ -94,12 +95,12 @@ namespace Jitex.Tests
 
         public object ReturnSimpleObj()
         {
-            return new ReplaceILTests();
+            return new Caller();
         }
 
         public object ReturnSimpleObjReplace()
         {
-            object ob = new ReplaceILTests();
+            object ob = new Caller();
             return ob;
         }
 
@@ -196,6 +197,5 @@ namespace Jitex.Tests
 
             return null;
         }
-
     }
 }

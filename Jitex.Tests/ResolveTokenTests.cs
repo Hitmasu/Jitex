@@ -8,13 +8,12 @@ using static Jitex.Tests.Utils;
 
 namespace Jitex.Tests
 {
-    public class ResolveTokenTests
+    public class ResolveTokenTests : IClassFixture<JitexFixture>
     {
-        public ResolveTokenTests()
+        public ResolveTokenTests(JitexFixture jit)
         {
-            ManagedJit managedJit = ManagedJit.GetInstance();
-            managedJit.OnPreCompile = OnPreCompile;
-            managedJit.OnResolveToken = OnResolveToken;
+            jit.OnPreCompile = OnPreCompile;
+            jit.OnResolveToken = OnResolveToken;
         }
 
         [Fact]
