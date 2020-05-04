@@ -134,7 +134,7 @@ namespace Jitex.IL
 
                     case OperandType.InlineMethod:
                         var method = ReadMethod();
-                        operation = new Operation(opCode, method, method.Token);
+                        operation = new Operation(opCode, method.Method, method.Token);
                         break;
 
                     case OperandType.InlineString:
