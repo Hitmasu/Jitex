@@ -23,8 +23,8 @@ namespace Jitex.JIT.CorInfo
         public CorInfoSigInfoFlags flags; // used by IL stubs code
         public ushort numArgs;
         public CORINFO_SIG_INST sigInst; // information about how type variables are being instantiated in generic code
-        public byte* args;
-        public byte* pSig;
+        public IntPtr args;
+        public IntPtr pSig;
         public uint cbSig;
         public IntPtr scope; // passed to getArgClass
         public uint token;

@@ -7,6 +7,7 @@ using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Threading;
 using static Jitex.JIT.CorInfo.CEEInfo;
 using static Jitex.JIT.CorInfo.CorJitCompiler;
 using MethodBody = Jitex.Builder.MethodBody;
@@ -137,6 +138,8 @@ namespace Jitex.JIT
                 }
 
                 CompileContext compileContext = null;
+                IntPtr ilAddress = IntPtr.Zero;
+                IntPtr sigAddress = IntPtr.Zero;
 
                 if (compileEntry.EnterCount == 1 && _resolversCompile != null)
                 {
@@ -148,33 +151,33 @@ namespace Jitex.JIT
                             _ceeInfo = new CEEInfo(_corJitInfoPtr);
                             _hookManager.InjectHook(_ceeInfo.ResolveTokenIndex, _resolveToken);
                         }
+                    }
 
-                        Module module = AppModules.GetModuleByPointer(info.scope);
+                    Module module = AppModules.GetModuleByPointer(info.scope);
 
-                        if (module != null)
+                    if (module != null)
+                    {
+                        uint methodToken = _ceeInfo.GetMethodDefFromMethod(info.ftn);
+                        MethodBase methodFound = module.ResolveMethod((int)methodToken);
+                        _tokenTls = new TokenTls { Root = methodFound };
+
+                        compileContext = new CompileContext(methodFound);
+
+                        foreach (ResolveCompileHandle resolver in _resolversCompile.GetInvocationList())
                         {
-                            uint methodToken = _ceeInfo.GetMethodDefFromMethod(info.ftn);
-                            MethodBase methodFound = module.ResolveMethod((int)methodToken);
-                            _tokenTls = new TokenTls { Root = methodFound };
+                            resolver(compileContext);
 
-                            compileContext = new CompileContext(methodFound);
-
-                            foreach (ResolveCompileHandle resolver in _resolversCompile.GetInvocationList())
-                            {
-                                resolver(compileContext);
-
-                                //TODO
-                                //Cascade resolvers
-                                if (compileContext.IsResolved)
-                                    break;
-                            }
+                            //TODO
+                            //Cascade resolvers
+                            if (compileContext.IsResolved)
+                                break;
                         }
                     }
 
                     if (compileContext != null && compileContext.IsResolved)
                     {
                         int ilLength;
-                        IntPtr ilAddress;
+                        
 
                         if (compileContext.Mode == CompileContext.ResolveMode.IL)
                         {
@@ -182,26 +185,18 @@ namespace Jitex.JIT
 
                             ilLength = methodBody.IL.Length;
 
-                            unsafe
+                            ilAddress = Marshal.AllocHGlobal(methodBody.IL.Length);
+                            Marshal.Copy(methodBody.IL, 0, ilAddress, methodBody.IL.Length);
+
+                            if (methodBody.HasLocalVariable)
                             {
-                                fixed (void* ptr = methodBody.IL)
-                                {
-                                    ilAddress = new IntPtr(ptr);
-                                }
+                                byte[] signatureVariables = methodBody.GetSignatureVariables();
+                                sigAddress = Marshal.AllocHGlobal(signatureVariables.Length);
+                                Marshal.Copy(signatureVariables, 0, sigAddress, signatureVariables.Length);
 
-                                if (methodBody.HasLocalVariable)
-                                {
-                                    fixed (byte* sig = methodBody.GetSignatureVariables())
-                                    {
-                                        //pSig starts after length of signature
-                                        info.locals.pSig = sig + 1;
-
-                                        //args starts after definition of signature (0x07)
-                                        info.locals.args = sig + 3;
-                                    }
-
-                                    info.locals.numArgs = (ushort)methodBody.LocalVariables.Count;
-                                }
+                                info.locals.pSig = sigAddress + 1;
+                                info.locals.args = sigAddress + 3;
+                                info.locals.numArgs = (ushort)methodBody.LocalVariables.Count;
                             }
 
                             info.maxStack = methodBody.MaxStackSize;
@@ -267,6 +262,12 @@ namespace Jitex.JIT
                 }
 
                 CorJitResult result = Compiler.CompileMethod(thisPtr, comp, ref info, flags, out nativeEntry, out nativeSizeOfCode);
+
+                if (ilAddress != IntPtr.Zero)
+                    Marshal.FreeHGlobal(ilAddress);
+
+                if(sigAddress != IntPtr.Zero)
+                    Marshal.FreeHGlobal(sigAddress);
 
                 //Debug.Assert(result == CorJitResult.CORJIT_OK, "Failed compile");
 
