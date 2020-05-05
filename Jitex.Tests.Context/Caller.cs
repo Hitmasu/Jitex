@@ -8,8 +8,8 @@ namespace Jitex.Tests.Context
         [MethodImpl(MethodImplOptions.NoInlining)]
         public int GetIdade()
         {
-            Person PERSON = new Person();
-            return PERSON.Idade;
+            Person person = new Person();
+            return person.Idade;
         }
     }
 

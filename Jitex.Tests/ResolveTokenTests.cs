@@ -12,9 +12,9 @@ namespace Jitex.Tests
     {
         public ResolveTokenTests()
         {
-            ManagedJit jit = JitexInstance.GetInstance();
-            jit.AddCompileResolver(OnResolveCompile);
+            ManagedJit jit = ManagedJit.GetInstance();
             jit.AddTokenResolver(OnResolveToken);
+            jit.AddCompileResolver(OnResolveCompile);
         }
 
         [Fact]
@@ -34,18 +34,18 @@ namespace Jitex.Tests
         [MethodImpl(MethodImplOptions.NoInlining)]
         public int ResolveTokenReplace()
         {
-            return -2;
+            return -3;
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
         public int ResolveWithModuleReplace()
         {
-            return -3;
+            return -4;
         }
 
         private void OnResolveToken(TokenContext context)
         {
-            if (context.Source == GetMethod<ResolveTokenTests>(nameof(ResolveTokenReplace)))
+            if (context.Source.Name == nameof(ResolveTokenReplace))
             {
                 Type personType = typeof(Caller).Module.GetType("Jitex.Tests.Context.Person");
 

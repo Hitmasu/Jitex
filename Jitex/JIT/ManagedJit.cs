@@ -331,9 +331,9 @@ namespace Jitex.JIT
 
                     //TODO
                     //Cascade resolvers
-                    foreach (ResolveTokenHandle _resolver in _resolversToken.GetInvocationList())
+                    foreach (ResolveTokenHandle resolver in _resolversToken.GetInvocationList())
                     {
-                        _resolver(context);
+                        resolver(context);
 
                         if (context.IsResolved)
                         {
@@ -342,10 +342,11 @@ namespace Jitex.JIT
                         }
                     }
                 }
+
+                _ceeInfo.ResolveToken(thisHandle, ref pResolvedToken);
             }
             finally
             {
-                _ceeInfo.ResolveToken(thisHandle, ref pResolvedToken);
                 _tokenTls.EnterCount--;
             }
         }

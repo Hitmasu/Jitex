@@ -11,7 +11,7 @@ namespace Jitex.Tests
     {
         public ReplaceILTests()
         {
-            ManagedJit jit = JitexInstance.GetInstance();
+            ManagedJit jit = ManagedJit.GetInstance();
             jit.AddCompileResolver(OnResolveCompile);
         }
 

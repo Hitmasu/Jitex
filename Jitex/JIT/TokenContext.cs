@@ -61,6 +61,7 @@ namespace Jitex.JIT
         public void ResolveMethod(MethodBase method)
         {
             IsResolved = true;
+
             if (method is DynamicMethod)
                 throw new NotImplementedException();
 
@@ -71,7 +72,6 @@ namespace Jitex.JIT
         public void ResolveConstructor(ConstructorInfo constructor)
         {
             ResolveMethod(constructor);
-            IsResolved = true;
         }
     }
 }
