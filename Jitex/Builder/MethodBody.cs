@@ -61,7 +61,7 @@ namespace Jitex.Builder
                     new LocalVariableInfo(typeof(long))
                 };
                 dynamicMethod.Invoke(null, null);
-                Operations = new ILReader(dynamicMethod).ToList();
+                Operations = new ILReader(dynamicMethod);
                 MaxStackSize = 8;
             }
             else

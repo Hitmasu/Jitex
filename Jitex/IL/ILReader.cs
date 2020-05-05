@@ -115,6 +115,7 @@ namespace Jitex.IL
             {
                 Operation operation = null;
 
+                int ilIndex = _position;
                 OpCode opCode = Operation.Translate(_il[_position++]);
 
                 switch (opCode.OperandType)
@@ -203,7 +204,8 @@ namespace Jitex.IL
                         int length = ReadInt32();
                         int[] branches = new int[length];
 
-                        for (int i = 0; i < length; i++) branches[i] = ReadInt32();
+                        for (int i = 0; i < length; i++) 
+                            branches[i] = ReadInt32();
 
                         operation = new Operation(opCode, branches);
                         break;
@@ -217,6 +219,8 @@ namespace Jitex.IL
                 }
 
                 operation.Index = _index++;
+                operation.ILIndex = ilIndex;
+                operation.Size = _position - ilIndex;
                 return operation;
             }
 

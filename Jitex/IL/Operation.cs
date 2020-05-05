@@ -10,7 +10,10 @@ namespace Jitex.IL
     {
         public int? MetadataToken { get; }
 
-        public int Index { get; set; }
+        public int Index { get; internal set; }
+        public int ILIndex { get; internal set; }
+
+        public int Size { get; internal set; }
 
         /// <summary>
         ///     Operation Code IL.
