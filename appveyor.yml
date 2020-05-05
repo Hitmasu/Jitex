@@ -10,8 +10,6 @@ build:
   verbosity: quiet
 build_script:
   cmd: dotnet build
-test_script:
-  cmd: dotnet test
 artifacts:
 - path: '**\*.nupkg'
 deploy:
