@@ -13,8 +13,8 @@ namespace Jitex.Tests
         public ResolveTokenTests()
         {
             ManagedJit jit = ManagedJit.GetInstance();
-            //jit.AddCompileResolver(OnResolveCompile);
-            //jit.AddTokenResolver(OnResolveToken);
+            jit.AddCompileResolver(OnResolveCompile);
+            jit.AddTokenResolver(OnResolveToken);
         }
 
         [Fact]
@@ -45,26 +45,29 @@ namespace Jitex.Tests
 
         private void OnResolveToken(TokenContext context)
         {
-            if (context.Source.Name == nameof(ResolveTokenReplace))
+            if (context.Source != null)
             {
-                Type personType = typeof(Caller).Module.GetType("Jitex.Tests.Context.Person");
-
-                switch (context.MetadataToken)
+                if (context.Source.Name == nameof(ResolveTokenReplace))
                 {
-                    case 0x06000005:
-                        ConstructorInfo ctor = personType.GetConstructor(Type.EmptyTypes);
-                        context.ResolveConstructor(ctor);
-                        break;
+                    Type personType = typeof(Caller).Module.GetType("Jitex.Tests.Context.Person");
 
-                    case 0x06000003:
-                        MethodBase get_Idade = personType.GetMethod("get_Idade");
-                        context.ResolveMethod(get_Idade);
-                        break;
+                    switch (context.MetadataToken)
+                    {
+                        case 0x06000005:
+                            ConstructorInfo ctor = personType.GetConstructor(Type.EmptyTypes);
+                            context.ResolveConstructor(ctor);
+                            break;
+
+                        case 0x06000003:
+                            MethodBase get_Idade = personType.GetMethod("get_Idade");
+                            context.ResolveMethod(get_Idade);
+                            break;
+                    }
                 }
-            }
-            else if (context.Source == GetMethod<ResolveTokenTests>(nameof(ResolveWithModuleReplace)))
-            {
-                context.ResolveFromModule(typeof(Caller).Module);
+                else if (context.Source == GetMethod<ResolveTokenTests>(nameof(ResolveWithModuleReplace)))
+                {
+                    context.ResolveFromModule(typeof(Caller).Module);
+                }
             }
         }
 
