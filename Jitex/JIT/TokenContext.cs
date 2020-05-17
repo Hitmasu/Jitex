@@ -51,10 +51,6 @@ namespace Jitex.JIT
                     MethodBase method = module.ResolveMethod(MetadataToken);
                     ResolveMethod(method);
                     break;
-
-                case TokenKind.Field:
-                    int a = 10;
-                    break;
             }
         }
 
