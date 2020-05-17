@@ -29,19 +29,16 @@ namespace Jitex.JIT.CorInfo
         {
             _corJitInfo = corJitInfo;
 
-            string clrVersion = Environment.Version.ToString();
+            Version version = new Version(3, 1, 1);
 
             IntPtr getMethodModuleIndex = IntPtr.Zero;
             IntPtr getMethodDefFromMethodIndex = IntPtr.Zero;
 
-            switch (clrVersion)
+            if (Environment.Version >= version)
             {
-                case "3.1.1":
-                case "3.1.3":
-                    getMethodModuleIndex = _corJitInfo + IntPtr.Size * 10;
-                    ResolveTokenIndex = _corJitInfo + IntPtr.Size * 28;
-                    getMethodDefFromMethodIndex = _corJitInfo + IntPtr.Size * 116;
-                    break;
+                getMethodModuleIndex = _corJitInfo + IntPtr.Size * 10;
+                ResolveTokenIndex = _corJitInfo + IntPtr.Size * 28;
+                getMethodDefFromMethodIndex = _corJitInfo + IntPtr.Size * 116;
             }
 
             IntPtr getMethodModulePtr = Marshal.ReadIntPtr(getMethodModuleIndex);
