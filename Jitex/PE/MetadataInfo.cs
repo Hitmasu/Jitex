@@ -20,7 +20,6 @@ namespace Jitex.PE
         private readonly Module _module;
 
         private ImmutableDictionary<Type, EntityHandle> Types { get; }
-        private ImmutableDictionary<int, int> MembersRef { get; }
 
         /// <summary>
         ///     Read metadata from assembly.
@@ -34,7 +33,7 @@ namespace Jitex.PE
 
             if (assembly.IsDynamic)
             {
-                var generator = new AssemblyGenerator();
+                AssemblyGenerator generator = new AssemblyGenerator();
                 byte[] buffer = generator.GenerateAssemblyBytes(assembly);
                 assemblyStream = new MemoryStream(buffer);
             }
