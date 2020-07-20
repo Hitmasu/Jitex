@@ -3,6 +3,7 @@ using Jitex.IL;
 using Jitex.PE;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -86,6 +87,15 @@ namespace Jitex.Builder
         public MethodBody(byte[] il, Module module)
         {
             Module = module;
+            IL = il;
+        }
+
+        /// <summary>
+        /// Create a new method body.
+        /// </summary>
+        /// <param name="il">IL of method.</param>
+        public MethodBody(byte[] il)
+        {
             IL = il;
         }
 
@@ -180,13 +190,19 @@ namespace Jitex.Builder
             {
                 CorElementType elementType = variable.ElementType;
 
+                if (elementType == CorElementType.ELEMENT_TYPE_SZARRAY)
+                {
+                    blob.WriteByte((byte) elementType);
+                    elementType = LocalVariableInfo.DetectCorElementType(variable.Type.GetElementType());
+                }
+
                 if (elementType == CorElementType.ELEMENT_TYPE_CLASS || elementType == CorElementType.ELEMENT_TYPE_VALUETYPE)
                 {
                     //TODO
                     //Pinned variables
 
                     if (Module == null)
-                        throw new ModuleNullException("Module can't be null with a Local Variable of type Class ");
+                        throw new ModuleNullException("Module can't be null with a Local Variable of type Class");
 
                     EntityHandle typeHandle = medatataModule.GetTypeHandle(variable.Type);
 

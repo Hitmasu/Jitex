@@ -16,9 +16,7 @@ namespace Jitex.Builder
         {
             get
             {
-                object runtime = GetRuntimeType.GetValue(Type.TypeHandle);
-                object corElementType = GetCorElementType.Invoke(null, new[] {runtime});
-                return (CorElementType) (byte) corElementType;
+                return DetectCorElementType(Type);
             }
         }
 
@@ -26,6 +24,19 @@ namespace Jitex.Builder
         {
             GetCorElementType = typeof(RuntimeTypeHandle).GetMethod("GetCorElementType", BindingFlags.Static | BindingFlags.NonPublic);
             GetRuntimeType = typeof(RuntimeTypeHandle).GetField("m_type", BindingFlags.Instance | BindingFlags.NonPublic);
+        }
+        
+        public static CorElementType DetectCorElementType(Type type)
+        {
+            //GetCorElementType will return ELEMENT_TYPE_CLASS to string.
+            if (type == typeof(string))
+            {
+                return CorElementType.ELEMENT_TYPE_STRING;
+            }
+                
+            object runtime = GetRuntimeType.GetValue(type.TypeHandle);
+            object corElementType = GetCorElementType.Invoke(null, new[] {runtime});
+            return (CorElementType) (byte) corElementType;
         }
 
         public LocalVariableInfo(Type type)

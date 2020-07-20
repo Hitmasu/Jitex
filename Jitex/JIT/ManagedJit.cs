@@ -5,9 +5,7 @@ using System;
 using System.Diagnostics;
 using System.Reflection;
 using System.Reflection.Emit;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Threading;
 using static Jitex.JIT.CorInfo.CEEInfo;
 using static Jitex.JIT.CorInfo.CorJitCompiler;
 using MethodBody = Jitex.Builder.MethodBody;
@@ -59,7 +57,7 @@ namespace Jitex.JIT
 
         private ResolveTokenHandle _resolversToken;
 
-        public delegate void ResolveCompileHandle(CompileContext method);
+        public delegate void ResolveCompileHandle(CompileContext context);
 
         public delegate void ResolveTokenHandle(TokenContext token);
 
@@ -109,7 +107,6 @@ namespace Jitex.JIT
 
             RuntimeHelperExtension.PrepareDelegate(_resolveToken, IntPtr.Zero, corinfoResolvedToken);
             RuntimeHelperExtension.PrepareDelegate(_compileMethod, IntPtr.Zero, IntPtr.Zero, emptyInfo, (uint)0, IntPtr.Zero, 0);
-            RuntimeHelpers.PrepareDelegate(_resolversToken);
 
             _hookManager.InjectHook(JitVTable, _compileMethod);
         }
@@ -167,8 +164,6 @@ namespace Jitex.JIT
                         {
                             resolver(compileContext);
 
-                            //TODO
-                            //Cascade resolvers
                             if (compileContext.IsResolved)
                                 break;
                         }
@@ -177,7 +172,6 @@ namespace Jitex.JIT
                     if (compileContext != null && compileContext.IsResolved)
                     {
                         int ilLength;
-                        
 
                         if (compileContext.Mode == CompileContext.ResolveMode.IL)
                         {
@@ -250,9 +244,9 @@ namespace Jitex.JIT
                                 emptyBody[i + 1] = (byte)OpCodes.And.Value;
                             }
 
-                            if (info.maxStack < 2)
+                            if (info.maxStack < 8)
                             {
-                                info.maxStack = 2;
+                                info.maxStack = 8;
                             }
                         }
 
@@ -263,7 +257,7 @@ namespace Jitex.JIT
 
                 CorJitResult result = Compiler.CompileMethod(thisPtr, comp, ref info, flags, out nativeEntry, out nativeSizeOfCode);
 
-                if (ilAddress != IntPtr.Zero)
+                if (ilAddress != IntPtr.Zero && compileContext!.Mode == CompileContext.ResolveMode.IL)
                     Marshal.FreeHGlobal(ilAddress);
 
                 if(sigAddress != IntPtr.Zero)
@@ -327,7 +321,7 @@ namespace Jitex.JIT
                 {
                     //Capture the method who trying resolve that token.
                     _tokenTls.Source = _tokenTls.GetSource();
-
+  
                     TokenContext context = new TokenContext(ref pResolvedToken, _tokenTls.Source, _ceeInfo);
 
                     //TODO

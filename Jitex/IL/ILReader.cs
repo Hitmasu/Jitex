@@ -40,7 +40,9 @@ namespace Jitex.IL
         {
             _il = il;
             _forceTypeOnGeneric = forceTypeOnGeneric;
-            _resolver = new ModuleTokenResolver(module);
+
+            if (module != null)
+                _resolver = new ModuleTokenResolver(module);
         }
 
         public IEnumerator<Operation> GetEnumerator()
@@ -129,7 +131,7 @@ namespace Jitex.IL
                         break;
 
                     case OperandType.InlineField:
-                        var field = ReadField();
+                        (FieldInfo Field, int Token) field = ReadField();
                         operation = new Operation(opCode, field.Field, field.Token);
                         break;
 
@@ -163,11 +165,11 @@ namespace Jitex.IL
                             var member = ReadMember();
                             operation = new Operation(opCode, member.Member, member.Token);
                         }
-                        catch (ArgumentException ex)
+                        catch (ArgumentException)
                         {
-                            if (_forceTypeOnGeneric) //Case is a generic not argumented, we can bypass
+                            if (_forceTypeOnGeneric)
                             {
-                                throw ex;
+                                throw;
                             }
 
                             _position -= 4;
@@ -204,7 +206,7 @@ namespace Jitex.IL
                         int length = ReadInt32();
                         int[] branches = new int[length];
 
-                        for (int i = 0; i < length; i++) 
+                        for (int i = 0; i < length; i++)
                             branches[i] = ReadInt32();
 
                         operation = new Operation(opCode, branches);
@@ -235,9 +237,13 @@ namespace Jitex.IL
             ///     Read <see cref="Type" /> reference from module.
             /// </summary>
             /// <returns><see cref="Type" /> referenced.</returns>
-            private (Type @Type, int Token) ReadType()
+            private (Type Type, int Token) ReadType()
             {
                 int token = ReadInt32();
+                
+                if (_resolver == null)
+                    return (null, token);
+                
                 Type type = _resolver.ResolveType(token);
                 return (type, token);
             }
@@ -246,9 +252,13 @@ namespace Jitex.IL
             ///     Read <see cref="string" /> reference from module.
             /// </summary>
             /// <returns><see cref="string" /> referenced.</returns>
-            private (string @String, int Token) ReadString()
+            private (string String, int Token) ReadString()
             {
                 int token = ReadInt32();
+                
+                if (_resolver == null)
+                    return (null, token);
+                
                 return (_resolver.ResolveString(token), token);
             }
 
@@ -259,6 +269,10 @@ namespace Jitex.IL
             private (MethodBase Method, int Token) ReadMethod()
             {
                 int token = ReadInt32();
+                
+                if (_resolver == null)
+                    return (null, token);
+                
                 MethodBase method = _resolver.ResolveMethod(token);
                 return (method, token);
             }
@@ -270,6 +284,10 @@ namespace Jitex.IL
             private (ConstructorInfo Constructor, int Token) ReadConstructor()
             {
                 int token = ReadInt32();
+                
+                if (_resolver == null)
+                    return (null, token);
+                
                 ConstructorInfo constructor = (ConstructorInfo) _resolver.ResolveMethod(token);
                 return (constructor, token);
             }
@@ -281,6 +299,10 @@ namespace Jitex.IL
             private (FieldInfo Field, int Token) ReadField()
             {
                 int token = ReadInt32();
+
+                if (_resolver == null)
+                    return (null, token);
+
                 FieldInfo field = _resolver.ResolveField(token);
                 return (field, token);
             }
@@ -292,6 +314,10 @@ namespace Jitex.IL
             private (byte[] Signature, int Token) ReadSignature()
             {
                 int token = ReadInt32();
+
+                if (_resolver == null)
+                    return (null, token);
+                
                 byte[] signature = _resolver.ResolveSignature(token);
                 return (signature, token);
             }
@@ -303,6 +329,10 @@ namespace Jitex.IL
             private (MemberInfo Member, int Token) ReadMember()
             {
                 int token = ReadInt32();
+                
+                if (_resolver == null)
+                    return (null, token);
+                
                 MemberInfo member = _resolver.ResolveMember(token);
                 return (member, token);
             }

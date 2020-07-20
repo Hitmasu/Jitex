@@ -7,28 +7,63 @@ namespace Jitex.JIT
 {
     public class TokenContext
     {
+        /// <summary>
+        /// Instância do CEEInfo
+        /// </summary>
         private static CEEInfo _ceeInfo;
 
         private CORINFO_RESOLVED_TOKEN _resolvedToken;
         internal CORINFO_RESOLVED_TOKEN ResolvedToken => _resolvedToken;
 
+        /// <summary>
+        /// Tipo do Token
+        /// </summary>
         public TokenKind TokenType => _resolvedToken.tokenType;
+
+        /// <summary>
+        /// Modulo do Token
+        /// </summary>
         public IntPtr Scope => _resolvedToken.tokenScope;
+        
+        /// <summary>
+        /// Contexto do Token (Tipos genéricos)
+        /// </summary>
         public IntPtr Context => _resolvedToken.tokenContext;
+
+        /// <summary>
+        /// Metadata Token
+        /// </summary>
         public int MetadataToken => _resolvedToken.token;
+        
+        /// <summary>
+        /// Handle do Método
+        /// </summary>
         public IntPtr MethodHandle => _resolvedToken.hMethod;
+
+        /// <summary>
+        /// Handle do Field
+        /// </summary>
         public IntPtr FieldHandle => _resolvedToken.hField;
 
+        /// <summary>
+        /// Módulo original do token
+        /// </summary>
         public Module Module { get; }
 
+        /// <summary>
+        /// Origem da chamada
+        /// </summary>
         public MemberInfo Source { get; set; }
 
+
+        /// <summary>
+        /// Se o Token já foi resolvido.
+        /// </summary>
         public bool IsResolved { get; internal set; }
 
         internal TokenContext(ref CORINFO_RESOLVED_TOKEN resolvedToken, MemberInfo source, CEEInfo ceeInfo)
         {
-            if (_ceeInfo == null)
-                _ceeInfo = ceeInfo;
+            _ceeInfo ??= ceeInfo;
 
             _resolvedToken = resolvedToken;
 
@@ -40,6 +75,7 @@ namespace Jitex.JIT
         public void ResolveFromModule(Module module)
         {
             IsResolved = true;
+
             switch (TokenType)
             {
                 case TokenKind.Newobj:
