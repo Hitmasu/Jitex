@@ -24,7 +24,7 @@ namespace Jitex.JIT.CorInfo
 
         [UnmanagedFunctionPointer(default)]
         public delegate void ResolveTokenDelegate(IntPtr thisHandle, ref CORINFO_RESOLVED_TOKEN pResolvedToken);
-
+       
         public CEEInfo(IntPtr corJitInfo)
         {
             _corJitInfo = corJitInfo;

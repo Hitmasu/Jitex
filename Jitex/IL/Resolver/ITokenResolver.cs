@@ -13,10 +13,14 @@ namespace Jitex.IL.Resolver
     internal interface ITokenResolver
     {
         FieldInfo ResolveField(int token);
+        FieldInfo ResolveField(int token, Type[] genericTypeArguments, Type[] genericMethodArguments);
         MemberInfo ResolveMember(int token);
+        MemberInfo ResolveMember(int token, Type[] genericTypeArguments, Type[] genericMethodArguments);
         MethodBase ResolveMethod(int token);
+        MethodBase ResolveMethod(int token, Type[] genericTypeArguments, Type[] genericMethodArguments);
         byte[] ResolveSignature(int token);
         string ResolveString(int token);
         Type ResolveType(int token);
+        Type ResolveType(int token, Type[] genericTypeArguments, Type[] genericMethodArguments);
     }
 }
