@@ -34,13 +34,13 @@ namespace Jitex.Tests
         [MethodImpl(MethodImplOptions.NoInlining)]
         public int ResolveTokenReplace()
         {
-            return -3;
+            return new Caller().GetIdade() + 20;
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
         public int ResolveWithModuleReplace()
         {
-            return -4;
+            return new Caller().GetIdade() + 20;
         }
 
         private void OnResolveToken(TokenContext context)
@@ -73,14 +73,14 @@ namespace Jitex.Tests
 
         private void OnResolveCompile(CompileContext context)
         {
-            if (context.Method == GetMethod<ResolveTokenTests>("ResolveWithModuleReplace"))
+            if (context.Method == GetMethod<ResolveTokenTests>(nameof(ResolveTokenReplace)))
             {
-                MethodInfo methodToReplace = GetMethod<Caller>("GetIdade");
+                MethodInfo methodToReplace = GetMethod<Caller>(nameof(Caller.GetIdade));
                 context.ResolveMethod(methodToReplace);
             }
-            else if (context.Method == GetMethod<ResolveTokenTests>("ResolveTokenReplace"))
+            else if (context.Method == GetMethod<ResolveTokenTests>(nameof(ResolveWithModuleReplace)))
             {
-                MethodInfo methodToReplace = GetMethod<Caller>("GetIdade");
+                MethodInfo methodToReplace = GetMethod<Caller>(nameof(Caller.GetIdade));
                 context.ResolveMethod(methodToReplace);
             }
         }
