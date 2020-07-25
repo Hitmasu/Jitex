@@ -119,15 +119,10 @@ namespace Jitex.Tests
         [Fact]
         public void LocalVariableReferenceTypeTest()
         {
-            string expected = "ManagedJit | ReplaceILTests | Random | CorElementType";
+            string expected = "Caller | ReplaceILTests | Random | CorElementType";
             string actual = LocalVariableReferenceType();
 
             Assert.True(expected == actual, "\nVariable not inserted.");
-        }
-
-        public string LocalVariableNativeType()
-        {
-            return typeof(object).Name;
         }
 
         public string LocalVariableNativeTypeReplace()
@@ -141,6 +136,13 @@ namespace Jitex.Tests
             return $"{type1.GetType().Name} | {type2.GetType().Name} | {type3.GetType().Name} | {type4.GetType().Name} | {type5.GetType().Name}";
         }
 
+
+        public string LocalVariableNativeType()
+        {
+            return typeof(object).Name;
+        }
+
+
         public string LocalVariableReferenceType()
         {
             return typeof(DateTime).Name;
@@ -148,7 +150,7 @@ namespace Jitex.Tests
 
         public string LocalVariableReferenceTypeReplace()
         {
-            ManagedJit type1 = ManagedJit.GetInstance();
+            Caller type1 = new Caller();
             ReplaceILTests type2 = this;
             Random type3 = new Random();
             CorElementType type4 = CorElementType.ELEMENT_TYPE_OBJECT;
