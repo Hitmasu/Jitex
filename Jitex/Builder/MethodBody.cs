@@ -117,7 +117,7 @@ namespace Jitex.Builder
                         break;
 
                     default:
-                        throw new NotImplementedException();
+                        throw new NotImplementedException($"Stack operation not implemented: {operation.OpCode.Name}");
                 }
 
                 switch (operation.OpCode.StackBehaviourPop)
@@ -144,6 +144,7 @@ namespace Jitex.Builder
                         break;
 
                     case StackBehaviour.Popi_popi_popi:
+                    case StackBehaviour.Popref_popi_pop1:
                     case StackBehaviour.Popref_popi_popi:
                     case StackBehaviour.Popref_popi_popi8:
                     case StackBehaviour.Popref_popi_popr4:
@@ -153,7 +154,7 @@ namespace Jitex.Builder
                         break;
 
                     default:
-                        throw new NotImplementedException();
+                        throw new NotImplementedException($"Stack operation not implemented: {operation.OpCode.Name}");
                 }
 
                 if (maxStackSize > MaxStackSize)
