@@ -26,8 +26,6 @@ namespace Jitex.IL.Resolver
 
         public DynamicMethodTokenResolver(DynamicMethod dynamicMethod)
         {
-            //TODO
-            //Store MethodInfo
             var resolver = typeof(DynamicMethod).GetField("m_resolver", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(dynamicMethod);
 
             _tokenResolver = (TokenResolver) resolver.GetType().GetMethod("_resolveToken", BindingFlags.Instance | BindingFlags.NonPublic).CreateDelegate(typeof(TokenResolver), resolver);
@@ -101,7 +99,7 @@ namespace Jitex.IL.Resolver
                 _runtimeMethodHandleInternalCtor.Invoke(new object[] {methodHandle})
             });
         }
-
+        
         public MethodBase ResolveMethod(int token)
         {
             _tokenResolver.Invoke(token, out IntPtr typeHandle, out IntPtr methodHandle, out _);

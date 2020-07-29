@@ -7,7 +7,7 @@ namespace Jitex.Hook
         public Delegate Delegate { get; set; }
 
         /// <summary>
-        ///     Original address of delegate
+        ///     Original address
         /// </summary>
         public IntPtr OriginalAddress { get; set; }
 
