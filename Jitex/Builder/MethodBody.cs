@@ -1,15 +1,14 @@
 ﻿using Jitex.Builder.Exceptions;
 using Jitex.IL;
 using Jitex.PE;
+using Jitex.Utils.Extensions;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
-using Jitex.Utils.Extensions;
 
 namespace Jitex.Builder
 {
@@ -20,7 +19,10 @@ namespace Jitex.Builder
         /// <summary>
         ///     Module from method body.
         /// </summary>
-        public Module Module { get; set; }
+        public Module Module { get; }
+
+        public Type[] GenericTypeArguments { get; set; }
+        public Type[] GenericMethodArguments { get; set; }
 
         public byte[] IL
         {
@@ -28,15 +30,9 @@ namespace Jitex.Builder
             set
             {
                 _il = value;
-                Operations = new ILReader(_il, Module);
                 CalculateMaxStack();
             }
         }
-
-        /// <summary>
-        ///     Operations from IL.
-        /// </summary>
-        public IEnumerable<Operation> Operations { get; private set; }
 
         /// <summary>
         ///     Local variables from method.
@@ -50,32 +46,27 @@ namespace Jitex.Builder
 
         public uint MaxStackSize { get; set; }
 
-        public MethodBody(MethodInfo methodBase)
+        public MethodBody(MethodBase methodBase)
         {
             Module = methodBase.Module;
+            LocalVariables = methodBase.GetMethodBody().LocalVariables.Select(s => new LocalVariableInfo(s.LocalType)).ToList();
 
-            if (methodBase is DynamicMethod dynamicMethod)
-            {
-                _il = methodBase.GetILBytes();
-                LocalVariables = new List<LocalVariableInfo>
-                {
-                    new LocalVariableInfo(typeof(long))
-                };
-                dynamicMethod.Invoke(null, null);
-                Operations = new ILReader(dynamicMethod);
-                MaxStackSize = 8;
-            }
-            else
-            {
-                IL = methodBase.GetILBytes();
-                LocalVariables = methodBase.GetMethodBody().LocalVariables.Select(s => new LocalVariableInfo(s.LocalType)).ToList();
-            }
+            if (methodBase.IsGenericMethod)
+                GenericMethodArguments = methodBase.GetGenericArguments();
+
+            if (methodBase.DeclaringType.IsGenericType)
+                GenericTypeArguments = methodBase.DeclaringType.GetGenericArguments();
+
+            IL = methodBase.GetILBytes();
         }
 
-        public MethodBody(byte[] il, Module module, params Type[] variables)
+        public MethodBody(byte[] il, Module module, Type[] genericTypeArguments = null, Type[] genericMethodArguments = null, params Type[] variables)
         {
             Module = module;
             LocalVariables = variables.Select(s => new LocalVariableInfo(s)).ToList();
+            GenericTypeArguments = genericTypeArguments;
+            GenericMethodArguments = genericMethodArguments;
+
             IL = il;
         }
 
@@ -84,19 +75,18 @@ namespace Jitex.Builder
         /// </summary>
         /// <param name="il">IL of method.</param>
         /// <param name="module">Module from body.</param>
-        public MethodBody(byte[] il, Module module)
+        public MethodBody(byte[] il, Module module, Type[] genericTypeArguments = null, Type[] genericMethodArguments = null)
         {
             Module = module;
+            GenericTypeArguments = genericTypeArguments;
+            GenericMethodArguments = genericMethodArguments;
+
             IL = il;
         }
 
-        /// <summary>
-        /// Create a new method body.
-        /// </summary>
-        /// <param name="il">IL of method.</param>
-        public MethodBody(byte[] il)
+        public IEnumerable<Operation> ReadIL()
         {
-            IL = il;
+            return new ILReader(IL, Module, GenericTypeArguments, GenericMethodArguments);
         }
 
         /// <summary>
@@ -105,7 +95,7 @@ namespace Jitex.Builder
         private void CalculateMaxStack()
         {
             int maxStackSize = 0;
-            foreach (Operation operation in Operations)
+            foreach (Operation operation in ReadIL())
             {
                 switch (operation.OpCode.StackBehaviourPush)
                 {
@@ -127,7 +117,7 @@ namespace Jitex.Builder
                         break;
 
                     default:
-                        throw new NotImplementedException();
+                        throw new NotImplementedException($"Stack operation not implemented: {operation.OpCode.Name}");
                 }
 
                 switch (operation.OpCode.StackBehaviourPop)
@@ -154,6 +144,7 @@ namespace Jitex.Builder
                         break;
 
                     case StackBehaviour.Popi_popi_popi:
+                    case StackBehaviour.Popref_popi_pop1:
                     case StackBehaviour.Popref_popi_popi:
                     case StackBehaviour.Popref_popi_popi8:
                     case StackBehaviour.Popref_popi_popr4:
@@ -163,12 +154,12 @@ namespace Jitex.Builder
                         break;
 
                     default:
-                        throw new NotImplementedException();
+                        throw new NotImplementedException($"Stack operation not implemented: {operation.OpCode.Name}");
                 }
 
                 if (maxStackSize > MaxStackSize)
                 {
-                    MaxStackSize = (uint) maxStackSize;
+                    MaxStackSize = (uint)maxStackSize;
                 }
             }
         }
@@ -192,7 +183,7 @@ namespace Jitex.Builder
 
                 if (elementType == CorElementType.ELEMENT_TYPE_SZARRAY)
                 {
-                    blob.WriteByte((byte) elementType);
+                    blob.WriteByte((byte)elementType);
                     elementType = LocalVariableInfo.DetectCorElementType(variable.Type.GetElementType());
                 }
 
@@ -217,12 +208,12 @@ namespace Jitex.Builder
 
                     int typeInfo = CodedIndex.TypeDefOrRefOrSpec(typeHandle);
 
-                    blob.WriteByte((byte) elementType);
+                    blob.WriteByte((byte)elementType);
                     blob.WriteCompressedInteger(typeInfo);
                 }
                 else
                 {
-                    blob.WriteByte((byte) elementType);
+                    blob.WriteByte((byte)elementType);
                 }
             }
 

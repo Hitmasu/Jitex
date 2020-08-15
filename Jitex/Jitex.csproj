@@ -13,8 +13,7 @@
         <PackageLicenseFile></PackageLicenseFile>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageTags>JIT</PackageTags>
-        <Version>1.2.2-alpha</Version>
-        <PackageVersion>1.3.0-alpha</PackageVersion>
+        <Version>2.0.0-alpha</Version>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
       <PlatformTarget>x64</PlatformTarget>

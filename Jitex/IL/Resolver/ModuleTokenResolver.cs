@@ -17,14 +17,29 @@ namespace Jitex.IL.Resolver
             return _module.ResolveField(token);
         }
 
+        public FieldInfo ResolveField(int token, Type[] genericTypeArguments, Type[] genericMethodArguments)
+        {
+            return _module.ResolveField(token, genericTypeArguments, genericMethodArguments);
+        }
+
         public MemberInfo ResolveMember(int token)
         {
             return _module.ResolveMember(token);
         }
 
+        public MemberInfo ResolveMember(int token, Type[] genericTypeArguments, Type[] genericMethodArguments)
+        {
+            return _module.ResolveMember(token, genericTypeArguments, genericMethodArguments);
+        }
+
         public MethodBase ResolveMethod(int token)
         {
             return _module.ResolveMethod(token);
+        }
+
+        public MethodBase ResolveMethod(int token, Type[] genericTypeArguments, Type[] genericMethodArguments)
+        {
+            return _module.ResolveMethod(token, genericTypeArguments, genericMethodArguments);
         }
 
         public byte[] ResolveSignature(int token)
@@ -40,6 +55,11 @@ namespace Jitex.IL.Resolver
         public Type ResolveType(int token)
         {
             return _module.ResolveType(token);
+        }
+
+        public Type ResolveType(int token, Type[] genericTypeArguments, Type[] genericMethodArguments)
+        {
+            return _module.ResolveType(token, genericTypeArguments, genericMethodArguments);
         }
     }
 }

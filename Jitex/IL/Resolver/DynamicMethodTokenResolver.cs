@@ -26,8 +26,6 @@ namespace Jitex.IL.Resolver
 
         public DynamicMethodTokenResolver(DynamicMethod dynamicMethod)
         {
-            //TODO
-            //Store MethodInfo
             var resolver = typeof(DynamicMethod).GetField("m_resolver", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(dynamicMethod);
 
             _tokenResolver = (TokenResolver) resolver.GetType().GetMethod("_resolveToken", BindingFlags.Instance | BindingFlags.NonPublic).CreateDelegate(typeof(TokenResolver), resolver);
@@ -61,6 +59,11 @@ namespace Jitex.IL.Resolver
             return ResolveField(fieldHandle, typeHandle);
         }
 
+        public FieldInfo ResolveField(int token, Type[] genericTypeArguments, Type[] genericMethodArguments)
+        {
+            throw new NotImplementedException();
+        }
+
         public MemberInfo ResolveMember(int token)
         {
             _tokenResolver.Invoke(token, out IntPtr typeHandle, out IntPtr methodHandle, out IntPtr fieldHandle);
@@ -83,6 +86,11 @@ namespace Jitex.IL.Resolver
             throw new NotSupportedException();
         }
 
+        public MemberInfo ResolveMember(int token, Type[] genericTypeArguments, Type[] genericMethodArguments)
+        {
+            throw new NotImplementedException();
+        }
+
         private MethodBase ResolveMethod(IntPtr methodHandle, IntPtr typeHandle)
         {
             return (MethodBase) _getMethodBase.Invoke(null, new[]
@@ -91,11 +99,16 @@ namespace Jitex.IL.Resolver
                 _runtimeMethodHandleInternalCtor.Invoke(new object[] {methodHandle})
             });
         }
-
+        
         public MethodBase ResolveMethod(int token)
         {
             _tokenResolver.Invoke(token, out IntPtr typeHandle, out IntPtr methodHandle, out _);
             return ResolveMethod(methodHandle, typeHandle);
+        }
+
+        public MethodBase ResolveMethod(int token, Type[] genericTypeArguments, Type[] genericMethodArguments)
+        {
+            throw new NotImplementedException();
         }
 
         public byte[] ResolveSignature(int token)
@@ -112,6 +125,11 @@ namespace Jitex.IL.Resolver
         {
             _tokenResolver.Invoke(token, out IntPtr typeHandle, out _, out _);
             return _getTypeFromHandleUnsafe(typeHandle);
+        }
+
+        public Type ResolveType(int token, Type[] genericTypeArguments, Type[] genericMethodArguments)
+        {
+            throw new NotImplementedException();
         }
     }
 }

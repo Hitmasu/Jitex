@@ -1,5 +1,4 @@
 ﻿using Jitex.IL.Resolver;
-using Jitex.Utils;
 using Jitex.Utils.Extensions;
 using System;
 using System.Collections;
@@ -11,8 +10,6 @@ namespace Jitex.IL
 {
     public class ILReader : IEnumerable<Operation>
     {
-        private readonly bool _forceTypeOnGeneric;
-
         /// <summary>
         ///     Instructions IL.
         /// </summary>
@@ -20,14 +17,24 @@ namespace Jitex.IL
 
         private readonly ITokenResolver _resolver;
 
-        public ILReader(MethodBase methodBase)
-        {
-            _il = methodBase.GetILBytes();
+        private readonly Type[] _genericTypeArguments;
+        private readonly Type[] _genericMethodArguments;
 
-            if (methodBase is DynamicMethod dynamicMethod)
+
+        public ILReader(MethodBase methodILBase)
+        {
+            if (methodILBase == null)
+                throw new ArgumentNullException(nameof(methodILBase));
+
+            _il = methodILBase.GetILBytes();
+
+            _genericTypeArguments = methodILBase.DeclaringType.GenericTypeArguments;
+            _genericMethodArguments = methodILBase.GetGenericArguments();
+
+            if (methodILBase is DynamicMethod dynamicMethod)
                 _resolver = new DynamicMethodTokenResolver(dynamicMethod);
             else
-                _resolver = new ModuleTokenResolver(methodBase.Module);
+                _resolver = new ModuleTokenResolver(methodILBase.Module);
         }
 
         /// <summary>
@@ -35,19 +42,22 @@ namespace Jitex.IL
         /// </summary>
         /// <param name="il">Instructions to read.</param>
         /// <param name="module">Module of instructions.</param>
-        /// <param name="forceTypeOnGeneric">Force read type generic.</param>
-        public ILReader(byte[] il, Module module, bool forceTypeOnGeneric = true)
+        public ILReader(byte[] il, Module module, Type[] genericTypeArguments = null, Type[] genericMethodArguments = null)
         {
-            _il = il;
-            _forceTypeOnGeneric = forceTypeOnGeneric;
+            if (module == null)
+                throw new ArgumentNullException(nameof(module));
 
-            if (module != null)
-                _resolver = new ModuleTokenResolver(module);
+            _il = il;
+
+            _genericTypeArguments = genericTypeArguments;
+            _genericMethodArguments = genericMethodArguments;
+
+            _resolver = new ModuleTokenResolver(module);
         }
 
         public IEnumerator<Operation> GetEnumerator()
         {
-            return new ILEnumerator(_il, _resolver, _forceTypeOnGeneric);
+            return new ILEnumerator(_il, _resolver, _genericTypeArguments, _genericMethodArguments);
         }
 
         IEnumerator IEnumerable.GetEnumerator()
@@ -60,8 +70,6 @@ namespace Jitex.IL
         /// </summary>
         private class ILEnumerator : IEnumerator<Operation>
         {
-            private readonly bool _forceTypeOnGeneric;
-
             /// <summary>
             ///     Instructions IL.
             /// </summary>
@@ -75,6 +83,9 @@ namespace Jitex.IL
             ///     Current position of read.
             /// </summary>
             private int _position;
+
+            private readonly Type[] _genericTypeArguments;
+            private readonly Type[] _genericMethodArguments;
 
             /// <summary>
             ///     Current operation.
@@ -90,13 +101,12 @@ namespace Jitex.IL
             ///     Create a new enumerator to read instructions.
             /// </summary>
             /// <param name="il">Instructions to read.</param>
-            /// <param name="module">Module of instructions.</param>
-            /// <param name="forceTypeOnGeneric">Force read token from generic method</param>
-            public ILEnumerator(byte[] il, ITokenResolver resolver, bool forceTypeOnGeneric)
+            public ILEnumerator(byte[] il, ITokenResolver resolver, Type[] genericTypeArguments, Type[] genericMethodArguments)
             {
                 _il = il;
                 _resolver = resolver;
-                _forceTypeOnGeneric = forceTypeOnGeneric;
+                _genericTypeArguments = genericTypeArguments;
+                _genericMethodArguments = genericMethodArguments;
             }
 
             public void Dispose()
@@ -118,7 +128,13 @@ namespace Jitex.IL
                 Operation operation = null;
 
                 int ilIndex = _position;
-                OpCode opCode = Operation.Translate(_il[_position++]);
+
+                short instruction = _il[_position++];
+
+                if (instruction == 0xFE)
+                    instruction = BitConverter.ToInt16(new[] { _il[_position++], (byte)instruction });
+
+                OpCode opCode = Operation.Translate(instruction);
 
                 switch (opCode.OperandType)
                 {
@@ -131,7 +147,7 @@ namespace Jitex.IL
                         break;
 
                     case OperandType.InlineField:
-                        (FieldInfo Field, int Token) field = ReadField();
+                        var field = ReadField();
                         operation = new Operation(opCode, field.Field, field.Token);
                         break;
 
@@ -160,22 +176,8 @@ namespace Jitex.IL
                         break;
 
                     case OperandType.InlineTok:
-                        try
-                        {
-                            var member = ReadMember();
-                            operation = new Operation(opCode, member.Member, member.Token);
-                        }
-                        catch (ArgumentException)
-                        {
-                            if (_forceTypeOnGeneric)
-                            {
-                                throw;
-                            }
-
-                            _position -= 4;
-                            operation = new Operation(opCode, ReadInt32());
-                        }
-
+                        var member = ReadMember();
+                        operation = new Operation(opCode, member.Member, member.Token);
                         break;
 
                     case OperandType.InlineBrTarget:
@@ -193,7 +195,7 @@ namespace Jitex.IL
                     case OperandType.ShortInlineBrTarget: //Repeat jump from original IL.
                     case OperandType.ShortInlineI:
                         if (opCode == OpCodes.Ldc_I4_S)
-                            operation = new Operation(opCode, (sbyte) ReadByte());
+                            operation = new Operation(opCode, (sbyte)ReadByte());
                         else
                             operation = new Operation(opCode, ReadByte());
                         break;
@@ -220,8 +222,13 @@ namespace Jitex.IL
                         break;
                 }
 
+                //Current position of operation
                 operation.Index = _index++;
+
+                //Current position in array byte
                 operation.ILIndex = ilIndex;
+
+                //Size bytes of operation
                 operation.Size = _position - ilIndex;
                 return operation;
             }
@@ -240,11 +247,17 @@ namespace Jitex.IL
             private (Type Type, int Token) ReadType()
             {
                 int token = ReadInt32();
-                
+
                 if (_resolver == null)
                     return (null, token);
-                
-                Type type = _resolver.ResolveType(token);
+
+                Type type = null;
+
+                if (_resolver is ModuleTokenResolver)
+                    type = _resolver.ResolveType(token, _genericTypeArguments, _genericMethodArguments);
+                else
+                    type = _resolver.ResolveType(token);
+
                 return (type, token);
             }
 
@@ -255,10 +268,10 @@ namespace Jitex.IL
             private (string String, int Token) ReadString()
             {
                 int token = ReadInt32();
-                
+
                 if (_resolver == null)
                     return (null, token);
-                
+
                 return (_resolver.ResolveString(token), token);
             }
 
@@ -269,11 +282,17 @@ namespace Jitex.IL
             private (MethodBase Method, int Token) ReadMethod()
             {
                 int token = ReadInt32();
-                
+
                 if (_resolver == null)
                     return (null, token);
-                
-                MethodBase method = _resolver.ResolveMethod(token);
+
+                MethodBase method;
+
+                if (_resolver is ModuleTokenResolver)
+                    method = _resolver.ResolveMethod(token, _genericTypeArguments, _genericMethodArguments);
+                else
+                    method = _resolver.ResolveMethod(token);
+
                 return (method, token);
             }
 
@@ -284,11 +303,11 @@ namespace Jitex.IL
             private (ConstructorInfo Constructor, int Token) ReadConstructor()
             {
                 int token = ReadInt32();
-                
+
                 if (_resolver == null)
                     return (null, token);
-                
-                ConstructorInfo constructor = (ConstructorInfo) _resolver.ResolveMethod(token);
+
+                ConstructorInfo constructor = (ConstructorInfo)_resolver.ResolveMethod(token);
                 return (constructor, token);
             }
 
@@ -303,7 +322,13 @@ namespace Jitex.IL
                 if (_resolver == null)
                     return (null, token);
 
-                FieldInfo field = _resolver.ResolveField(token);
+                FieldInfo field;
+
+                if (_resolver is ModuleTokenResolver)
+                    field = _resolver.ResolveField(token, _genericTypeArguments, _genericMethodArguments);
+                else
+                    field = _resolver.ResolveField(token);
+
                 return (field, token);
             }
 
@@ -317,7 +342,7 @@ namespace Jitex.IL
 
                 if (_resolver == null)
                     return (null, token);
-                
+
                 byte[] signature = _resolver.ResolveSignature(token);
                 return (signature, token);
             }
@@ -329,11 +354,17 @@ namespace Jitex.IL
             private (MemberInfo Member, int Token) ReadMember()
             {
                 int token = ReadInt32();
-                
+
                 if (_resolver == null)
                     return (null, token);
+
+                MemberInfo member;
                 
-                MemberInfo member = _resolver.ResolveMember(token);
+                if(_resolver is ModuleTokenResolver)
+                    member = _resolver.ResolveMember(token,_genericTypeArguments,_genericMethodArguments);
+                else
+                    member = _resolver.ResolveMember(token);
+
                 return (member, token);
             }
 

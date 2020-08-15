@@ -16,7 +16,6 @@ namespace Jitex.Utils.Extensions
             m_length = typeof(ILGenerator).GetField("m_length", BindingFlags.Instance | BindingFlags.NonPublic);
         }
 
-
         public static byte[] GetILBytes(this ILGenerator generator)
         {
             return (byte[]) m_ILStream.GetValue(generator);

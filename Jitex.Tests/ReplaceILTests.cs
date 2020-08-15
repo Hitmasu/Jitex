@@ -125,11 +125,6 @@ namespace Jitex.Tests
             Assert.True(expected == actual, "\nVariable not inserted.");
         }
 
-        public string LocalVariableNativeType()
-        {
-            return typeof(object).Name;
-        }
-
         public string LocalVariableNativeTypeReplace()
         {
             bool type1 = default;
@@ -141,9 +136,16 @@ namespace Jitex.Tests
             return $"{type1.GetType().Name} | {type2.GetType().Name} | {type3.GetType().Name} | {type4.GetType().Name} | {type5.GetType().Name}";
         }
 
+
+        public string LocalVariableNativeType()
+        {
+            return nameof(Object);
+        }
+
+
         public string LocalVariableReferenceType()
         {
-            return typeof(DateTime).Name;
+            return nameof(DateTime);
         }
 
         public string LocalVariableReferenceTypeReplace()

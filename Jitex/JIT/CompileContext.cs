@@ -9,18 +9,18 @@ namespace Jitex.JIT
         /// Method who will compiled.
         /// </summary>
         public MethodBase Method { get; }
-
-        public bool IsResolved { get; internal set; }
-
+        
         /// <summary>
         ///     Body of method.
         /// </summary>
-        internal MethodBody MethodBody { get; set; }
+        internal MethodBody MethodBody { get; private set; }
+
+        public bool IsResolved { get; private set; }
 
         /// <summary>
         ///     Byte-code from method (Only mode ASM)
         /// </summary>
-        internal byte[] ByteCode { get; set; }
+        internal byte[] ByteCode { get; private set; }
 
         /// <summary>
         ///     Replace mode - IL to MSIL and ASM to ByteCode.
@@ -42,6 +42,7 @@ namespace Jitex.JIT
 
         internal CompileContext(MethodBase method)
         {
+            MethodBody = new MethodBody(method);
             Method = method;
         }
 

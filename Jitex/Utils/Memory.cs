@@ -20,7 +20,7 @@ namespace Jitex.Utils
             {
                 TrampolineInstruction = new byte[]
                 {
-                    // mov rax, 0000000000000000h ;Pointer address to _overrideCompileMethodPtr
+                    // mov rax, 0000000000000000h ;Pointer to delegate
                     0x48, 0xB8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                     // jmp rax
                     0xFF, 0xE0
@@ -29,7 +29,7 @@ namespace Jitex.Utils
         }
 
         /// <summary>
-        ///     Create trampoline a 64 bits.
+        ///     Create a trampoline 64 bits.
         /// </summary>
         /// <param name="address"></param>
         /// <returns></returns>

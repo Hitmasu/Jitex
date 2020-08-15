@@ -68,21 +68,16 @@ namespace Jitex.IL
             foreach (FieldInfo field in fields)
             {
                 OpCode opCode = (OpCode) field.GetValue(null);
-
-                //Have duplicates 0xFE.
-                if (opCode.Value == 0xFE)
-                    _opCodes.Add(0xFE, opCode);
-                else
-                    _opCodes.Add(opCode.Value, opCode);
+                _opCodes.Add(opCode.Value, opCode);
             }
         }
 
         /// <summary>
         ///     Get <see cref="OpCode" /> from instruction.
         /// </summary>
-        /// <param name="b">Instruction IL.</param>
+        /// <param name="identifier">Instruction IL.</param>
         /// <returns>Operation code of instruction.</returns>
-        public static OpCode Translate(byte b)
+        public static OpCode Translate(short identifier)
         {
             lock (LockState)
             {
@@ -93,7 +88,7 @@ namespace Jitex.IL
                 }
             }
 
-            return _opCodes[b];
+            return _opCodes[identifier];
         }
     }
 }

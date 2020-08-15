@@ -8,6 +8,7 @@ namespace Jitex.JIT
     {
         private static readonly MethodBase CompileMethod;
         private static readonly MethodBase ResolveToken;
+        private static readonly MethodBase ConstructStringLiteral;
 
         public MethodBase Root { get; set; }
         public MemberInfo Source { get; set; }
@@ -16,6 +17,7 @@ namespace Jitex.JIT
         {
             CompileMethod = typeof(ManagedJit).GetMethod("CompileMethod", BindingFlags.Instance | BindingFlags.NonPublic);
             ResolveToken = typeof(ManagedJit).GetMethod("ResolveToken", BindingFlags.Instance | BindingFlags.NonPublic);
+            ConstructStringLiteral = typeof(ManagedJit).GetMethod("ConstructStringLiteral", BindingFlags.Instance | BindingFlags.NonPublic);
         }
 
         /// <summary>
@@ -29,7 +31,9 @@ namespace Jitex.JIT
             MethodBase currentMethod = MethodBase.GetCurrentMethod();
             MethodBase frames = stack.GetFrames().Select(m => m.GetMethod()).FirstOrDefault(m => m != CompileMethod
                                                                                                   && m != ResolveToken
-                                                                                                  && m != currentMethod);
+                                                                                                  && m != ConstructStringLiteral
+                                                                                                  && m != currentMethod
+                                                                                                  );
             return frames;
         }
     }

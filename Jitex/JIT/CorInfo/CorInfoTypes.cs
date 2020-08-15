@@ -60,12 +60,24 @@ namespace Jitex.JIT.CorInfo
         public uint cbMethodSpec;
     }
 
+    internal struct CORINFO_CONSTRUCT_STRING
+    {
+        public IntPtr HandleModule { get; set; }
+        public int MetadataToken { get; set; }
+        public IntPtr PPValue { get; set; }
+        
+        public CORINFO_CONSTRUCT_STRING(IntPtr handleModule, int metadataToken, IntPtr ppValue)
+        {
+            HandleModule = handleModule;
+            MetadataToken = metadataToken;
+            PPValue = ppValue;
+        }
+    }
+
     // The enumeration is returned in 'getSig'
 
     internal enum CorInfoCallConv
     {
-        // These correspond to CorCallingConvention
-
         CORINFO_CALLCONV_DEFAULT = 0x0,
         CORINFO_CALLCONV_C = 0x1,
         CORINFO_CALLCONV_STDCALL = 0x2,
@@ -75,13 +87,14 @@ namespace Jitex.JIT.CorInfo
         CORINFO_CALLCONV_FIELD = 0x6,
         CORINFO_CALLCONV_LOCAL_SIG = 0x7,
         CORINFO_CALLCONV_PROPERTY = 0x8,
-        CORINFO_CALLCONV_NATIVEVARARG = 0xb, // used ONLY for IL stub PInvoke vararg calls
+        CORINFO_CALLCONV_UNMANAGED = 0x9,
+        CORINFO_CALLCONV_NATIVEVARARG = 0xb,    // used ONLY for IL stub PInvoke vararg calls
 
-        CORINFO_CALLCONV_MASK = 0x0f, // Calling convention is bottom 4 bits
+        CORINFO_CALLCONV_MASK = 0x0f,     // Calling convention is bottom 4 bits
         CORINFO_CALLCONV_GENERIC = 0x10,
         CORINFO_CALLCONV_HASTHIS = 0x20,
         CORINFO_CALLCONV_EXPLICITTHIS = 0x40,
-        CORINFO_CALLCONV_PARAMTYPE = 0x80, // Passed last. Same as CORINFO_GENERICS_CTXT_FROM_PARAMTYPEARG
+        CORINFO_CALLCONV_PARAMTYPE = 0x80,     // Passed last. Same as CORINFO_GENERICS_CTXT_FROM_PARAMTYPEARG
     }
 
     internal enum CorInfoSigInfoFlags : byte
@@ -150,26 +163,35 @@ namespace Jitex.JIT.CorInfo
         Method = 0x02,
         Field = 0x04,
         Mask = 0x07,
+        String = 0x08, 
 
         // token comes from CEE_LDTOKEN
-        LdToken = 0x10 | Class | Method | Field,
+        LdToken = 0x17,
 
         // token comes from CEE_CASTCLASS or CEE_ISINST
-        Casting = 0x20 | Class,
+        Casting = 0x21,
 
         // token comes from CEE_NEWARR
-        Newarr = 0x40 | Class,
+        Newarr = 0x41,
 
         // token comes from CEE_BOX
-        Box = 0x80 | Class,
+        Box = 0x81,
 
         // token comes from CEE_CONSTRAINED
-        COnstrained = 0x100 | Class,
+        Constrained = 0x101,
 
         // token comes from CEE_NEWOBJ
-        Newobj = 0x200 | Method,
+        Newobj = 0x202,
 
         // token comes from CEE_LDVIRTFTN
-        Ldnvirtftn = 0x400 | Method,
+        Ldnvirtftn = 0x402,
+    };
+
+    public enum InfoAccessType
+    {
+        IAT_VALUE,      // The info value is directly available
+        IAT_PVALUE,     // The value needs to be accessed via an         indirection
+        IAT_PPVALUE,    // The value needs to be accessed via a double   indirection
+        IAT_RELPVALUE   // The value needs to be accessed via a relative indirection
     };
 }

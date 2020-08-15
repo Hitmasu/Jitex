@@ -10,18 +10,23 @@ namespace Jitex.Hook
     {
         private readonly IList<VTableHook> _hooks = new List<VTableHook>();
 
+        /// <summary>
+        /// Inject a delegate in memory
+        /// </summary>
+        /// <param name="pointerAddress">Pointer to address method.</param>
+        /// <param name="delToInject">Delegate to be inject.</param>
         public void InjectHook(IntPtr pointerAddress, Delegate delToInject)
         {
-            IntPtr originalAdress = Marshal.ReadIntPtr(pointerAddress);
+            IntPtr originalAddress = Marshal.ReadIntPtr(pointerAddress);
             IntPtr hookAddress = Marshal.GetFunctionPointerForDelegate(delToInject);
-            VTableHook hook = new VTableHook(delToInject, originalAdress, pointerAddress);
+            VTableHook hook = new VTableHook(delToInject, originalAddress, pointerAddress);
             WritePointer(pointerAddress, hookAddress);
             _hooks.Add(hook);
         }
 
         public bool RemoveHook(Delegate del)
         {
-            var hookFound = _hooks.FirstOrDefault(h => h.Delegate.Method.Equals(del.Method));
+            VTableHook hookFound = _hooks.FirstOrDefault(h => h.Delegate.Method.Equals(del.Method));
 
             if (hookFound == null)
                 return false;
