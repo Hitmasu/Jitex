@@ -13,7 +13,6 @@ namespace InjectMethod
             jit.AddCompileResolver(CompileResolver);
             int result = SimpleSum(5, 5);
             Console.WriteLine(result);
-            Console.ReadKey();
         }
 
         ///<summary>
