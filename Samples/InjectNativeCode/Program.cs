@@ -42,6 +42,7 @@ namespace InjectNativeCode
                     0x7E, 0xF7,                     //jle
                     0xC3                            //ret
                 };
+
                 context.ResolveByteCode(asm);
             }
         }
