@@ -6,7 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Library\InjectCustomMetadata.Library.csproj" />
+    <ProjectReference Include="..\InjectCustomString.Library\InjectCustomString.Library.csproj" />
   </ItemGroup>
 
 </Project>

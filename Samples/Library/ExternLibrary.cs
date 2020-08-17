@@ -7,7 +7,7 @@ using Jitex.JIT;
 using Jitex.JIT.CorInfo;
 using MethodBody = Jitex.Builder.MethodBody;
 
-namespace Library
+namespace InjectCustomMetadata.Library
 {
     /// <summary>
     /// Example of a external library to replace SimpleSum.
