@@ -29,24 +29,6 @@ namespace InjectCustomMetadata.Library
             LoadAssemblyDiagnostics();
         }
 
-        private static void CompileResolve(CompileContext context)
-        {
-            if (context.Method.Name == "SimpleSum")
-            {
-                List<byte> newIl = new List<byte>();
-
-                newIl.Add((byte) OpCodes.Call.Value);
-                newIl.AddRange(BitConverter.GetBytes(_getCurrentProcess.MetadataToken));
-                newIl.Add((byte) OpCodes.Call.Value);
-                newIl.AddRange(BitConverter.GetBytes(_getterId.MetadataToken));
-                newIl.Add((byte) OpCodes.Ret.Value);
-
-                MethodBody methodBody = new MethodBody(newIl.ToArray(), _getCurrentProcess.Module);
-
-                context.ResolveBody(methodBody);
-            }
-        }
-
         public static void Initialize()
         {
             ManagedJit jitex = ManagedJit.GetInstance();
@@ -63,6 +45,24 @@ namespace InjectCustomMetadata.Library
             Type typeProcess = assemblyDiagnostics.GetType("System.Diagnostics.Process");
             _getCurrentProcess = typeProcess.GetMethod("GetCurrentProcess");
             _getterId = _getCurrentProcess.ReturnType.GetProperty("Id", BindingFlags.Public | BindingFlags.Instance).GetGetMethod();
+        }
+
+        private static void CompileResolve(CompileContext context)
+        {
+            if (context.Method.Name == "SimpleSum")
+            {
+                List<byte> newIl = new List<byte>();
+
+                newIl.Add((byte) OpCodes.Call.Value);
+                newIl.AddRange(BitConverter.GetBytes(_getCurrentProcess.MetadataToken));
+                newIl.Add((byte) OpCodes.Call.Value);
+                newIl.AddRange(BitConverter.GetBytes(_getterId.MetadataToken));
+                newIl.Add((byte) OpCodes.Ret.Value);
+
+                MethodBody methodBody = new MethodBody(newIl.ToArray(), _getCurrentProcess.Module);
+
+                context.ResolveBody(methodBody);
+            }
         }
 
         private static void TokenResolve(TokenContext context)

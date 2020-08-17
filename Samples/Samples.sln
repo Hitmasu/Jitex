@@ -7,17 +7,15 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "InjectMSIL", "InjectMSIL\In
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "InjectMethod", "InjectMethod\InjectMethod.csproj", "{B508309B-F5FC-4B99-AB23-C838639FD549}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InjectNativeCode", "InjectNativeCode\InjectNativeCode.csproj", "{4B65B08B-3C0F-425D-9219-B579D9CD4EB6}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "InjectNativeCode", "InjectNativeCode\InjectNativeCode.csproj", "{4B65B08B-3C0F-425D-9219-B579D9CD4EB6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InjectCustomMetadata", "InjectCustomMetadata\InjectCustomMetadata.csproj", "{45CC92E7-9909-4020-A6A8-9C70F2EEFE50}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "InjectCustomMetadata", "InjectCustomMetadata\InjectCustomMetadata.csproj", "{45CC92E7-9909-4020-A6A8-9C70F2EEFE50}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InjectCustomMetadata.Library", "Library\InjectCustomMetadata.Library.csproj", "{FFE78506-AB79-4A6F-9961-DFF462709222}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "InjectCustomMetadata.Library", "InjectCustomMetadata.Library\InjectCustomMetadata.Library.csproj", "{FFE78506-AB79-4A6F-9961-DFF462709222}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InjectString", "InjectString\InjectString.csproj", "{9476A081-2166-41F0-8F23-36F91CEA5462}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "InjectCustomString", "InjectCustomString\InjectCustomString.csproj", "{2E0FEE26-6948-4064-9120-510B3326A811}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InjectCustomString", "InjectCustomString\InjectCustomString.csproj", "{2E0FEE26-6948-4064-9120-510B3326A811}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InjectCustomString.Library", "InjectCustomString.Library\InjectCustomString.Library.csproj", "{95C08D1D-CE5A-4E6B-9CEB-F36D8BDA5104}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "InjectCustomString.Library", "InjectCustomString.Library\InjectCustomString.Library.csproj", "{95C08D1D-CE5A-4E6B-9CEB-F36D8BDA5104}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -45,10 +43,6 @@ Global
 		{FFE78506-AB79-4A6F-9961-DFF462709222}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FFE78506-AB79-4A6F-9961-DFF462709222}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FFE78506-AB79-4A6F-9961-DFF462709222}.Release|Any CPU.Build.0 = Release|Any CPU
-		{9476A081-2166-41F0-8F23-36F91CEA5462}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{9476A081-2166-41F0-8F23-36F91CEA5462}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{9476A081-2166-41F0-8F23-36F91CEA5462}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{9476A081-2166-41F0-8F23-36F91CEA5462}.Release|Any CPU.Build.0 = Release|Any CPU
 		{2E0FEE26-6948-4064-9120-510B3326A811}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{2E0FEE26-6948-4064-9120-510B3326A811}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2E0FEE26-6948-4064-9120-510B3326A811}.Release|Any CPU.ActiveCfg = Release|Any CPU

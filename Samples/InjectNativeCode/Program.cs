@@ -5,6 +5,19 @@ namespace InjectNativeCode
 {
     class Program
     {
+        static void Main(string[] args)
+        {
+            ManagedJit jit = ManagedJit.GetInstance();
+            jit.AddCompileResolver(CompileResolver);
+            int result = SimpleSum(1, 7);
+            Console.WriteLine(result);
+        }
+
+        static int SimpleSum(int num1, int num2)
+        {
+            return num1 + num2;
+        }
+
         private static void CompileResolver(CompileContext context)
         {
             if (context.Method.Name == "SimpleSum")
@@ -32,19 +45,6 @@ namespace InjectNativeCode
 
                 context.ResolveByteCode(asm);
             }
-        }
-
-        static void Main(string[] args)
-        {
-            ManagedJit jit = ManagedJit.GetInstance();
-            jit.AddCompileResolver(CompileResolver);
-            int result = SimpleSum(1, 7);
-            Console.WriteLine(result);
-        }
-
-        static int SimpleSum(int num1, int num2)
-        {
-            return num1 + num2;
         }
     }
 }

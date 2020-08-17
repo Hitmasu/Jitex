@@ -7,16 +7,6 @@ namespace InjectMethod
 {
     class Program
     {
-        private static void CompileResolver(CompileContext context)
-        {
-            if (context.Method.Name == "SimpleSum")
-            {
-                //Replace SimpleSum to our SimpleSumReplace
-                MethodInfo replaceSumMethod = typeof(Program).GetMethod("SimpleSumReplace");
-                context.ResolveMethod(replaceSumMethod);
-            }
-        }
-
         static void Main(string[] args)
         {
             ManagedJit jit = ManagedJit.GetInstance();
@@ -49,6 +39,16 @@ namespace InjectMethod
             int num2 = int.Parse(columns[1]);
 
             return num1 + num2;
+        }
+
+        private static void CompileResolver(CompileContext context)
+        {
+            if (context.Method.Name == "SimpleSum")
+            {
+                //Replace SimpleSum to our SimpleSumReplace
+                MethodInfo replaceSumMethod = typeof(Program).GetMethod("SimpleSumReplace");
+                context.ResolveMethod(replaceSumMethod);
+            }
         }
     }
 }
