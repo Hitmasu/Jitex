@@ -4,7 +4,7 @@
 
 A framework to modify MSIL/Native code at runtime.
 
-Jitex can help you inject code at runtime with a simple way.
+Jitex can help you inject code at runtime easily.
 
 ```c#
 class Program {
