@@ -1,4 +1,7 @@
 # Jitex
+
+[![Build status](https://ci.appveyor.com/api/projects/status/2h0y08mk82iwmyfr/branch/master?svg=true)](https://ci.appveyor.com/project/Hitmasu/jitex/branch/master) [![Nuget](https://img.shields.io/nuget/vpre/Jitex)](https://www.nuget.org/packages/Jitex/)
+
 A framework to modify MSIL/Native code at runtime.
 
 Jitex can help you inject code at runtime with a simple way.
@@ -116,8 +119,8 @@ You can inject a custom metadata too, in this way, you can "execute" metadatatok
 /// <remarks>
 ///     We replace SimpleSum to return the PID of process. To do this, normally we need
 ///     reference assembly (System.Diagnostics.Process) and class Process.
-///     In this case, the original module, dont have any reference to Diagnostics and class Process.
-///     As we pass a MetadataToken from Process.GetCurrentProcess().Id, its necessary resolve that manually,
+///     In this case, we dont have any reference to Diagnostics or class Process.
+///     We pass MetadataToken from Process.GetCurrentProcess().Id and resolve that manually,
 ///     because CLR dont have any information about that in original module.
 /// </remarks>
 public static class ExternLibrary {
@@ -210,12 +213,4 @@ static void HelloWorld () {
     Console.WriteLine ("Hello World!");
 }
 ```
-
-[![Build status](https://ci.appveyor.com/api/projects/status/2h0y08mk82iwmyfr/branch/master?svg=true)](https://ci.appveyor.com/project/Hitmasu/jitex/branch/master)
-
-[![Nuget](https://img.shields.io/nuget/vpre/Jitex)](https://www.nuget.org/packages/Jitex/)
-
-
-
-
 
