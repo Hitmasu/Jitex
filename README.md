@@ -220,6 +220,6 @@ static void HelloWorld () {
 
 Replace methods was a idea to increase performance in .NET Applications. Searching a way to do that, i found that hook implementation from @xoofx [Writing a Managed JIT in C# with CoreCLR](https://xoofx.com/blog/2018/04/12/writing-managed-jit-in-csharp-with-coreclr/), what became core of Jitex.
 
--
+
 
 ###### *I'm trying be better in english language too, so probably you will see some grammatical errors... Fell free to notify me.*
