@@ -238,7 +238,7 @@ Disassembly debug in Visual Studio and Windbg works fine!
 
 ## Credits
 
-Replace methods was a idea to increase performance in .NET Applications. Searching a way to do that, i found that hook implementation from @xoofx [Writing a Managed JIT in C# with CoreCLR](https://xoofx.com/blog/2018/04/12/writing-managed-jit-in-csharp-with-coreclr/), what became core of Jitex.
+Replace methods was an idea to increase performance in .NET Applications. Searching a way to do that, i've found this hook implementation from @xoofx [Writing a Managed JIT in C# with CoreCLR](https://xoofx.com/blog/2018/04/12/writing-managed-jit-in-csharp-with-coreclr/), which became core of Jitex.
 
 
 
