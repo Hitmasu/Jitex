@@ -36,6 +36,18 @@ class Program {
 }
 ```
 
+
+
+## Support
+
+- Modify normal and generic methods
+- Inject native code (ASM)
+- Inject MSIL code (IL)
+- Inject variables
+- Inject metadatatoken
+
+
+
 ## Inject MSIL
 
 ```c#
@@ -231,3 +243,4 @@ Replace methods was a idea to increase performance in .NET Applications. Searchi
 
 
 ###### *I'm trying be better in english language too, so probably you will see some grammatical errors... Fell free to notify me.*
+
