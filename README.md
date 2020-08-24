@@ -242,5 +242,5 @@ Replace methods was a idea to increase performance in .NET Applications. Searchi
 
 
 
-###### *I'm trying be better in english language too, so probably you will see some grammatical errors... Fell free to notify me.*
+###### *I'm trying be better in english language too, so probably you will see some grammatical errors... Feel free to notify me.*
 
