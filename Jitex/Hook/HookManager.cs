@@ -43,7 +43,7 @@ namespace Jitex.Hook
 
         private void WritePointer(IntPtr address, IntPtr pointer)
         {
-            VirtualProtect(address, new IntPtr(IntPtr.Size), MemoryProtection.ReadWrite, out var oldFlags);
+            VirtualProtect(address, new IntPtr(IntPtr.Size), MemoryProtection.ReadWrite, out MemoryProtection oldFlags);
             Marshal.WriteIntPtr(address, pointer);
             VirtualProtect(address, new IntPtr(IntPtr.Size), oldFlags, out _);
         }

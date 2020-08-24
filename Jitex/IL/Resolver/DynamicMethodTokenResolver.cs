@@ -26,7 +26,7 @@ namespace Jitex.IL.Resolver
 
         public DynamicMethodTokenResolver(DynamicMethod dynamicMethod)
         {
-            var resolver = typeof(DynamicMethod).GetField("m_resolver", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(dynamicMethod);
+            object resolver = typeof(DynamicMethod).GetField("m_resolver", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(dynamicMethod);
 
             _tokenResolver = (TokenResolver) resolver.GetType().GetMethod("_resolveToken", BindingFlags.Instance | BindingFlags.NonPublic).CreateDelegate(typeof(TokenResolver), resolver);
             _stringResolver = (StringResolver) resolver.GetType().GetMethod("GetStringLiteral", BindingFlags.Instance | BindingFlags.NonPublic).CreateDelegate(typeof(StringResolver), resolver);

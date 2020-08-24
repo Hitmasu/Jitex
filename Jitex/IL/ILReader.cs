@@ -147,22 +147,22 @@ namespace Jitex.IL
                         break;
 
                     case OperandType.InlineField:
-                        var field = ReadField();
+                        (FieldInfo Field, int Token) field = ReadField();
                         operation = new Operation(opCode, field.Field, field.Token);
                         break;
 
                     case OperandType.InlineMethod:
-                        var method = ReadMethod();
+                        (MethodBase Method, int Token) method = ReadMethod();
                         operation = new Operation(opCode, method.Method, method.Token);
                         break;
 
                     case OperandType.InlineString:
-                        var @string = ReadString();
+                        (string String, int Token) @string = ReadString();
                         operation = new Operation(opCode, @string.String, @string.Token);
                         break;
 
                     case OperandType.InlineType:
-                        var type = ReadType();
+                        (Type Type, int Token) type = ReadType();
                         operation = new Operation(opCode, type.Type, type.Token);
                         break;
 
@@ -171,12 +171,12 @@ namespace Jitex.IL
                         break;
 
                     case OperandType.InlineSig:
-                        var signature = ReadSignature();
+                        (byte[] Signature, int Token) signature = ReadSignature();
                         operation = new Operation(opCode, signature.Signature, signature.Token);
                         break;
 
                     case OperandType.InlineTok:
-                        var member = ReadMember();
+                        (MemberInfo Member, int Token) member = ReadMember();
                         operation = new Operation(opCode, member.Member, member.Token);
                         break;
 
