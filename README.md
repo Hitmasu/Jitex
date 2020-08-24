@@ -44,7 +44,7 @@ class Program {
 - Inject native code (ASM)
 - Inject MSIL code (IL)
 - Inject variables
-- Inject metadatatoken
+- Inject custom metadatatoken
 
 
 
