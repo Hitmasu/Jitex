@@ -12,7 +12,7 @@ namespace Jitex.Tests
         public ReplaceILTests()
         {
             ManagedJit jit = ManagedJit.GetInstance();
-            jit.AddCompileResolver(OnResolveCompile);
+            jit.AddCompileResolver(CompileResolver);
         }
 
         #region EmptyBody
@@ -159,7 +159,7 @@ namespace Jitex.Tests
 
         #endregion
 
-        private void OnResolveCompile(CompileContext context)
+        private void CompileResolver(CompileContext context)
         {
             if (context.Method == GetMethod<ReplaceILTests>(nameof(EmptyBodyTest)))
             {

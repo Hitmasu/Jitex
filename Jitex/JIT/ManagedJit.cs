@@ -77,14 +77,14 @@ namespace Jitex.JIT
             Compiler = Marshal.PtrToStructure<CorJitCompiler>(JitVTable);
         }
 
-        public void AddCompileResolver(ResolveCompileHandle compileResolve)
+        public void AddCompileResolver(ResolveCompileHandle compileResolver)
         {
-            _resolversCompile += compileResolve;
+            _resolversCompile += compileResolver;
         }
 
-        public void AddTokenResolver(ResolveTokenHandle tokenResolve)
+        public void AddTokenResolver(ResolveTokenHandle tokenResolver)
         {
-            _resolversToken += tokenResolve;
+            _resolversToken += tokenResolver;
         }
 
         public void RemoveCompileResolver(ResolveCompileHandle compileResolve)

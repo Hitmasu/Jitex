@@ -13,8 +13,8 @@ namespace Jitex.Tests
         public ResolveTokenTests()
         {
             ManagedJit jit = ManagedJit.GetInstance();
-            jit.AddCompileResolver(OnResolveCompile);
-            jit.AddTokenResolver(OnResolveToken);
+            jit.AddCompileResolver(CompileResolver);
+            jit.AddTokenResolver(TokenResolver);
         }
 
         [Fact]
@@ -43,7 +43,7 @@ namespace Jitex.Tests
             return new Caller().GetIdade() + 20;
         }
 
-        private void OnResolveToken(TokenContext context)
+        private void TokenResolver(TokenContext context)
         {
             if (context.Source != null)
             {
@@ -71,7 +71,7 @@ namespace Jitex.Tests
             }
         }
 
-        private void OnResolveCompile(CompileContext context)
+        private void CompileResolver(CompileContext context)
         {
             if (context.Method == GetMethod<ResolveTokenTests>(nameof(ResolveTokenReplace)))
             {
