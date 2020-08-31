@@ -130,7 +130,7 @@ namespace Jitex.JIT
             if (method is DynamicMethod)
                 throw new NotImplementedException();
 
-            _resolvedToken.tokenScope = _ceeInfo.GetMethodModule(method.MethodHandle.Value);
+            _resolvedToken.tokenScope = AppModules.GetPointerFromModule(method.Module);
             _resolvedToken.token = method.MetadataToken;
         }
 
