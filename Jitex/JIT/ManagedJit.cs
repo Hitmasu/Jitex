@@ -87,14 +87,14 @@ namespace Jitex.JIT
             _resolversToken += tokenResolver;
         }
 
-        public void RemoveCompileResolver(ResolveCompileHandle compileResolve)
+        public void RemoveCompileResolver(ResolveCompileHandle compileResolver)
         {
-            _resolversCompile -= compileResolve;
+            _resolversCompile -= compileResolver;
         }
 
-        public void RemoveTokenResolver(ResolveTokenHandle tokenResolve)
+        public void RemoveTokenResolver(ResolveTokenHandle tokenResolver)
         {
-            _resolversToken -= tokenResolve;
+            _resolversToken -= tokenResolver;
         }
 
         /// <summary>

@@ -236,6 +236,12 @@ Disassembly debug in Visual Studio and Windbg works fine!
 
 
 
+## Proof of Concept
+
+[AutoMapper Patcher](https://github.com/Hitmasu/AutoMapper.Patcher) - A simple remove AutoMapper at runtime.
+
+
+
 ## Credits
 
 Replace methods was an idea to increase performance in .NET Applications. Searching a way to do that, i've found this hook implementation from @xoofx [Writing a Managed JIT in C# with CoreCLR](https://xoofx.com/blog/2018/04/12/writing-managed-jit-in-csharp-with-coreclr/), which became core of Jitex.
