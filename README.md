@@ -84,7 +84,7 @@ public static int SimpleMethodReplace () {
 private static void CompileResolver (CompileContext context) {
     if (context.Method.Name == "SimpleSum") {
         //Replace SimpleSum to our SimpleSumReplace
-        MethodInfo replaceSumMethod = typeof (Program).GetMethod ("SimpleSumReplace");
+        MethodInfo replaceSumMethod = typeof (Program).GetMethod ("SimpleMethodReplace");
         context.ResolveMethod (replaceSumMethod);
     }
 }
