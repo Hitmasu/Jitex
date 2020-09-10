@@ -391,16 +391,6 @@ namespace Jitex.JIT
                     {
                         resolver(context);
 
-                        if (context.IsResolved)
-                        {
-                            constructString = context.ConstructString;
-
-                            hModule = constructString.HandleModule;
-                            metadataToken = constructString.MetadataToken;
-                            ppValue = constructString.PPValue;
-                            break;
-                        }
-
                         if (context.IsStringResolved)
                         {
                             contentResolved = context.Content;

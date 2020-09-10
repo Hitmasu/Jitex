@@ -9,6 +9,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Jitex.Tests", "Jitex.Tests\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Jitex.Tests.Context", "Jitex.Tests.Context\Jitex.Tests.Context.csproj", "{03A8DD83-A540-49DF-8545-D269EF28F788}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Jitex.AspNetCore", "Jitex.AspNetCore\Jitex.AspNetCore.csproj", "{D5CCF849-5D47-4CDA-A633-EFFBE87A8ACF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -41,6 +43,14 @@ Global
 		{03A8DD83-A540-49DF-8545-D269EF28F788}.Release|Any CPU.Build.0 = Release|Any CPU
 		{03A8DD83-A540-49DF-8545-D269EF28F788}.Release|x64.ActiveCfg = Release|Any CPU
 		{03A8DD83-A540-49DF-8545-D269EF28F788}.Release|x64.Build.0 = Release|Any CPU
+		{D5CCF849-5D47-4CDA-A633-EFFBE87A8ACF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D5CCF849-5D47-4CDA-A633-EFFBE87A8ACF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D5CCF849-5D47-4CDA-A633-EFFBE87A8ACF}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{D5CCF849-5D47-4CDA-A633-EFFBE87A8ACF}.Debug|x64.Build.0 = Debug|Any CPU
+		{D5CCF849-5D47-4CDA-A633-EFFBE87A8ACF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D5CCF849-5D47-4CDA-A633-EFFBE87A8ACF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D5CCF849-5D47-4CDA-A633-EFFBE87A8ACF}.Release|x64.ActiveCfg = Release|Any CPU
+		{D5CCF849-5D47-4CDA-A633-EFFBE87A8ACF}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

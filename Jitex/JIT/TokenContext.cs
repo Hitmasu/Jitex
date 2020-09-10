@@ -125,26 +125,26 @@ namespace Jitex.JIT
 
         public void ResolveMethod(MethodBase method)
         {
-            IsResolved = true;
-
             if (method is DynamicMethod)
                 throw new NotImplementedException();
 
             _resolvedToken.tokenScope = AppModules.GetPointerFromModule(method.Module);
             _resolvedToken.token = method.MetadataToken;
+            
+            IsResolved = true;
         }
 
         public void ResolveString(int metadataToken, Module module)
         {
-            IsResolved = true;
             _constructString.MetadataToken = metadataToken;
             _constructString.HandleModule = AppModules.GetPointerFromModule(module);
+            IsResolved = true;
         }
 
         public void ResolveString(string content)
         {
-            IsStringResolved = true;
             Content = content;
+            IsStringResolved = true;
         }
 
         public void ResolveConstructor(ConstructorInfo constructor)
