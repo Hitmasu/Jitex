@@ -10,16 +10,22 @@ using System.Text;
 using static Jitex.JIT.CorInfo.CEEInfo;
 using static Jitex.JIT.CorInfo.CorJitCompiler;
 using MethodBody = Jitex.Builder.MethodBody;
+using ResolveCompileHandle = Jitex.JIT.JitexHandler.ResolveCompileHandle;
+using ResolveTokenHandle = Jitex.JIT.JitexHandler.ResolveTokenHandle;
 
 namespace Jitex.JIT
 {
+    public class JitexHandler
+    {
+        public delegate void ResolveCompileHandle(CompileContext context);
+
+        public delegate void ResolveTokenHandle(TokenContext context);
+    }
+    
     /// <summary>
-    ///     Detour current jit.
+    /// Hook instance from JIT.
     /// </summary>
-    /// <remarks>
-    ///     Source: https://xoofx.com/blog/2018/04/12/writing-managed-jit-in-csharp-with-coreclr/
-    /// </remarks>
-    public class ManagedJit : IDisposable
+    internal class ManagedJit : IDisposable
     {
         [DllImport("clrjit.dll", CallingConvention = CallingConvention.StdCall, SetLastError = true, EntryPoint = "getJit", BestFitMapping = true)]
         private static extern IntPtr GetJit();
@@ -62,10 +68,6 @@ namespace Jitex.JIT
         private ResolveCompileHandle _resolversCompile;
 
         private ResolveTokenHandle _resolversToken;
-
-        public delegate void ResolveCompileHandle(CompileContext context);
-
-        public delegate void ResolveTokenHandle(TokenContext context);
 
         static ManagedJit()
         {
