@@ -1,5 +1,5 @@
 ﻿using System.Reflection;
-using MethodBody = Jitex.Builder.MethodBody;
+using MethodBody = Jitex.Builder.Method.MethodBody;
 
 namespace Jitex.JIT
 {

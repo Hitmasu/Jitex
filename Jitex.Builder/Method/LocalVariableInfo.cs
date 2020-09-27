@@ -2,7 +2,7 @@
 using System.Diagnostics;
 using System.Reflection;
 
-namespace Jitex.Builder
+namespace Jitex.Builder.Method
 {
     [DebuggerDisplay("{Type.Name}")]
     public class LocalVariableInfo

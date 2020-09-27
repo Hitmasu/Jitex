@@ -2,34 +2,32 @@
 
 namespace Jitex.JIT
 {
-    public abstract class JitexModule : IDisposable
+    public abstract class JitexModule : JitexBase, IDisposable
     {
-        private static ManagedJit _jit;
-
         protected JitexModule()
         {
-            _jit ??= ManagedJit.GetInstance();
+            if (!IsInstalled)
+                Load();
         }
 
-        public void Initialize()
+        protected override void Load()
         {
-            _jit.AddCompileResolver(CompileResolver);
-            _jit.AddTokenResolver(TokenResolver);
+            if (!IsInstalled)
+            {
+                base.Load();
+                AddCompileResolver(CompileResolver);
+                AddTokenResolver(TokenResolver);
+            }
         }
 
         protected abstract void CompileResolver(CompileContext context);
-        
+
         protected abstract void TokenResolver(TokenContext context);
 
-        protected void RemoveJitex()
-        {
-            _jit.Dispose();
-        }
-        
         public void Dispose()
         {
-            _jit.RemoveCompileResolver(CompileResolver);
-            _jit.RemoveTokenResolver(TokenResolver);
+            RemoveCompileResolver(CompileResolver);
+            RemoveTokenResolver(TokenResolver);
         }
     }
 }

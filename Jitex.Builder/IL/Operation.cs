@@ -3,7 +3,7 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Reflection.Emit;
 
-namespace Jitex.IL
+namespace Jitex.Builder.IL
 {
     [DebuggerDisplay("{OpCode} - {Instance}")]
     public partial class Operation

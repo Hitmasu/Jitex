@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Jitex.Builder.Exceptions
+namespace Jitex.Builder.Method.Exceptions
 {
     public class TypeNotFoundException : Exception
     {

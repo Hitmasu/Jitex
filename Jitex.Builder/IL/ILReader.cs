@@ -1,12 +1,12 @@
-﻿using Jitex.IL.Resolver;
-using Jitex.Utils.Extensions;
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Reflection.Emit;
+using Jitex.Builder.IL.Resolver;
+using Jitex.Builder.Utils.Extensions;
 
-namespace Jitex.IL
+namespace Jitex.Builder.IL
 {
     public class ILReader : IEnumerable<Operation>
     {

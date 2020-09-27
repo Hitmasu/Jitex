@@ -2,7 +2,7 @@
 using System.Reflection;
 using System.Reflection.Emit;
 
-namespace Jitex.IL.Resolver
+namespace Jitex.Builder.IL.Resolver
 {
     internal sealed class DynamicMethodTokenResolver : ITokenResolver
     {

@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Jitex.Builder
+﻿namespace Jitex.Builder.Method
 {
     public enum CorElementType : byte
     {

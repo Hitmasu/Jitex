@@ -2,24 +2,23 @@
 using Jitex.JIT.CorInfo;
 using Jitex.Utils;
 using System;
-using System.Diagnostics;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.InteropServices;
 using System.Text;
 using static Jitex.JIT.CorInfo.CEEInfo;
 using static Jitex.JIT.CorInfo.CorJitCompiler;
-using MethodBody = Jitex.Builder.MethodBody;
-using ResolveCompileHandle = Jitex.JIT.JitexHandler.ResolveCompileHandle;
-using ResolveTokenHandle = Jitex.JIT.JitexHandler.ResolveTokenHandle;
+using static Jitex.JIT.JitexHandler;
+
+using MethodBody = Jitex.Builder.Method.MethodBody;
 
 namespace Jitex.JIT
 {
-    public class JitexHandler
+    public static class JitexHandler
     {
-        public delegate void ResolveCompileHandle(CompileContext context);
+        public delegate void CompileResolverHandler(CompileContext context);
 
-        public delegate void ResolveTokenHandle(TokenContext context);
+        public delegate void TokenResolverHandler(TokenContext context);
     }
     
     /// <summary>
@@ -65,9 +64,11 @@ namespace Jitex.JIT
 
         private static CEEInfo _ceeInfo;
 
-        private ResolveCompileHandle _resolversCompile;
+        private CompileResolverHandler _resolversCompile;
 
-        private ResolveTokenHandle _resolversToken;
+        private TokenResolverHandler _resolversToken;
+
+        public static bool IsInstalled => _instance != null;
 
         static ManagedJit()
         {
@@ -79,22 +80,22 @@ namespace Jitex.JIT
             Compiler = Marshal.PtrToStructure<CorJitCompiler>(JitVTable);
         }
 
-        public void AddCompileResolver(ResolveCompileHandle compileResolver)
+        public void AddCompileResolver(CompileResolverHandler compileResolver)
         {
             _resolversCompile += compileResolver;
         }
 
-        public void AddTokenResolver(ResolveTokenHandle tokenResolver)
+        public void AddTokenResolver(TokenResolverHandler tokenResolver)
         {
             _resolversToken += tokenResolver;
         }
 
-        public void RemoveCompileResolver(ResolveCompileHandle compileResolver)
+        public void RemoveCompileResolver(CompileResolverHandler compileResolver)
         {
             _resolversCompile -= compileResolver;
         }
 
-        public void RemoveTokenResolver(ResolveTokenHandle tokenResolver)
+        public void RemoveTokenResolver(TokenResolverHandler tokenResolver)
         {
             _resolversToken -= tokenResolver;
         }
@@ -104,9 +105,6 @@ namespace Jitex.JIT
         /// </summary>
         private ManagedJit()
         {
-            //if (CompileMethod == null)
-            //    return;
-
             _compileMethod = CompileMethod;
             _resolveToken = ResolveToken;
             _constructStringLiteral = ConstructStringLiteral;
@@ -172,7 +170,7 @@ namespace Jitex.JIT
 
                         compileContext = new CompileContext(methodFound);
 
-                        foreach (ResolveCompileHandle resolver in _resolversCompile.GetInvocationList())
+                        foreach (CompileResolverHandler resolver in _resolversCompile.GetInvocationList())
                         {
                             resolver(compileContext);
 
@@ -296,10 +294,6 @@ namespace Jitex.JIT
             lock (JitLock)
             {
                 _instance ??= new ManagedJit();
-
-                if (_instance == null)
-                    Debugger.Break();
-
                 return _instance;
             }
         }
@@ -336,7 +330,7 @@ namespace Jitex.JIT
 
                     TokenContext context = new TokenContext(ref pResolvedToken, _tokenTls.Source, _ceeInfo);
 
-                    foreach (ResolveTokenHandle resolver in _resolversToken.GetInvocationList())
+                    foreach (TokenResolverHandler resolver in _resolversToken.GetInvocationList())
                     {
                         resolver(context);
 
@@ -389,7 +383,7 @@ namespace Jitex.JIT
                     CORINFO_CONSTRUCT_STRING constructString = new CORINFO_CONSTRUCT_STRING(hModule, metadataToken, ppValue);
                     TokenContext context = new TokenContext(ref constructString, _tokenTls.Source, _ceeInfo);
 
-                    foreach (ResolveTokenHandle resolver in _resolversToken.GetInvocationList())
+                    foreach (TokenResolverHandler resolver in _resolversToken.GetInvocationList())
                     {
                         resolver(context);
 

@@ -1,5 +1,4 @@
-﻿using Jitex.Utils.Comparer;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
@@ -8,9 +7,10 @@ using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
 using System.Reflection.PortableExecutable;
+using Jitex.Utils.Comparer;
 using Lokad.ILPack;
 
-namespace Jitex.PE
+namespace Jitex.Builder.PE
 {
     /// <summary>
     ///     Read Metadata from assembly.
