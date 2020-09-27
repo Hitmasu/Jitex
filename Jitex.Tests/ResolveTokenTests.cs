@@ -3,6 +3,7 @@ using Jitex.Tests.Context;
 using System;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using Jitex.JIT.Context;
 using Xunit;
 using static Jitex.Tests.Utils;
 

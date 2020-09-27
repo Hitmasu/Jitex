@@ -2,6 +2,7 @@
 using Jitex.JIT;
 using Jitex.Tests.Context;
 using System;
+using Jitex.JIT.Context;
 using Xunit;
 using static Jitex.Tests.Utils;
 

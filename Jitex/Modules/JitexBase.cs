@@ -1,4 +1,6 @@
-﻿namespace Jitex.JIT
+﻿using Jitex.JIT;
+
+namespace Jitex.Modules
 {
     public abstract class JitexBase
     {

@@ -1,9 +1,9 @@
-﻿using Jitex.JIT.CorInfo;
-using System;
+﻿using System;
 using System.Reflection;
 using System.Reflection.Emit;
+using Jitex.JIT.CorInfo;
 
-namespace Jitex.JIT
+namespace Jitex.JIT.Context
 {
     public class TokenContext
     {

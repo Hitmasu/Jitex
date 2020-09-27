@@ -7,7 +7,7 @@ using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
 using System.Reflection.PortableExecutable;
-using Jitex.Utils.Comparer;
+using Jitex.Builder.Utils.Comparer;
 using Lokad.ILPack;
 
 namespace Jitex.Builder.PE

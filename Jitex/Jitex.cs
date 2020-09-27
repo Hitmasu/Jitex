@@ -1,4 +1,5 @@
 ﻿using Jitex.JIT;
+using Jitex.Modules;
 
 namespace Jitex
 {

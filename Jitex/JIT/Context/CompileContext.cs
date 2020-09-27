@@ -1,7 +1,7 @@
 ﻿using System.Reflection;
 using MethodBody = Jitex.Builder.Method.MethodBody;
 
-namespace Jitex.JIT
+namespace Jitex.JIT.Context
 {
     public class CompileContext
     {

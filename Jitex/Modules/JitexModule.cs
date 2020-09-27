@@ -1,6 +1,7 @@
 ﻿using System;
+using Jitex.JIT.Context;
 
-namespace Jitex.JIT
+namespace Jitex.Modules
 {
     public abstract class JitexModule : JitexBase, IDisposable
     {
