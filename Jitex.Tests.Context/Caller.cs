@@ -5,6 +5,11 @@ namespace Jitex.Tests.Context
 {
     public class Caller
     {
+        public int GetWrong()
+        {
+            return -1;
+        }
+
         [MethodImpl(MethodImplOptions.NoInlining)]
         public int GetIdade()
         {

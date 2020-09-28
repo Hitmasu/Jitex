@@ -34,13 +34,13 @@ namespace Jitex.Tests
         [MethodImpl(MethodImplOptions.NoInlining)]
         public int ResolveTokenReplace()
         {
-            return new Caller().GetIdade() + 20;
+            return new Caller().GetWrong();
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
         public int ResolveWithModuleReplace()
         {
-            return new Caller().GetIdade() + 20;
+            return new Caller().GetWrong();
         }
 
         private void TokenResolver(TokenContext context)
@@ -53,12 +53,12 @@ namespace Jitex.Tests
 
                     switch (context.MetadataToken)
                     {
-                        case 0x06000005:
+                        case 0x06000004:
                             ConstructorInfo ctor = personType.GetConstructor(Type.EmptyTypes);
                             context.ResolveConstructor(ctor);
                             break;
 
-                        case 0x06000003:
+                        case 0x06000005:
                             MethodBase get_Idade = personType.GetMethod("get_Idade");
                             context.ResolveMethod(get_Idade);
                             break;
