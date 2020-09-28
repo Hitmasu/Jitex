@@ -7,6 +7,7 @@ using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.InteropServices;
 using System.Text;
+using Jitex.Exceptions;
 using Jitex.JIT.Context;
 using static Jitex.JIT.CorInfo.CEEInfo;
 using static Jitex.JIT.CorInfo.CorJitCompiler;
@@ -331,7 +332,7 @@ namespace Jitex.JIT
             {
                 if (_tokenTls.EnterCount == 1)
                 {
-                    //Capture the method who trying resolve that token.
+                    //Capture method who trying resolve that token.
                     _tokenTls.Source = _tokenTls.GetSource();
 
                     TokenContext context = new TokenContext(ref pResolvedToken, _tokenTls.Source, _ceeInfo);
@@ -382,8 +383,7 @@ namespace Jitex.JIT
 
                 if (_tokenTls.EnterCount == 1)
                 {
-                    string contentResolved = string.Empty;
-                    //Capture the method who trying resolve that token.
+                    //Capture method who trying resolve that token.
                     _tokenTls.Source = _tokenTls.GetSource();
 
                     CORINFO_CONSTRUCT_STRING constructString = new CORINFO_CONSTRUCT_STRING(hModule, metadataToken, ppValue);
@@ -395,42 +395,29 @@ namespace Jitex.JIT
 
                         if (context.IsResolved)
                         {
-                            constructString = context.ConstructString;
+                            if (string.IsNullOrEmpty(context.Content))
+                                throw new StringShouldNotBeNullOrEmpty();
 
-                            hModule = constructString.HandleModule;
-                            metadataToken = constructString.MetadataToken;
-                            ppValue = constructString.PPValue;
-                            break;
-                        }
+                            InfoAccessType result = _ceeInfo.ConstructStringLiteral(thisHandle, hModule, metadataToken, ppValue);
 
-                        if (context.IsStringResolved)
-                        {
-                            contentResolved = context.Content;
-                            break;
+                            IntPtr pEntry = Marshal.ReadIntPtr(ppValue);
+
+                            IntPtr objectHandle = Marshal.ReadIntPtr(pEntry);
+                            IntPtr hashMapPtr = Marshal.ReadIntPtr(objectHandle);
+
+                            byte[] newContent = Encoding.Unicode.GetBytes(context.Content);
+
+                            objectHandle = Marshal.AllocHGlobal(IntPtr.Size + sizeof(int) + newContent.Length);
+
+                            Marshal.WriteIntPtr(objectHandle, hashMapPtr);
+                            Marshal.WriteInt32(objectHandle + IntPtr.Size, newContent.Length / 2);
+                            Marshal.Copy(newContent, 0, objectHandle + IntPtr.Size + sizeof(int), newContent.Length);
+
+                            Marshal.WriteIntPtr(pEntry, objectHandle);
+
+                            return result;
                         }
                     }
-
-                    InfoAccessType result = _ceeInfo.ConstructStringLiteral(thisHandle, hModule, metadataToken, ppValue);
-
-                    if (contentResolved != string.Empty)
-                    {
-                        IntPtr pEntry = Marshal.ReadIntPtr(ppValue);
-
-                        IntPtr objectHandle = Marshal.ReadIntPtr(pEntry);
-                        IntPtr hashMapPtr = Marshal.ReadIntPtr(objectHandle);
-
-                        byte[] newContent = Encoding.Unicode.GetBytes(contentResolved);
-
-                        objectHandle = Marshal.AllocHGlobal(IntPtr.Size + sizeof(int) + newContent.Length);
-
-                        Marshal.WriteIntPtr(objectHandle, hashMapPtr);
-                        Marshal.WriteInt32(objectHandle + IntPtr.Size, newContent.Length / 2);
-                        Marshal.Copy(newContent, 0, objectHandle + IntPtr.Size + sizeof(int), newContent.Length);
-
-                        Marshal.WriteIntPtr(pEntry, objectHandle);
-                    }
-
-                    return result;
                 }
 
                 return _ceeInfo.ConstructStringLiteral(thisHandle, hModule, metadataToken, ppValue);
