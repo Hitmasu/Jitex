@@ -2,6 +2,7 @@
 using Jitex.JIT;
 using Jitex.Tests.Context;
 using System;
+using Jitex.Builder.Method;
 using Jitex.JIT.Context;
 using Xunit;
 using static Jitex.Tests.Utils;
@@ -12,7 +13,7 @@ namespace Jitex.Tests
     {
         public ReplaceILTests()
         {
-            jit.AddCompileResolver(CompileResolver);
+            Jitex.AddCompileResolver(CompileResolver);
         }
 
         #region EmptyBody
@@ -150,11 +151,10 @@ namespace Jitex.Tests
 
         public string LocalVariableReferenceTypeReplace()
         {
-            ManagedJit type1 = ManagedJit.GetInstance();
             ReplaceILTests type2 = this;
             Random type3 = new Random();
             CorElementType type4 = CorElementType.ELEMENT_TYPE_OBJECT;
-            return $"{type1.GetType().Name} | {type2.GetType().Name} | {type3.GetType().Name} | {type4.GetType().Name}";
+            return $"{type2.GetType().Name} | {type3.GetType().Name} | {type4.GetType().Name}";
         }
 
         #endregion

@@ -13,9 +13,8 @@ namespace Jitex.Tests
     {
         public ResolveTokenTests()
         {
-            ManagedJit jit = ManagedJit.GetInstance();
-            jit.AddCompileResolver(CompileResolver);
-            jit.AddTokenResolver(TokenResolver);
+            Jitex.AddCompileResolver(CompileResolver);
+            Jitex.AddTokenResolver(TokenResolver);
         }
 
         [Fact]

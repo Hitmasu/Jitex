@@ -7,7 +7,6 @@ namespace Jitex.Tests
     {
         public static MethodInfo GetMethod<T>(string name)
         {
-            Jitex.AddCompileResolver();
             return typeof(T).GetMethod(name, BindingFlags.Instance | BindingFlags.Public);
         }
     }

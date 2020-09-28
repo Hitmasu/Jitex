@@ -2,6 +2,7 @@
 using Jitex.JIT.CorInfo;
 using Jitex.Utils;
 using System;
+using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.InteropServices;
@@ -21,7 +22,7 @@ namespace Jitex.JIT
 
         public delegate void TokenResolverHandler(TokenContext context);
     }
-    
+
     /// <summary>
     /// Hook instance from JIT.
     /// </summary>
@@ -100,6 +101,10 @@ namespace Jitex.JIT
         {
             _resolversToken -= tokenResolver;
         }
+
+        public bool HasCompileResolver(CompileResolverHandler compileResolver) => _resolversCompile.GetInvocationList().Any(del => del.Method == compileResolver.Method);
+
+        public bool HasTokenResolver(TokenResolverHandler tokenResolver) => _resolversToken.GetInvocationList().Any(del => del.Method == tokenResolver.Method);
 
         /// <summary>
         ///     Prepare custom JIT.

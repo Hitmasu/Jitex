@@ -1,28 +1,41 @@
 ﻿using Jitex.JIT;
-using Jitex.Modules;
 
 namespace Jitex
 {
-    public class Jitex : JitexBase
+    public static class Jitex
     {
-        public static void AddCompileResolver(JitexHandler.CompileResolverHandler compileResolver)
+        private static ManagedJit _jit;
+
+        public static bool IsInstalled => ManagedJit.IsInstalled;
+
+        public static void AddCompileResolver(JitexHandler.CompileResolverHandler compileResolverHandler)
         {
-            Jit.AddCompileResolver(compileResolver);
+            _jit.AddCompileResolver(compileResolverHandler);
         }
 
-        public static void AddTokenResolver(JitexHandler.TokenResolverHandler tokenResolver)
+        public static void AddTokenResolver(JitexHandler.TokenResolverHandler tokenResolverHandler)
         {
-            Jit.AddTokenResolver(tokenResolver);
+            _jit.AddTokenResolver(tokenResolverHandler);
         }
 
-        public static void RemoveCompileResolver(JitexHandler.CompileResolverHandler compileResolver)
+        public static void RemoveCompileResolver(JitexHandler.CompileResolverHandler compileResolverHandler)
         {
-            Jit.RemoveCompileResolver(compileResolver);
+            _jit.RemoveCompileResolver(compileResolverHandler);
         }
 
-        public static void RemoveTokenResolver(JitexHandler.TokenResolverHandler tokenResolver)
+        public static void RemoveTokenResolver(JitexHandler.TokenResolverHandler tokenResolverHandler)
         {
-            Jit.RemoveTokenResolver(tokenResolver);
+            _jit.RemoveTokenResolver(tokenResolverHandler);
+        }
+
+        public static bool HasCompileResolver(JitexHandler.CompileResolverHandler compileResolverHandler) => _jit.HasCompileResolver(compileResolverHandler);
+
+        public static bool HasTokenResolver(JitexHandler.TokenResolverHandler tokenResolverHandler) => _jit.HasTokenResolver(tokenResolverHandler);
+
+        public static void Remove()
+        {
+            _jit.Dispose();
+            _jit = null;
         }
     }
 }

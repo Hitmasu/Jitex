@@ -3,22 +3,20 @@ using Jitex.JIT.Context;
 
 namespace Jitex.Modules
 {
-    public abstract class JitexModule : JitexBase, IDisposable
+    public abstract class JitexModule : IDisposable
     {
-        protected JitexModule()
+        public bool IsInstalled => Jitex.IsInstalled && Jitex.HasCompileResolver(CompileResolver) && Jitex.HasTokenResolver(TokenResolver);
+
+        protected JitexModule(bool load = true)
         {
-            if (!IsInstalled)
+            if (load)
                 Load();
         }
 
-        protected override void Load()
+        protected void Load()
         {
-            if (!IsInstalled)
-            {
-                base.Load();
-                AddCompileResolver(CompileResolver);
-                AddTokenResolver(TokenResolver);
-            }
+            Jitex.AddCompileResolver(CompileResolver);
+            Jitex.AddTokenResolver(TokenResolver);
         }
 
         protected abstract void CompileResolver(CompileContext context);
@@ -27,8 +25,8 @@ namespace Jitex.Modules
 
         public void Dispose()
         {
-            RemoveCompileResolver(CompileResolver);
-            RemoveTokenResolver(TokenResolver);
+            Jitex.RemoveCompileResolver(CompileResolver);
+            Jitex.RemoveTokenResolver(TokenResolver);
         }
     }
 }
