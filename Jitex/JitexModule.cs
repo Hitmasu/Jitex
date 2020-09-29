@@ -2,7 +2,7 @@
 using Jitex.Exceptions;
 using Jitex.JIT.Context;
 
-namespace Jitex.Modules
+namespace Jitex
 {
     /// <summary>
     /// Base class to create a module to Jitex.
@@ -13,12 +13,12 @@ namespace Jitex.Modules
         /// Return if module is loaded in Jitex.
         /// </summary>
         /// <returns>Return <b>true</b> if module is installed and false if not.</returns>
-        public bool IsInstalled => Jitex.IsInstalled && Jitex.HasCompileResolver(CompileResolver) && Jitex.HasTokenResolver(TokenResolver);
+        public bool IsLoaded => Jitex.IsLoaded && Jitex.HasCompileResolver(CompileResolver) && Jitex.HasTokenResolver(TokenResolver);
 
         /// <summary>
         /// Instance a new module.
         /// </summary>
-        /// <param name="load">If module should be loaded on instance.</param>
+        /// <param name="load">If module should be loaded on instance.</param>WWW
         protected JitexModule(bool load = true)
         {
             if (load)
@@ -30,10 +30,10 @@ namespace Jitex.Modules
         /// </summary>
         protected void Load()
         {
-            if(!Jitex.IsInstalled)
+            if(!Jitex.IsLoaded)
                 throw new JitexNotLoadedException();
 
-            if (!IsInstalled)
+            if (!IsLoaded)
             {
                 Jitex.AddCompileResolver(CompileResolver);
                 Jitex.AddTokenResolver(TokenResolver);

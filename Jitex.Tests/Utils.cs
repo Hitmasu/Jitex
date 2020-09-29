@@ -1,5 +1,4 @@
 ﻿using System.Reflection;
-using Jitex.JIT;
 
 namespace Jitex.Tests
 {

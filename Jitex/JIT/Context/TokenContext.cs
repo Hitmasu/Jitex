@@ -2,6 +2,7 @@
 using System.Reflection;
 using System.Reflection.Emit;
 using Jitex.JIT.CorInfo;
+using Jitex.Utils;
 
 namespace Jitex.JIT.Context
 {

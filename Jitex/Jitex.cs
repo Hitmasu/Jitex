@@ -8,7 +8,7 @@ namespace Jitex
 
         private static ManagedJit Jit => _jit ??= ManagedJit.GetInstance();
 
-        public static bool IsInstalled => ManagedJit.IsInstalled;
+        public static bool IsLoaded => ManagedJit.IsLoaded;
 
         public static void AddCompileResolver(JitexHandler.CompileResolverHandler compileResolverHandler)
         {

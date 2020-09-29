@@ -1,6 +1,4 @@
-﻿using Jitex.Builder;
-using Jitex.JIT;
-using Jitex.Tests.Context;
+﻿using Jitex.Tests.Context;
 using System;
 using Jitex.Builder.Method;
 using Jitex.JIT.Context;

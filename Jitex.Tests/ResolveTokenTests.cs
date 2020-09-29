@@ -1,5 +1,4 @@
-﻿using Jitex.JIT;
-using Jitex.Tests.Context;
+﻿using Jitex.Tests.Context;
 using System;
 using System.Reflection;
 using System.Runtime.CompilerServices;

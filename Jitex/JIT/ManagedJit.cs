@@ -71,7 +71,7 @@ namespace Jitex.JIT
 
         private TokenResolverHandler _resolversToken;
 
-        public static bool IsInstalled => _instance != null;
+        public static bool IsLoaded => _instance != null;
 
         static ManagedJit()
         {
