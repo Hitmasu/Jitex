@@ -12,7 +12,7 @@ namespace Jitex.Tests
     {
         public ResolveTokenTests()
         {
-            Jitex.AddCompileResolver(CompileResolver);
+            Jitex.AddMethodResolver(CompileResolver);
             Jitex.AddTokenResolver(TokenResolver);
         }
 
@@ -70,7 +70,7 @@ namespace Jitex.Tests
             }
         }
 
-        private void CompileResolver(CompileContext context)
+        private void CompileResolver(MethodContext context)
         {
             if (context.Method == GetMethod<ResolveTokenTests>(nameof(ResolveTokenReplace)))
             {

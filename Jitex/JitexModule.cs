@@ -13,7 +13,7 @@ namespace Jitex
         /// Return if module is loaded in Jitex.
         /// </summary>
         /// <returns>Return <b>true</b> if module is installed and false if not.</returns>
-        public bool IsLoaded => Jitex.IsLoaded && Jitex.HasCompileResolver(CompileResolver) && Jitex.HasTokenResolver(TokenResolver);
+        public bool IsLoaded => Jitex.IsLoaded && Jitex.HasMethodResolver(CompileResolver) && Jitex.HasTokenResolver(TokenResolver);
 
         /// <summary>
         /// Instance a new module.
@@ -35,7 +35,7 @@ namespace Jitex
 
             if (!IsLoaded)
             {
-                Jitex.AddCompileResolver(CompileResolver);
+                Jitex.AddMethodResolver(CompileResolver);
                 Jitex.AddTokenResolver(TokenResolver);
             }
         }
@@ -47,7 +47,7 @@ namespace Jitex
         /// Capture all methods before compile.
         /// </remarks>
         /// <param name="context">Context of Method will be compiled.</param>
-        protected abstract void CompileResolver(CompileContext context);
+        protected abstract void CompileResolver(MethodContext context);
 
         /// <summary>
         /// Resolver to tokens.
@@ -63,7 +63,7 @@ namespace Jitex
         /// </summary>
         public void Dispose()
         {
-            Jitex.RemoveCompileResolver(CompileResolver);
+            Jitex.RemoveMethodResolver(CompileResolver);
             Jitex.RemoveTokenResolver(TokenResolver);
         }
     }

@@ -6,16 +6,15 @@ using Jitex.Utils;
 
 namespace Jitex.JIT.Context
 {
+    /// <summary>
+    /// Context for token resolution.
+    /// </summary>
     public class TokenContext
     {
-
         /// <summary>
-        /// Instance from CEEInfo.
+        /// Token to be resolved.
         /// </summary>
-        private static CEEInfo _ceeInfo;
-
         private CORINFO_RESOLVED_TOKEN _resolvedToken;
-        private CORINFO_CONSTRUCT_STRING _constructString;
 
         /// <summary>
         /// Token to be resolved. 
@@ -26,8 +25,7 @@ namespace Jitex.JIT.Context
         /// Token type.
         /// </summary>
         public TokenKind TokenType { get; }
-
-
+        
         /// <summary>
         /// Address module from token.
         /// </summary>
@@ -73,11 +71,8 @@ namespace Jitex.JIT.Context
         /// </summary>
         /// <param name="resolvedToken">Original token.</param>
         /// <param name="source">Source method from compile tree ("requester").</param>
-        /// <param name="ceeInfo">CEEInfo instance.</param>
-        internal TokenContext(ref CORINFO_RESOLVED_TOKEN resolvedToken, MemberInfo source, CEEInfo ceeInfo)
+        internal TokenContext(ref CORINFO_RESOLVED_TOKEN resolvedToken, MemberInfo source)
         {
-            _ceeInfo ??= ceeInfo;
-
             _resolvedToken = resolvedToken;
 
             Module = AppModules.GetModuleByPointer(resolvedToken.tokenScope);
@@ -109,12 +104,8 @@ namespace Jitex.JIT.Context
         /// </summary>
         /// <param name="constructString">Original string.</param>
         /// <param name="source">Source method from compile tree ("requester").</param>
-        /// <param name="ceeInfo">CEEInfo instance.</param>
-        internal TokenContext(ref CORINFO_CONSTRUCT_STRING constructString, MemberInfo source, CEEInfo ceeInfo)
+        internal TokenContext(ref CORINFO_CONSTRUCT_STRING constructString, MemberInfo source)
         {
-            _ceeInfo ??= ceeInfo;
-            _constructString = constructString;
-
             Module = AppModules.GetModuleByPointer(constructString.HandleModule);
             Source = source;
 
@@ -125,9 +116,9 @@ namespace Jitex.JIT.Context
         }
 
         /// <summary>
-        /// Resolve token from module.
+        /// Resolve token by module.
         /// </summary>
-        /// <param name="module">Module to be resolved.</param>
+        /// <param name="module">Module containing token.</param>
         public void ResolveFromModule(Module module)
         {
             IsResolved = true;
@@ -147,7 +138,7 @@ namespace Jitex.JIT.Context
         }
 
         /// <summary>
-        /// Resolve token from method.
+        /// Resolve token by method.
         /// </summary>
         /// <param name="method">Method to replace.</param>
         public void ResolveMethod(MethodBase method)
@@ -162,7 +153,7 @@ namespace Jitex.JIT.Context
         }
 
         /// <summary>
-        /// Resolve token from constructor.
+        /// Resolve token by constructor.
         /// </summary>
         /// <param name="constructor">Constructor to replace.</param>
         public void ResolveConstructor(ConstructorInfo constructor)
@@ -171,7 +162,7 @@ namespace Jitex.JIT.Context
         }
 
         /// <summary>
-        /// Resolve string from a new string
+        /// Resolve string by content string.
         /// </summary>
         /// <param name="content">Content to replace.</param>
         public void ResolveString(string content)

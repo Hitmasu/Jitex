@@ -11,7 +11,7 @@ namespace Jitex.Tests
     {
         public ReplaceILTests()
         {
-            Jitex.AddCompileResolver(CompileResolver);
+            Jitex.AddMethodResolver(CompileResolver);
         }
 
         #region EmptyBody
@@ -58,17 +58,17 @@ namespace Jitex.Tests
         public void ReturnNativeTypeTest()
         {
             int returnInt = ReturnSimpleInt();
-            Assert.True(returnInt == 4321, $"Body not replaced. Return type {typeof(int).Name}.");
+            Assert.True(returnInt == 4321, $"Body not replaced. Return type {nameof(Int32)}.");
 
             double returnDouble = ReturnSimpleDouble();
-            Assert.True(returnDouble == 1.5d, $"Body not replaced. Return type {typeof(double).Name}.");
+            Assert.True(returnDouble == 1.5d, $"Body not replaced. Return type {nameof(Double)}.");
         }
 
         [Fact]
         public void ReturnReferenceTypeTest()
         {
             object ob = ReturnSimpleObj();
-            Assert.True(ob is Caller, $"Body not replaced. Return type {typeof(object).Name}.");
+            Assert.True(ob is Caller, $"Body not replaced. Return type {nameof(Object)}.");
         }
 
         public int ReturnSimpleInt()
@@ -157,7 +157,7 @@ namespace Jitex.Tests
 
         #endregion
 
-        private void CompileResolver(CompileContext context)
+        private void CompileResolver(MethodContext context)
         {
             if (context.Method == GetMethod<ReplaceILTests>(nameof(EmptyBodyTest)))
             {
