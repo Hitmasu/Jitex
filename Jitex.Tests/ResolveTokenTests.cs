@@ -1,5 +1,6 @@
 ﻿using Jitex.Tests.Context;
 using System;
+using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using Jitex.JIT.Context;
@@ -46,18 +47,21 @@ namespace Jitex.Tests
         {
             if (context.Source != null)
             {
+                if(context.Source.Module.Name.Contains("Jitex.Test"))
+                    Debugger.Break();
+
                 if (context.Source.Name == nameof(ResolveTokenReplace))
                 {
                     Type personType = typeof(Caller).Module.GetType("Jitex.Tests.Context.Person");
 
                     switch (context.MetadataToken)
                     {
-                        case 0x06000004:
+                        case 0x06000006:
                             ConstructorInfo ctor = personType.GetConstructor(Type.EmptyTypes);
                             context.ResolveConstructor(ctor);
                             break;
 
-                        case 0x06000005:
+                        case 0x06000004:
                             MethodBase get_Idade = personType.GetMethod("get_Idade");
                             context.ResolveMethod(get_Idade);
                             break;

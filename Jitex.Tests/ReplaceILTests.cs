@@ -1,9 +1,10 @@
-﻿using Jitex.Tests.Context;
-using System;
-using Jitex.Builder.Method;
+﻿using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Reflection;
+using System.Reflection.Emit;
 using Jitex.JIT.Context;
 using Xunit;
-using static Jitex.Tests.Utils;
 
 namespace Jitex.Tests
 {
@@ -11,181 +12,35 @@ namespace Jitex.Tests
     {
         public ReplaceILTests()
         {
-            Jitex.AddMethodResolver(CompileResolver);
-        }
-
-        #region EmptyBody
-
-        [Fact]
-        public void EmptyBodyTest()
-        {
-            Assert.True(false, "IL not replaced.");
-        }
-
-        public void EmptyBodyReplace()
-        {
-            Assert.True(true);
-        }
-
-        #endregion
-
-        #region Body Implementation
-
-        [Fact]
-        public void BodyImpTest()
-        {
-            double a = 99999;
-            double b = 999999;
-            double max = Math.Max(a, b);
-
-            Assert.True(max == a, "Body not replaced.");
-        }
-
-        public void BodyImpReplace()
-        {
-            int a = 10;
-            int b = 20;
-            int max = Math.Max(b, a);
-
-            Assert.True(max == b);
-        }
-
-        #endregion
-
-        #region Return
-
-        [Fact]
-        public void ReturnNativeTypeTest()
-        {
-            int returnInt = ReturnSimpleInt();
-            Assert.True(returnInt == 4321, $"Body not replaced. Return type {nameof(Int32)}.");
-
-            double returnDouble = ReturnSimpleDouble();
-            Assert.True(returnDouble == 1.5d, $"Body not replaced. Return type {nameof(Double)}.");
+            Jitex.AddMethodResolver(MethodResolver);
         }
 
         [Fact]
-        public void ReturnReferenceTypeTest()
+        public void BodyEmpty()
         {
-            object ob = ReturnSimpleObj();
-            Assert.True(ob is Caller, $"Body not replaced. Return type {nameof(Object)}.");
+            Assert.True(false, "IL not replaced");
         }
 
-        public int ReturnSimpleInt()
+        private void MethodResolver(MethodContext context)
         {
-            return 1234;
-        }
-
-        public int ReturnSimpleIntReplace()
-        {
-            return 4321;
-        }
-
-        public double ReturnSimpleDouble()
-        {
-            return 0.5d;
-        }
-
-        public double ReturnSimpleDoubleReplace()
-        {
-            return 0.5d + 1.0d;
-        }
-
-        public object ReturnSimpleObj()
-        {
-            return new Caller();
-        }
-
-        public object ReturnSimpleObjReplace()
-        {
-            object ob = new Caller();
-            return ob;
-        }
-
-        #endregion
-
-        #region Local Variables
-
-        [Fact]
-        public void LocalVariableNativeTypeTest()
-        {
-            string expected = "Boolean | Int32 | Double | Decimal | String";
-            string actual = LocalVariableNativeType();
-
-            Assert.True(expected == actual, "\nVariable not inserted.");
-        }
-
-        [Fact]
-        public void LocalVariableReferenceTypeTest()
-        {
-            string expected = "ManagedJit | ReplaceILTests | Random | CorElementType";
-            string actual = LocalVariableReferenceType();
-
-            Assert.True(expected == actual, "\nVariable not inserted.");
-        }
-
-        public string LocalVariableNativeTypeReplace()
-        {
-            bool type1 = default;
-            int type2 = default;
-            double type3 = default;
-            decimal type4 = default;
-            string type5 = string.Empty;
-
-            return $"{type1.GetType().Name} | {type2.GetType().Name} | {type3.GetType().Name} | {type4.GetType().Name} | {type5.GetType().Name}";
-        }
-
-
-        public string LocalVariableNativeType()
-        {
-            return nameof(Object);
-        }
-
-
-        public string LocalVariableReferenceType()
-        {
-            return nameof(DateTime);
-        }
-
-        public string LocalVariableReferenceTypeReplace()
-        {
-            ReplaceILTests type2 = this;
-            Random type3 = new Random();
-            CorElementType type4 = CorElementType.ELEMENT_TYPE_OBJECT;
-            return $"{type2.GetType().Name} | {type3.GetType().Name} | {type4.GetType().Name}";
-        }
-
-        #endregion
-
-        private void CompileResolver(MethodContext context)
-        {
-            if (context.Method == GetMethod<ReplaceILTests>(nameof(EmptyBodyTest)))
+            if (context.Method.Name == nameof(BodyEmpty))
             {
-                context.ResolveMethod(GetMethod<ReplaceILTests>(nameof(EmptyBodyReplace)));
-            }
-            else if (context.Method == GetMethod<ReplaceILTests>(nameof(BodyImpTest)))
-            {
-                context.ResolveMethod(GetMethod<ReplaceILTests>(nameof(BodyImpReplace)));
-            }
-            else if (context.Method == GetMethod<ReplaceILTests>(nameof(ReturnSimpleInt)))
-            {
-                context.ResolveMethod(GetMethod<ReplaceILTests>(nameof(ReturnSimpleIntReplace)));
-            }
-            else if (context.Method == GetMethod<ReplaceILTests>(nameof(ReturnSimpleDouble)))
-            {
-                context.ResolveMethod(GetMethod<ReplaceILTests>(nameof(ReturnSimpleDoubleReplace)));
-            }
-            else if (context.Method == GetMethod<ReplaceILTests>(nameof(ReturnSimpleObj)))
-            {
-                context.ResolveMethod(GetMethod<ReplaceILTests>(nameof(ReturnSimpleObjReplace)));
-            }
-            else if (context.Method == GetMethod<ReplaceILTests>(nameof(LocalVariableNativeType)))
-            {
-                context.ResolveMethod(GetMethod<ReplaceILTests>(nameof(LocalVariableNativeTypeReplace)));
-            }
-            else if (context.Method == GetMethod<ReplaceILTests>(nameof(LocalVariableReferenceType)))
-            {
-                context.ResolveMethod(GetMethod<ReplaceILTests>(nameof(LocalVariableReferenceTypeReplace)));
+                MethodInfo assertMethod = typeof(Assert).GetMethod("True", new[] {typeof(bool), typeof(string)});
+                byte[] metadataToken = BitConverter.GetBytes(assertMethod.MetadataToken);
+                metadataToken[3] = 0x0A; //fix reference;
+
+                List<byte> il = new List<byte>
+                {
+                    (byte) OpCodes.Ldc_I4_1.Value,
+                    (byte) OpCodes.Ldstr.Value
+                };
+
+                il.AddRange(new byte[] { 0x01, 0x00, 0x00, 0x70 });
+                il.Add((byte)OpCodes.Call.Value);
+                il.AddRange(metadataToken);
+                il.Add((byte) OpCodes.Ret.Value);
+
+                context.ResolveIL(il);
             }
         }
     }

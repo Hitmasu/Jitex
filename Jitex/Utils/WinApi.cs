@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Jitex.Utils
 {
-    public static class WinApi
+    internal static class WinApi
     {
         [Flags]
         public enum AllocationType

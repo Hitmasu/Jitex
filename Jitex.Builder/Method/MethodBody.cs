@@ -46,6 +46,12 @@ namespace Jitex.Builder.Method
 
         public uint MaxStackSize { get; set; }
 
+        public MethodBody(IEnumerable<byte> il, uint maxStack = 8, bool readIl = false)
+        {
+            _il = il.ToArray();
+            MaxStackSize = maxStack;
+        }
+
         public MethodBody(MethodBase methodBase)
         {
             Module = methodBase.Module;
@@ -60,14 +66,14 @@ namespace Jitex.Builder.Method
             IL = methodBase.GetILBytes();
         }
 
-        public MethodBody(byte[] il, Module module, Type[] genericTypeArguments = null, Type[] genericMethodArguments = null, params Type[] variables)
+        public MethodBody(IEnumerable<byte> il, Module module, Type[] genericTypeArguments = null, Type[] genericMethodArguments = null, params Type[] variables)
         {
             Module = module;
             LocalVariables = variables.Select(s => new LocalVariableInfo(s)).ToList();
             GenericTypeArguments = genericTypeArguments;
             GenericMethodArguments = genericMethodArguments;
 
-            IL = il;
+            IL = il.ToArray();
         }
 
         /// <summary>

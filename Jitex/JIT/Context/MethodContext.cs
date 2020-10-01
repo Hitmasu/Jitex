@@ -1,4 +1,7 @@
-﻿using System.Reflection;
+﻿using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
 using MethodBody = Jitex.Builder.Method.MethodBody;
 
 namespace Jitex.JIT.Context
@@ -63,9 +66,21 @@ namespace Jitex.JIT.Context
         /// Resolve method by byte-code.
         /// </summary>
         /// <param name="byteCode">Bytecode to inject.</param>
-        public void ResolveByteCode(byte[] byteCode)
+        public void ResolveByteCode(IEnumerable<byte> byteCode)
         {
-            ByteCode = byteCode;
+            ByteCode = byteCode.ToArray();
+            IsResolved = true;
+        }
+
+        public void ResolveIL(IEnumerable<byte> il)
+        {
+            MethodBody = new MethodBody(il.ToArray());
+            IsResolved = true;
+        }
+
+        public void ResolveIL(IEnumerable<byte> il, uint maxStack)
+        {
+            MethodBody = new MethodBody(il.ToArray(), maxStack);
             IsResolved = true;
         }
 
