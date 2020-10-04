@@ -23,7 +23,7 @@ namespace Jitex.JIT.Context
             /// <summary>
             /// Bytecode (pos-compile)
             /// </summary>
-            ASM
+            Native
         }
 
         /// <summary>
@@ -44,7 +44,7 @@ namespace Jitex.JIT.Context
         /// <summary>
         /// Byte-code from method (only to ASM mode)
         /// </summary>
-        internal byte[] ByteCode { get; private set; }
+        internal byte[] NativeCode { get; private set; }
 
         /// <summary>
         /// Resolution mode.
@@ -53,7 +53,7 @@ namespace Jitex.JIT.Context
         /// IL to MSIL
         /// ASM to byte-code.
         /// </remarks>
-        internal ResolveMode Mode => ByteCode == null ? ResolveMode.IL : ResolveMode.ASM;
+        internal ResolveMode Mode => NativeCode == null ? ResolveMode.IL : ResolveMode.Native;
 
         internal MethodContext(MethodBase method)
         {
@@ -62,12 +62,12 @@ namespace Jitex.JIT.Context
         }
 
         /// <summary>
-        /// Resolve method by byte-code.
+        /// Resolve method by native code (asm).
         /// </summary>
-        /// <param name="byteCode">Bytecode to inject.</param>
-        public void ResolveByteCode(IEnumerable<byte> byteCode)
+        /// <param name="nativeCode">ASM to inject.</param>
+        public void ResolveNative(IEnumerable<byte> nativeCode)
         {
-            ByteCode = byteCode.ToArray();
+            NativeCode = nativeCode.ToArray();
             IsResolved = true;
         }
 

@@ -220,9 +220,57 @@
             Used internally.
             </summary>
         </member>
+        <member name="T:Jitex.Builder.Method.LocalVariableInfo">
+            <summary>
+            Information about local variables.
+            </summary>
+        </member>
+        <member name="P:Jitex.Builder.Method.LocalVariableInfo.Type">
+            <summary>
+            Type from local variable.
+            </summary>
+        </member>
+        <member name="P:Jitex.Builder.Method.LocalVariableInfo.ElementType">
+            <summary>
+            Type identifier from variable.
+            </summary>
+        </member>
+        <member name="M:Jitex.Builder.Method.LocalVariableInfo.#ctor(System.Type)">
+            <summary>
+            Create a local variable from type.
+            </summary>
+            <param name="type">Type of local variable.</param>
+        </member>
+        <member name="M:Jitex.Builder.Method.LocalVariableInfo.DetectCorElementType(System.Type)">
+            <summary>
+            Detect type identifier from a type.
+            </summary>
+            <param name="type">Type to detect.</param>
+            <returns>Identifier from type.</returns>
+        </member>
+        <member name="T:Jitex.Builder.Method.MethodBody">
+            <summary>
+            Provides create a body of a method.
+            </summary>
+        </member>
         <member name="P:Jitex.Builder.Method.MethodBody.Module">
             <summary>
-                Module from method body.
+            Module from body.
+            </summary>
+        </member>
+        <member name="P:Jitex.Builder.Method.MethodBody.GenericTypeArguments">
+            <summary>
+            Generic class arguments used in body.
+            </summary>
+        </member>
+        <member name="P:Jitex.Builder.Method.MethodBody.GenericMethodArguments">
+            <summary>
+            Generic 
+            </summary>
+        </member>
+        <member name="P:Jitex.Builder.Method.MethodBody.IL">
+            <summary>
+            IL from body.
             </summary>
         </member>
         <member name="P:Jitex.Builder.Method.MethodBody.LocalVariables">
@@ -232,15 +280,66 @@
         </member>
         <member name="P:Jitex.Builder.Method.MethodBody.HasLocalVariable">
             <summary>
-                If body contains some local variable.
+            If body contains some local variable.
             </summary>
+        </member>
+        <member name="P:Jitex.Builder.Method.MethodBody.MaxStackSize">
+            <summary>
+            Stack size from body.
+            </summary>
+        </member>
+        <member name="M:Jitex.Builder.Method.MethodBody.#ctor(System.Reflection.MethodBase)">
+            <summary>
+            Create a body from method.
+            </summary>
+            <param name="methodBase">Method to read.</param>
+        </member>
+        <member name="M:Jitex.Builder.Method.MethodBody.#ctor(System.Collections.Generic.IEnumerable{System.Byte},System.Reflection.Module,System.Type[],System.Type[],System.Type[])">
+            <summary>
+            Create a body from IL.
+            </summary>
+            <param name="il">IL instructions.</param>
+            <param name="module">Module from IL.</param>
+            <param name="genericTypeArguments">Generic class arguments used in body.</param>
+            <param name="genericMethodArguments">Generic method arguments used in body.</param>
+            <param name="variables">Local variables.</param>
         </member>
         <member name="M:Jitex.Builder.Method.MethodBody.#ctor(System.Byte[],System.Reflection.Module,System.Type[],System.Type[])">
             <summary>
-                Create a new method body.
+            Create a body from IL.
             </summary>
-            <param name="il">IL of method.</param>
-            <param name="module">Module from body.</param>
+            <param name="il">IL instructions.</param>
+            <param name="module">Module from IL.</param>
+            <param name="genericTypeArguments">Generic class arguments used in body.</param>
+            <param name="genericMethodArguments">Generic method arguments used in body.</param>
+        </member>
+        <member name="M:Jitex.Builder.Method.MethodBody.#ctor(System.Collections.Generic.IEnumerable{System.Byte},System.Reflection.Module,System.Type[])">
+            <summary>
+            Create a body from IL.
+            </summary>
+            <param name="il">IL instructions.</param>
+            <param name="module">Module from IL.</param>
+            <param name="variables">Local variables.</param>
+        </member>
+        <member name="M:Jitex.Builder.Method.MethodBody.#ctor(System.Collections.Generic.IEnumerable{System.Byte},System.Type[])">
+            <summary>
+            Create a body from IL.
+            </summary>
+            <param name="il">IL instructions.</param>
+            <param name="variables">Local variables.</param>
+        </member>
+        <member name="M:Jitex.Builder.Method.MethodBody.#ctor(System.Collections.Generic.IEnumerable{System.Byte},System.UInt32)">
+            <summary>
+            Create a body from IL.
+            </summary>
+            <param name="il">IL instructions.</param>
+            <param name="maxStack">Stack size to body.</param>
+        </member>
+        <member name="M:Jitex.Builder.Method.MethodBody.ReadIL">
+            <summary>
+            Read IL instructions from body.
+            </summary>
+            <returns>Operations from body.</returns>
         </member>
         <member name="M:Jitex.Builder.Method.MethodBody.CalculateMaxStack">
             <summary>
@@ -273,12 +372,12 @@
         </member>
         <member name="F:Jitex.Builder.IL.ILReader._genericTypeArguments">
             <summary>
-            Generic types used on method.
+            Generic class arguments used in instructions.
             </summary>
         </member>
         <member name="F:Jitex.Builder.IL.ILReader._genericMethodArguments">
             <summary>
-            Generic arguments from method.
+            Generic method arguments used in instructions.
             </summary>
         </member>
         <member name="M:Jitex.Builder.IL.ILReader.#ctor(System.Reflection.MethodBase)">
@@ -293,8 +392,8 @@
             </summary>
             <param name="il">IL to read.</param>
             <param name="module">Module from IL.</param>
-            <param name="genericTypeArguments">Generic types used on instructions.</param>
-            <param name="genericMethodArguments">Generic arguments used on instructions.</param>
+            <param name="genericTypeArguments">Generic class arguments used in instructions.</param>
+            <param name="genericMethodArguments">Generic method arguments used in instructions.</param>
         </member>
         <member name="M:Jitex.Builder.IL.ILReader.GetEnumerator">
             <summary>
@@ -329,12 +428,12 @@
         </member>
         <member name="F:Jitex.Builder.IL.ILReader.ILEnumerator._genericTypeArguments">
             <summary>
-            Generic types used on instructions.
+            Generic class arguments used in instructions.
             </summary>
         </member>
         <member name="F:Jitex.Builder.IL.ILReader.ILEnumerator._genericMethodArguments">
             <summary>
-            Generic arguments from instructions.
+            Generic method arguments used in instructions.
             </summary>
         </member>
         <member name="P:Jitex.Builder.IL.ILReader.ILEnumerator.Current">
@@ -353,8 +452,8 @@
             </summary>
             <param name="il">IL to read.</param>
             <param name="resolver">Module to resolver tokens.</param>
-            <param name="genericTypeArguments">Generic types used on instructions.</param>
-            <param name="genericMethodArguments">Generic arguments used on instructions.</param>
+            <param name="genericTypeArguments">Generic class arguments used in instructions.</param>
+            <param name="genericMethodArguments">Generic method arguments used in instructions.</param>
         </member>
         <member name="M:Jitex.Builder.IL.ILReader.ILEnumerator.ReadNextOperation">
             <summary>
@@ -429,6 +528,9 @@
             <remarks>
             An operation contains informations from an IL instruction.
             </remarks>
+            <summary>
+            Class helper to read IL instructions.
+            </summary>
         </member>
         <member name="P:Jitex.Builder.IL.Operation.MetadataToken">
             <summary>
@@ -445,6 +547,11 @@
             Offset insruction.
             </summary>
         </member>
+        <member name="P:Jitex.Builder.IL.Operation.Size">
+            <summary>
+            Size operation (instruction length + value length)
+            </summary>
+        </member>
         <member name="P:Jitex.Builder.IL.Operation.OpCode">
             <summary>
             Operation Code IL.
@@ -457,10 +564,18 @@
         </member>
         <member name="M:Jitex.Builder.IL.Operation.#ctor(System.Reflection.Emit.OpCode,System.Object)">
             <summary>
-                Create new operation.
+            Create a new operation.
             </summary>
             <param name="opCode">Operation Code IL.</param>
-            <param name="instance">Operation value instance.</param>
+            <param name="instance">Value from instruction.</param>
+        </member>
+        <member name="M:Jitex.Builder.IL.Operation.#ctor(System.Reflection.Emit.OpCode,System.Object,System.Int32)">
+            <summary>
+            Create a new operation.
+            </summary>
+            <param name="opCode">Operation Code IL.</param>
+            <param name="instance">Value from instruction.</param>
+            <param name="metadataToken">MetadataToken from instruction.</param>
         </member>
         <member name="F:Jitex.Builder.IL.Operation.OpCodes">
             <summary>

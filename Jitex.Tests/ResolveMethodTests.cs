@@ -7,9 +7,9 @@ using static Jitex.Tests.Utils;
 
 namespace Jitex.Tests
 {
-    public class ReplaceMethodTests
+    public class ResolveMethodTests
     {
-        public ReplaceMethodTests()
+        public ResolveMethodTests()
         {
             Jitex.AddMethodResolver(MethodResolver);
         }
@@ -118,7 +118,7 @@ namespace Jitex.Tests
         [Fact]
         public void LocalVariableReferenceTypeTest()
         {
-            string expected = $"{nameof(ReplaceMethodTests)} | Random | CorElementType";
+            string expected = $"{nameof(ResolveMethodTests)} | Random | CorElementType";
             string actual = LocalVariableReferenceType();
 
             Assert.True(expected == actual, "\nVariable not inserted.");
@@ -149,7 +149,7 @@ namespace Jitex.Tests
 
         public string LocalVariableReferenceTypeReplace()
         {
-            ReplaceMethodTests type2 = this;
+            ResolveMethodTests type2 = this;
             Random type3 = new Random();
             CorElementType type4 = CorElementType.ELEMENT_TYPE_OBJECT;
             return $"{type2.GetType().Name} | {type3.GetType().Name} | {type4.GetType().Name}";
@@ -159,33 +159,33 @@ namespace Jitex.Tests
 
         private void MethodResolver(MethodContext context)
         {
-            if (context.Method == GetMethod<ReplaceMethodTests>(nameof(EmptyBodyTest)))
+            if (context.Method == GetMethod<ResolveMethodTests>(nameof(EmptyBodyTest)))
             {
-                context.ResolveMethod(GetMethod<ReplaceMethodTests>(nameof(EmptyBodyReplace)));
+                context.ResolveMethod(GetMethod<ResolveMethodTests>(nameof(EmptyBodyReplace)));
             }
-            else if (context.Method == GetMethod<ReplaceMethodTests>(nameof(BodyImpTest)))
+            else if (context.Method == GetMethod<ResolveMethodTests>(nameof(BodyImpTest)))
             {
-                context.ResolveMethod(GetMethod<ReplaceMethodTests>(nameof(BodyImpReplace)));
+                context.ResolveMethod(GetMethod<ResolveMethodTests>(nameof(BodyImpReplace)));
             }
-            else if (context.Method == GetMethod<ReplaceMethodTests>(nameof(ReturnSimpleInt)))
+            else if (context.Method == GetMethod<ResolveMethodTests>(nameof(ReturnSimpleInt)))
             {
-                context.ResolveMethod(GetMethod<ReplaceMethodTests>(nameof(ReturnSimpleIntReplace)));
+                context.ResolveMethod(GetMethod<ResolveMethodTests>(nameof(ReturnSimpleIntReplace)));
             }
-            else if (context.Method == GetMethod<ReplaceMethodTests>(nameof(ReturnSimpleDouble)))
+            else if (context.Method == GetMethod<ResolveMethodTests>(nameof(ReturnSimpleDouble)))
             {
-                context.ResolveMethod(GetMethod<ReplaceMethodTests>(nameof(ReturnSimpleDoubleReplace)));
+                context.ResolveMethod(GetMethod<ResolveMethodTests>(nameof(ReturnSimpleDoubleReplace)));
             }
-            else if (context.Method == GetMethod<ReplaceMethodTests>(nameof(ReturnSimpleObj)))
+            else if (context.Method == GetMethod<ResolveMethodTests>(nameof(ReturnSimpleObj)))
             {
-                context.ResolveMethod(GetMethod<ReplaceMethodTests>(nameof(ReturnSimpleObjReplace)));
+                context.ResolveMethod(GetMethod<ResolveMethodTests>(nameof(ReturnSimpleObjReplace)));
             }
-            else if (context.Method == GetMethod<ReplaceMethodTests>(nameof(LocalVariableNativeType)))
+            else if (context.Method == GetMethod<ResolveMethodTests>(nameof(LocalVariableNativeType)))
             {
-                context.ResolveMethod(GetMethod<ReplaceMethodTests>(nameof(LocalVariableNativeTypeReplace)));
+                context.ResolveMethod(GetMethod<ResolveMethodTests>(nameof(LocalVariableNativeTypeReplace)));
             }
-            else if (context.Method == GetMethod<ReplaceMethodTests>(nameof(LocalVariableReferenceType)))
+            else if (context.Method == GetMethod<ResolveMethodTests>(nameof(LocalVariableReferenceType)))
             {
-                context.ResolveMethod(GetMethod<ReplaceMethodTests>(nameof(LocalVariableReferenceTypeReplace)));
+                context.ResolveMethod(GetMethod<ResolveMethodTests>(nameof(LocalVariableReferenceTypeReplace)));
             }
         }
     }

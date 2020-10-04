@@ -10,16 +10,16 @@ using MethodBody = Jitex.Builder.Method.MethodBody;
 
 namespace Jitex.Tests
 {
-    public class ReplaceILTests
+    public class ResolveILTests
     {
         private static readonly MethodInfo AssertTrue;
 
-        static ReplaceILTests()
+        static ResolveILTests()
         {
             AssertTrue = typeof(Assert).GetMethod("True", new[] { typeof(bool) });
         }
 
-        public ReplaceILTests()
+        public ResolveILTests()
         {
             Jitex.AddMethodResolver(MethodResolver);
             Jitex.AddTokenResolver(TokenResolver);
@@ -40,24 +40,22 @@ namespace Jitex.Tests
 
         private void TokenResolver(TokenContext context)
         {
-            if (context.Source != null)
+            if (context.Module == GetType().Module)
             {
-                if (context.Source.Name == "BodyEmpty" || context.Source.Name == "LocalVariable")
-                {
-                    if (context.MetadataToken >> 24 == 6)
-                    {
-                        context.ResolveMethod(AssertTrue);
-                    }
-                }
+                if (context.MetadataToken == AssertTrue.MetadataToken)
+                    context.ResolveMethod(AssertTrue); 
             }
         }
 
         private void MethodResolver(MethodContext context)
         {
-            if (context.Method == GetMethod<ReplaceILTests>(nameof(BodyEmpty)))
+            if (context.Method == GetMethod<ResolveILTests>(nameof(BodyEmpty)))
             {
                 byte[] assertToken = BitConverter.GetBytes(AssertTrue.MetadataToken);
 
+                //{
+                //  Assert.True(true);
+                //}
                 List<byte> il = new List<byte>
                 {
                     (byte) OpCodes.Ldc_I4_1.Value,
@@ -69,11 +67,16 @@ namespace Jitex.Tests
 
                 context.ResolveIL(il);
             }
-            else if (context.Method == GetMethod<ReplaceILTests>(nameof(LocalVariable)))
+            else if (context.Method == GetMethod<ResolveILTests>(nameof(LocalVariable)))
             {
                 byte[] assertToken = BitConverter.GetBytes(AssertTrue.MetadataToken);
                 byte[] ceqInstruction = BitConverter.GetBytes(OpCodes.Ceq.Value).Reverse().ToArray();
 
+                //{
+                //  short v1 = short.MaxValue;
+                //  short v2 = short.MaxValue;
+                //  Assert.True(v1+v2+1 == ushort.MaxValue);
+                //}
                 List<byte> il = new List<byte>
                 {
                     (byte) OpCodes.Ldc_I4.Value, 0xFF, 0x7F, 0x00, 0x00,//32767

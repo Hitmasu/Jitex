@@ -44,29 +44,26 @@ namespace Jitex.Tests
 
         private void TokenResolver(TokenContext context)
         {
-            if (context.Source != null)
+            if (context.Source.Name == nameof(ResolveTokenReplace))
             {
-                if (context.Source.Name == nameof(ResolveTokenReplace))
-                {
-                    Type personType = typeof(Caller).Module.GetType("Jitex.Tests.Context.Person");
+                Type personType = typeof(Caller).Module.GetType("Jitex.Tests.Context.Person");
 
-                    switch (context.MetadataToken)
-                    {
-                        case 0x06000006:
-                            ConstructorInfo ctor = personType.GetConstructor(Type.EmptyTypes);
-                            context.ResolveConstructor(ctor);
-                            break;
-
-                        case 0x06000004:
-                            MethodBase get_Idade = personType.GetMethod("get_Idade");
-                            context.ResolveMethod(get_Idade);
-                            break;
-                    }
-                }
-                else if (context.Source == GetMethod<ResolveTokenTests>(nameof(ResolveWithModuleReplace)))
+                switch (context.MetadataToken)
                 {
-                    context.ResolveFromModule(typeof(Caller).Module);
+                    case 0x06000006:
+                        ConstructorInfo ctor = personType.GetConstructor(Type.EmptyTypes);
+                        context.ResolveConstructor(ctor);
+                        break;
+
+                    case 0x06000004:
+                        MethodBase get_Idade = personType.GetMethod("get_Idade");
+                        context.ResolveMethod(get_Idade);
+                        break;
                 }
+            }
+            else if (context.Source == GetMethod<ResolveTokenTests>(nameof(ResolveWithModuleReplace)))
+            {
+                context.ResolveFromModule(typeof(Caller).Module);
             }
         }
 

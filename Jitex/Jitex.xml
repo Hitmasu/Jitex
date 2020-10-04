@@ -160,7 +160,7 @@
             MSIL (pre-compile)
             </summary>
         </member>
-        <member name="F:Jitex.JIT.Context.MethodContext.ResolveMode.ASM">
+        <member name="F:Jitex.JIT.Context.MethodContext.ResolveMode.Native">
             <summary>
             Bytecode (pos-compile)
             </summary>
@@ -180,7 +180,7 @@
             If method is already resolved
             </summary>
         </member>
-        <member name="P:Jitex.JIT.Context.MethodContext.ByteCode">
+        <member name="P:Jitex.JIT.Context.MethodContext.NativeCode">
             <summary>
             Byte-code from method (only to ASM mode)
             </summary>
@@ -194,11 +194,24 @@
             ASM to byte-code.
             </remarks>
         </member>
-        <member name="M:Jitex.JIT.Context.MethodContext.ResolveByteCode(System.Collections.Generic.IEnumerable{System.Byte})">
+        <member name="M:Jitex.JIT.Context.MethodContext.ResolveNative(System.Collections.Generic.IEnumerable{System.Byte})">
             <summary>
-            Resolve method by byte-code.
+            Resolve method by native code (asm).
             </summary>
-            <param name="byteCode">Bytecode to inject.</param>
+            <param name="nativeCode">ASM to inject.</param>
+        </member>
+        <member name="M:Jitex.JIT.Context.MethodContext.ResolveIL(System.Collections.Generic.IEnumerable{System.Byte})">
+            <summary>
+            Resolve method by IL.
+            </summary>
+            <param name="il">IL instructions.</param>
+        </member>
+        <member name="M:Jitex.JIT.Context.MethodContext.ResolveIL(System.Collections.Generic.IEnumerable{System.Byte},System.UInt32)">
+            <summary>
+            Resolve method by IL.
+            </summary>
+            <param name="il">IL instructions.</param>
+            <param name="maxStack">Stack size to instrucitons.</param>
         </member>
         <member name="M:Jitex.JIT.Context.MethodContext.ResolveBody(Jitex.Builder.Method.MethodBody)">
             <summary>
@@ -331,6 +344,23 @@
             <summary>
             Compile method delegate.
             </summary>
+        </member>
+        <member name="T:Jitex.JIT.JitexHandler">
+            <summary>
+            Handlers to expose hooks.
+            </summary>
+        </member>
+        <member name="T:Jitex.JIT.JitexHandler.MethodResolverHandler">
+            <summary>
+            Method resolver handler.
+            </summary>
+            <param name="context">Context of method.</param>
+        </member>
+        <member name="T:Jitex.JIT.JitexHandler.TokenResolverHandler">
+            <summary>
+            Token resolver handler.
+            </summary>
+            <param name="context">Context of token.</param>
         </member>
         <member name="T:Jitex.JIT.ManagedJit">
             <summary>
