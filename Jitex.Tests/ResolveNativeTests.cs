@@ -67,7 +67,7 @@ namespace Jitex.Tests
 
                 assembler.lea(eax,__dword_ptr[rdx]);
 
-                for (int i = 0; i < 99999; i++)
+                for (int i = 0; i < 999; i++)
                 {
                     assembler.add(eax, edx);
                 }
