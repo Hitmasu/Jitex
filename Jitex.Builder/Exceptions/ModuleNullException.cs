@@ -5,7 +5,7 @@ namespace Jitex.Builder.Exceptions
     /// <summary>
     /// Exception when module is null.
     /// </summary>
-    public class ModuleNullException : Exception
+    internal class ModuleNullException : Exception
     {
         /// <summary>
         /// Default exception.

@@ -11,7 +11,6 @@ namespace InjectMSIL
         static void Main(string[] args)
         {
             JitexManager.AddMethodResolver(MethodResolver);
-
             int result = SimpleSum(5, 5);
             Console.WriteLine(result); //output is 25
             Console.ReadKey();

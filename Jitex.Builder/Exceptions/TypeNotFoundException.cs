@@ -2,11 +2,11 @@
 
 namespace Jitex.Builder.Exceptions
 {
-    
+
     /// <summary>
     /// Exception when type is not referenced on assembly.
     /// </summary>
-    public class TypeNotFoundException : Exception
+    internal class TypeNotFoundException : Exception
     {
         /// <summary>
         /// Exception message to raise.
