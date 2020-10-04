@@ -6,7 +6,6 @@ using System.Reflection.Emit;
 using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
 using Jitex.Builder.IL;
-using Jitex.Builder.Method.Exceptions;
 using Jitex.Builder.PE;
 using Jitex.Builder.Utils.Extensions;
 

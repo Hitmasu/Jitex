@@ -5,7 +5,6 @@ using System.Reflection;
 using System.Reflection.Emit;
 using Jitex.Builder.Exceptions;
 using Jitex.Builder.IL.Resolver;
-using Jitex.Builder.Method.Exceptions;
 using Jitex.Builder.Utils.Extensions;
 
 namespace Jitex.Builder.IL

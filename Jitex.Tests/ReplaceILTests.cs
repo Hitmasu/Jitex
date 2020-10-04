@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
-using System.Security.Cryptography;
 using Jitex.JIT.Context;
 using Xunit;
 using static Jitex.Tests.Utils;
