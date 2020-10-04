@@ -121,6 +121,9 @@ namespace Jitex.JIT.CorInfo
 
     internal struct CORINFO_METHOD_INFO
     {
+        /// <summary>
+        /// Instance MethodDesc.
+        /// </summary>
         public IntPtr ftn;
         public IntPtr scope;
         public IntPtr ILCode;

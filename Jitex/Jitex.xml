@@ -9,9 +9,25 @@
             Exception for when Jitex is not loaded.
             </summary>
         </member>
+        <member name="M:Jitex.Exceptions.JitexNotLoadedException.#ctor">
+            <summary>
+            Default exception message.
+            </summary>
+        </member>
         <member name="T:Jitex.Exceptions.StringNullOrEmptyException">
             <summary>
             Exception for when String is null or empty (string injection)
+            </summary>
+        </member>
+        <member name="M:Jitex.Exceptions.StringNullOrEmptyException.#ctor(System.String)">
+            <summary>
+            Custom exception message.
+            </summary>
+            <param name="message"></param>
+        </member>
+        <member name="M:Jitex.Exceptions.StringNullOrEmptyException.#ctor">
+            <summary>
+            Default exception message.
             </summary>
         </member>
         <member name="M:Jitex.Hook.HookManager.InjectHook(System.IntPtr,System.Delegate)">
@@ -293,6 +309,28 @@
             Resolve string by content string.
             </summary>
             <param name="content">Content to replace.</param>
+        </member>
+        <member name="F:Jitex.JIT.CorInfo.CORINFO_METHOD_INFO.ftn">
+            <summary>
+            Instance MethodDesc.
+            </summary>
+        </member>
+        <member name="T:Jitex.JIT.CorInfo.CorJitCompiler.CompileMethodDelegate">
+            <summary>
+            Compile method handler.
+            </summary>
+            <param name="thisPtr">this parameter</param>
+            <param name="comp">(IN) - Pointer to ICorJitInfo.</param>
+            <param name="info">(IN) - Pointer to CORINFO_METHOD_INFO.</param>
+            <param name="flags">(IN) - Pointer to CorJitFlag.</param>
+            <param name="nativeEntry">(OUT) - Pointer to NativeEntry.</param>
+            <param name="nativeSizeOfCode">(OUT) - Size of NativeEntry.</param>
+            <returns></returns>
+        </member>
+        <member name="F:Jitex.JIT.CorInfo.CorJitCompiler.CompileMethod">
+            <summary>
+            Compile method delegate.
+            </summary>
         </member>
         <member name="T:Jitex.JIT.ManagedJit">
             <summary>

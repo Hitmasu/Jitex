@@ -7,6 +7,9 @@ namespace Jitex.Exceptions
     /// </summary>
     public class JitexNotLoadedException : Exception
     {
+        /// <summary>
+        /// Default exception message.
+        /// </summary>
         public JitexNotLoadedException() : base("Jitex not loaded!")
         {
             

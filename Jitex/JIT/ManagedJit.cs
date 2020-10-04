@@ -17,10 +17,21 @@ using MethodBody = Jitex.Builder.Method.MethodBody;
 
 namespace Jitex.JIT
 {
+    /// <summary>
+    /// Handlers to expose hooks.
+    /// </summary>
     public static class JitexHandler
     {
+        /// <summary>
+        /// Method resolver handler.
+        /// </summary>
+        /// <param name="context">Context of method.</param>
         public delegate void MethodResolverHandler(MethodContext context);
 
+        /// <summary>
+        /// Token resolver handler.
+        /// </summary>
+        /// <param name="context">Context of token.</param>
         public delegate void TokenResolverHandler(TokenContext context);
     }
 

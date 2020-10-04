@@ -12,7 +12,7 @@ namespace Jitex.Builder.IL
     /// An operation contains informations from an IL instruction.
     /// </remarks>
     [DebuggerDisplay("{OpCode} - {Instance}")]
-    public partial class Operation<TValue>
+    public partial class Operation
     {
         /// <summary>
         /// MetadataToken from instruction.
@@ -29,6 +29,9 @@ namespace Jitex.Builder.IL
         /// </summary>
         public int Offset { get; internal set; }
 
+        /// <summary>
+        /// Size operation (instruction length + value length)
+        /// </summary>
         public int Size { get; internal set; }
 
         /// <summary>
@@ -39,14 +42,14 @@ namespace Jitex.Builder.IL
         /// <summary>
         /// Value from instruction.
         /// </summary>
-        public TValue Instance { get; set; }
+        public dynamic Instance { get; set; }
 
         /// <summary>
-        ///     Create new operation.
+        /// Create a new operation.
         /// </summary>
         /// <param name="opCode">Operation Code IL.</param>
-        /// <param name="instance">Operation value instance.</param>
-        public Operation(OpCode opCode, TValue instance)
+        /// <param name="instance">Value from instruction.</param>
+        internal Operation(OpCode opCode, dynamic instance)
         {
             OpCode = opCode;
             Instance = instance;
@@ -57,7 +60,13 @@ namespace Jitex.Builder.IL
             }
         }
 
-        public Operation(OpCode opCode, TValue instance, int metadataToken)
+        /// <summary>
+        /// Create a new operation.
+        /// </summary>
+        /// <param name="opCode">Operation Code IL.</param>
+        /// <param name="instance">Value from instruction.</param>
+        /// <param name="metadataToken">MetadataToken from instruction.</param>
+        internal Operation(OpCode opCode, dynamic instance, int metadataToken)
         {
             OpCode = opCode;
             Instance = instance;
@@ -65,10 +74,11 @@ namespace Jitex.Builder.IL
         }
     }
 
-    public class Operation
+    /// <summary>
+    /// Class helper to read IL instructions.
+    /// </summary>
+    public partial class Operation
     {
-        private static readonly object LockState = new object();
-
         /// <summary>
         ///     All Operation Codes.
         /// </summary>

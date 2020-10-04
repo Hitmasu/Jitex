@@ -11,18 +11,31 @@ using Jitex.Builder.Utils.Extensions;
 
 namespace Jitex.Builder.Method
 {
+    /// <summary>
+    /// Provides create a body of a method.
+    /// </summary>
     public class MethodBody
     {
         private byte[] _il;
 
         /// <summary>
-        ///     Module from method body.
+        /// Module from body.
         /// </summary>
         public Module Module { get; }
 
+        /// <summary>
+        /// Generic class arguments used in body.
+        /// </summary>
         public Type[] GenericTypeArguments { get; set; }
+
+        /// <summary>
+        /// Generic 
+        /// </summary>
         public Type[] GenericMethodArguments { get; set; }
 
+        /// <summary>
+        /// IL from body.
+        /// </summary>
         public byte[] IL
         {
             get => _il;
@@ -39,12 +52,19 @@ namespace Jitex.Builder.Method
         public IList<LocalVariableInfo> LocalVariables { get; set; }
 
         /// <summary>
-        ///     If body contains some local variable.
+        /// If body contains some local variable.
         /// </summary>
         public bool HasLocalVariable => LocalVariables?.Count > 0;
 
+        /// <summary>
+        /// Stack size from body.
+        /// </summary>
         public uint MaxStackSize { get; set; }
 
+        /// <summary>
+        /// Create a body from method.
+        /// </summary>
+        /// <param name="methodBase">Method to read.</param>
         public MethodBody(MethodBase methodBase)
         {
             Module = methodBase.Module;
@@ -58,7 +78,15 @@ namespace Jitex.Builder.Method
 
             IL = methodBase.GetILBytes();
         }
-
+        
+        /// <summary>
+        /// Create a body from IL.
+        /// </summary>
+        /// <param name="il">IL instructions.</param>
+        /// <param name="module">Module from IL.</param>
+        /// <param name="genericTypeArguments">Generic class arguments used in body.</param>
+        /// <param name="genericMethodArguments">Generic method arguments used in body.</param>
+        /// <param name="variables">Local variables.</param>
         public MethodBody(IEnumerable<byte> il, Module module, Type[] genericTypeArguments = null, Type[] genericMethodArguments = null, params Type[] variables)
         {
             Module = module;
@@ -69,31 +97,14 @@ namespace Jitex.Builder.Method
             IL = il.ToArray();
         }
 
-        public MethodBody(IEnumerable<byte> il, Module module, params Type[] variables)
-        {
-            Module = module;
-            LocalVariables = variables.Select(s => new LocalVariableInfo(s)).ToList();
-
-            IL = il.ToArray();
-        }
-
-        public MethodBody(IEnumerable<byte> il, params Type[] variables)
-        {
-            LocalVariables = variables.Select(s => new LocalVariableInfo(s)).ToList();
-            _il = il.ToArray();
-        }
-
-        public MethodBody(IEnumerable<byte> il, uint maxStack = 8)
-        {
-            _il = il.ToArray();
-            MaxStackSize = maxStack;
-        }
 
         /// <summary>
-        ///     Create a new method body.
+        /// Create a body from IL.
         /// </summary>
-        /// <param name="il">IL of method.</param>
-        /// <param name="module">Module from body.</param>
+        /// <param name="il">IL instructions.</param>
+        /// <param name="module">Module from IL.</param>
+        /// <param name="genericTypeArguments">Generic class arguments used in body.</param>
+        /// <param name="genericMethodArguments">Generic method arguments used in body.</param>
         public MethodBody(byte[] il, Module module, Type[] genericTypeArguments = null, Type[] genericMethodArguments = null)
         {
             Module = module;
@@ -103,6 +114,46 @@ namespace Jitex.Builder.Method
             IL = il;
         }
 
+        /// <summary>
+        /// Create a body from IL.
+        /// </summary>
+        /// <param name="il">IL instructions.</param>
+        /// <param name="module">Module from IL.</param>
+        /// <param name="variables">Local variables.</param>
+        public MethodBody(IEnumerable<byte> il, Module module, params Type[] variables)
+        {
+            Module = module;
+            LocalVariables = variables.Select(s => new LocalVariableInfo(s)).ToList();
+
+            IL = il.ToArray();
+        }
+
+        /// <summary>
+        /// Create a body from IL.
+        /// </summary>
+        /// <param name="il">IL instructions.</param>
+        /// <param name="variables">Local variables.</param>
+        public MethodBody(IEnumerable<byte> il, params Type[] variables)
+        {
+            LocalVariables = variables.Select(s => new LocalVariableInfo(s)).ToList();
+            _il = il.ToArray();
+        }
+
+        /// <summary>
+        /// Create a body from IL.
+        /// </summary>
+        /// <param name="il">IL instructions.</param>
+        /// <param name="maxStack">Stack size to body.</param>
+        public MethodBody(IEnumerable<byte> il, uint maxStack = 8)
+        {
+            _il = il.ToArray();
+            MaxStackSize = maxStack;
+        }
+
+        /// <summary>
+        /// Read IL instructions from body.
+        /// </summary>
+        /// <returns>Operations from body.</returns>
         public IEnumerable<Operation> ReadIL()
         {
             return new ILReader(IL, Module, GenericTypeArguments, GenericMethodArguments);

@@ -71,12 +71,21 @@ namespace Jitex.JIT.Context
             IsResolved = true;
         }
 
+        /// <summary>
+        /// Resolve method by IL.
+        /// </summary>
+        /// <param name="il">IL instructions.</param>
         public void ResolveIL(IEnumerable<byte> il)
         {
             MethodBody = new MethodBody(il.ToArray());
             IsResolved = true;
         }
 
+        /// <summary>
+        /// Resolve method by IL.
+        /// </summary>
+        /// <param name="il">IL instructions.</param>
+        /// <param name="maxStack">Stack size to instrucitons.</param>
         public void ResolveIL(IEnumerable<byte> il, uint maxStack)
         {
             MethodBody = new MethodBody(il.ToArray(), maxStack);

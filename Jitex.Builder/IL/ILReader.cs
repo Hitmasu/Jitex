@@ -28,12 +28,12 @@ namespace Jitex.Builder.IL
         private readonly ITokenResolver _resolver;
 
         /// <summary>
-        /// Generic types used on method.
+        /// Generic class arguments used in instructions.
         /// </summary>
         private readonly Type[] _genericTypeArguments;
 
         /// <summary>
-        /// Generic arguments from method.
+        /// Generic method arguments used in instructions.
         /// </summary>
         private readonly Type[] _genericMethodArguments;
 
@@ -62,8 +62,8 @@ namespace Jitex.Builder.IL
         /// </summary>
         /// <param name="il">IL to read.</param>
         /// <param name="module">Module from IL.</param>
-        /// <param name="genericTypeArguments">Generic types used on instructions.</param>
-        /// <param name="genericMethodArguments">Generic arguments used on instructions.</param>
+        /// <param name="genericTypeArguments">Generic class arguments used in instructions.</param>
+        /// <param name="genericMethodArguments">Generic method arguments used in instructions.</param>
         public ILReader(byte[] il, Module module, Type[] genericTypeArguments = null, Type[] genericMethodArguments = null)
         {
             _il = il;
@@ -115,12 +115,12 @@ namespace Jitex.Builder.IL
             private int _position;
 
             /// <summary>
-            /// Generic types used on instructions.
+            /// Generic class arguments used in instructions.
             /// </summary>
             private readonly Type[] _genericTypeArguments;
 
             /// <summary>
-            /// Generic arguments from instructions.
+            /// Generic method arguments used in instructions.
             /// </summary>
             private readonly Type[] _genericMethodArguments;
 
@@ -139,8 +139,8 @@ namespace Jitex.Builder.IL
             /// </summary>
             /// <param name="il">IL to read.</param>
             /// <param name="resolver">Module to resolver tokens.</param>
-            /// <param name="genericTypeArguments">Generic types used on instructions.</param>
-            /// <param name="genericMethodArguments">Generic arguments used on instructions.</param>
+            /// <param name="genericTypeArguments">Generic class arguments used in instructions.</param>
+            /// <param name="genericMethodArguments">Generic method arguments used in instructions.</param>
             public ILEnumerator(byte[] il, ITokenResolver resolver, Type[] genericTypeArguments, Type[] genericMethodArguments)
             {
                 _il = il;
@@ -255,7 +255,7 @@ namespace Jitex.Builder.IL
                         break;
 
                     case OperandType.InlinePhi:
-                        break;
+                        throw new NotImplementedException("[IL Reader] - OperandType.InlinePhi is not implemented!");
 
                     default:
                         operation = new Operation(opCode, null);

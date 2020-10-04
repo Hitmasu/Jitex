@@ -31,7 +31,7 @@ namespace Jitex.Utils
             MapScopeToHandle.Add(scope, module);
         }
 
-        private static void CurrentDomainOnAssemblyLoad(object? sender, AssemblyLoadEventArgs args)
+        private static void CurrentDomainOnAssemblyLoad(object sender, AssemblyLoadEventArgs args)
         {
             AddAssembly(args.LoadedAssembly);
         }
