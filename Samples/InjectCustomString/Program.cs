@@ -9,7 +9,7 @@ namespace InjectCustomString
         {
             ExternLibrary.Initialize();
             HelloWorld();
-            Console.Read();
+            Console.ReadKey();
         }
 
         static void HelloWorld()

@@ -3,9 +3,10 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Reflection.Emit;
-using Jitex.JIT;
+using Jitex;
+using Jitex.JIT.Context;
 using Jitex.JIT.CorInfo;
-using MethodBody = Jitex.Builder.MethodBody;
+using MethodBody = Jitex.Builder.Method.MethodBody;
 
 namespace InjectCustomMetadata.Library
 {
@@ -31,10 +32,8 @@ namespace InjectCustomMetadata.Library
 
         public static void Initialize()
         {
-            ManagedJit jitex = ManagedJit.GetInstance();
-
-            jitex.AddCompileResolver(CompileResolve);
-            jitex.AddTokenResolver(TokenResolve);
+            JitexManager.AddMethodResolver(MethodResolver);
+            JitexManager.AddTokenResolver(TokenResolver);
         }
 
         private static void LoadAssemblyDiagnostics()
@@ -47,25 +46,7 @@ namespace InjectCustomMetadata.Library
             _getterId = _getCurrentProcess.ReturnType.GetProperty("Id", BindingFlags.Public | BindingFlags.Instance).GetGetMethod();
         }
 
-        private static void CompileResolve(CompileContext context)
-        {
-            if (context.Method.Name == "SimpleSum")
-            {
-                List<byte> newIl = new List<byte>();
-
-                newIl.Add((byte) OpCodes.Call.Value);
-                newIl.AddRange(BitConverter.GetBytes(_getCurrentProcess.MetadataToken));
-                newIl.Add((byte) OpCodes.Call.Value);
-                newIl.AddRange(BitConverter.GetBytes(_getterId.MetadataToken));
-                newIl.Add((byte) OpCodes.Ret.Value);
-
-                MethodBody methodBody = new MethodBody(newIl.ToArray(), _getCurrentProcess.Module);
-
-                context.ResolveBody(methodBody);
-            }
-        }
-
-        private static void TokenResolve(TokenContext context)
+        private static void TokenResolver(TokenContext context)
         {
             if (context.TokenType == TokenKind.Method && context.Source.Name == "SimpleSum")
             {
@@ -77,6 +58,24 @@ namespace InjectCustomMetadata.Library
                 {
                     context.ResolveMethod(_getterId);
                 }
+            }
+        }
+
+        private static void MethodResolver(MethodContext context)
+        {
+            if (context.Method.Name == "SimpleSum")
+            {
+                List<byte> newIl = new List<byte>();
+
+                newIl.Add((byte)OpCodes.Call.Value);
+                newIl.AddRange(BitConverter.GetBytes(_getCurrentProcess.MetadataToken));
+                newIl.Add((byte)OpCodes.Call.Value);
+                newIl.AddRange(BitConverter.GetBytes(_getterId.MetadataToken));
+                newIl.Add((byte)OpCodes.Ret.Value);
+
+                MethodBody methodBody = new MethodBody(newIl.ToArray(), _getCurrentProcess.Module);
+
+                context.ResolveBody(methodBody);
             }
         }
     }

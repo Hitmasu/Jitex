@@ -1,4 +1,5 @@
-﻿using Jitex.JIT;
+﻿using Jitex;
+using Jitex.JIT.Context;
 using Jitex.JIT.CorInfo;
 
 namespace InjectCustomString.Library
@@ -7,13 +8,11 @@ namespace InjectCustomString.Library
     {
         public static void Initialize()
         {
-            ManagedJit jitex = ManagedJit.GetInstance();
-
-            jitex.AddCompileResolver(context => { });
-            jitex.AddTokenResolver(TokenResolve);
+            JitexManager.AddMethodResolver(context => { });
+            JitexManager.AddTokenResolver(TokenResolver);
         }
 
-        private static void TokenResolve(TokenContext context)
+        private static void TokenResolver(TokenContext context)
         {
             if (context.TokenType == TokenKind.String && context.Content == "Hello World!")
                 context.ResolveString("H3110 W0RLD!");

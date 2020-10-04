@@ -1,0 +1,632 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Jitex.Builder</name>
+    </assembly>
+    <members>
+        <member name="T:Jitex.Builder.Exceptions.ModuleNullException">
+            <summary>
+            Exception when module is null.
+            </summary>
+        </member>
+        <member name="M:Jitex.Builder.Exceptions.ModuleNullException.#ctor">
+            <summary>
+            Default exception.
+            </summary>
+        </member>
+        <member name="M:Jitex.Builder.Exceptions.ModuleNullException.#ctor(System.String)">
+            <summary>
+            Custom exception message.
+            </summary>
+            <param name="message">Message to raise.</param>
+        </member>
+        <member name="T:Jitex.Builder.Exceptions.TypeNotFoundException">
+            <summary>
+            Exception when type is not referenced on assembly.
+            </summary>
+        </member>
+        <member name="M:Jitex.Builder.Exceptions.TypeNotFoundException.#ctor(System.String)">
+            <summary>
+            Exception message to raise.
+            </summary>
+            <param name="message">Message exception.</param>
+        </member>
+        <member name="T:Jitex.Builder.IL.ILReader">
+            <summary>
+            MSIL reader.
+            </summary>
+            <remarks>
+            Read MSIL instructions from array byte or method.
+            </remarks>
+        </member>
+        <member name="F:Jitex.Builder.IL.ILReader._il">
+            <summary>
+            Instructions IL.
+            </summary>
+        </member>
+        <member name="F:Jitex.Builder.IL.ILReader._resolver">
+            <summary>
+            Module token resolver.
+            </summary>
+        </member>
+        <member name="F:Jitex.Builder.IL.ILReader._genericTypeArguments">
+            <summary>
+            Generic class arguments used in instructions.
+            </summary>
+        </member>
+        <member name="F:Jitex.Builder.IL.ILReader._genericMethodArguments">
+            <summary>
+            Generic method arguments used in instructions.
+            </summary>
+        </member>
+        <member name="M:Jitex.Builder.IL.ILReader.#ctor(System.Reflection.MethodBase)">
+            <summary>
+            Read IL from method.
+            </summary>
+            <param name="methodILBase">Method to read IL.</param>
+        </member>
+        <member name="M:Jitex.Builder.IL.ILReader.#ctor(System.Byte[],System.Reflection.Module,System.Type[],System.Type[])">
+            <summary>
+            Read IL from array byte.
+            </summary>
+            <param name="il">IL to read.</param>
+            <param name="module">Module from IL.</param>
+            <param name="genericTypeArguments">Generic class arguments used in instructions.</param>
+            <param name="genericMethodArguments">Generic method arguments used in instructions.</param>
+        </member>
+        <member name="M:Jitex.Builder.IL.ILReader.GetEnumerator">
+            <summary>
+            Get enumerator from reader.
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="T:Jitex.Builder.IL.ILReader.ILEnumerator">
+            <summary>
+            Enumerator to read instructions.
+            </summary>
+        </member>
+        <member name="F:Jitex.Builder.IL.ILReader.ILEnumerator._il">
+            <summary>
+            Instructions IL.
+            </summary>
+        </member>
+        <member name="F:Jitex.Builder.IL.ILReader.ILEnumerator._resolver">
+            <summary>
+            Module token resolver.
+            </summary>
+        </member>
+        <member name="F:Jitex.Builder.IL.ILReader.ILEnumerator._index">
+            <summary>
+            Index from instructions.
+            </summary>
+        </member>
+        <member name="F:Jitex.Builder.IL.ILReader.ILEnumerator._position">
+            <summary>
+            Current position of read.
+            </summary>
+        </member>
+        <member name="F:Jitex.Builder.IL.ILReader.ILEnumerator._genericTypeArguments">
+            <summary>
+            Generic class arguments used in instructions.
+            </summary>
+        </member>
+        <member name="F:Jitex.Builder.IL.ILReader.ILEnumerator._genericMethodArguments">
+            <summary>
+            Generic method arguments used in instructions.
+            </summary>
+        </member>
+        <member name="P:Jitex.Builder.IL.ILReader.ILEnumerator.Current">
+            <summary>
+                Current operation.
+            </summary>
+        </member>
+        <member name="P:Jitex.Builder.IL.ILReader.ILEnumerator.System#Collections#IEnumerator#Current">
+            <summary>
+            Current operation.
+            </summary>
+        </member>
+        <member name="M:Jitex.Builder.IL.ILReader.ILEnumerator.#ctor(System.Byte[],Jitex.Builder.IL.Resolver.ITokenResolver,System.Type[],System.Type[])">
+            <summary>
+            Create a new enumerator to read instructions.
+            </summary>
+            <param name="il">IL to read.</param>
+            <param name="resolver">Module to resolver tokens.</param>
+            <param name="genericTypeArguments">Generic class arguments used in instructions.</param>
+            <param name="genericMethodArguments">Generic method arguments used in instructions.</param>
+        </member>
+        <member name="M:Jitex.Builder.IL.ILReader.ILEnumerator.ReadNextOperation">
+            <summary>
+            Read next operation from IL.
+            </summary>
+            <returns>The next operation.</returns>
+        </member>
+        <member name="M:Jitex.Builder.IL.ILReader.ILEnumerator.ReadType">
+            <summary>
+                Read <see cref="T:System.Type" /> reference from module.
+            </summary>
+            <returns><see cref="T:System.Type" /> referenced.</returns>
+        </member>
+        <member name="M:Jitex.Builder.IL.ILReader.ILEnumerator.ReadString">
+            <summary>
+                Read <see cref="T:System.String" /> reference from module.
+            </summary>
+            <returns><see cref="T:System.String" /> referenced.</returns>
+        </member>
+        <member name="M:Jitex.Builder.IL.ILReader.ILEnumerator.ReadMethod">
+            <summary>
+                Read <see cref="T:System.Reflection.MethodInfo" /> reference from module.
+            </summary>
+            <returns><see cref="T:System.Reflection.MethodInfo" /> referenced.</returns>
+        </member>
+        <member name="M:Jitex.Builder.IL.ILReader.ILEnumerator.ReadField">
+            <summary>
+                Read <see cref="T:System.Reflection.FieldInfo" /> reference from module.
+            </summary>
+            <returns><see cref="T:System.Reflection.FieldInfo" /> referenced.</returns>
+        </member>
+        <member name="M:Jitex.Builder.IL.ILReader.ILEnumerator.ReadSignature">
+            <summary>
+                Read Signature reference from module.
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Jitex.Builder.IL.ILReader.ILEnumerator.ReadMember">
+            <summary>
+                Read <see cref="T:System.Reflection.MemberInfo" /> reference from module.
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Jitex.Builder.IL.ILReader.ILEnumerator.ReadInt64">
+            <summary>
+                Read <see cref="T:System.Int64" /> value.
+            </summary>
+            <returns><see cref="T:System.Int64" /> value.</returns>
+        </member>
+        <member name="M:Jitex.Builder.IL.ILReader.ILEnumerator.ReadInt32">
+            <summary>
+                Read <see cref="T:System.Int32" /> value.
+            </summary>
+            <returns><see cref="T:System.Int32" /> value.</returns>
+        </member>
+        <member name="M:Jitex.Builder.IL.ILReader.ILEnumerator.ReadDouble">
+            <summary>
+                Read <see cref="T:System.Double" /> value.
+            </summary>
+            <returns><see cref="T:System.Double" /> value.</returns>
+        </member>
+        <member name="M:Jitex.Builder.IL.ILReader.ILEnumerator.ReadByte">
+            <summary>
+                Read <see cref="T:System.Byte" /> value.
+            </summary>
+            <returns><see cref="T:System.Byte" /> value.</returns>
+        </member>
+        <member name="T:Jitex.Builder.IL.Operation">
+            <summary>
+            Operation from a IL instruction.
+            </summary>
+            <remarks>
+            An operation contains informations from an IL instruction.
+            </remarks>
+            <summary>
+            Class helper to read IL instructions.
+            </summary>
+        </member>
+        <member name="P:Jitex.Builder.IL.Operation.MetadataToken">
+            <summary>
+            MetadataToken from instruction.
+            </summary>
+        </member>
+        <member name="P:Jitex.Builder.IL.Operation.Index">
+            <summary>
+            Index instruction.
+            </summary>
+        </member>
+        <member name="P:Jitex.Builder.IL.Operation.Offset">
+            <summary>
+            Offset insruction.
+            </summary>
+        </member>
+        <member name="P:Jitex.Builder.IL.Operation.Size">
+            <summary>
+            Size operation (instruction length + value length)
+            </summary>
+        </member>
+        <member name="P:Jitex.Builder.IL.Operation.OpCode">
+            <summary>
+            Operation Code IL.
+            </summary>
+        </member>
+        <member name="P:Jitex.Builder.IL.Operation.Instance">
+            <summary>
+            Value from instruction.
+            </summary>
+        </member>
+        <member name="M:Jitex.Builder.IL.Operation.#ctor(System.Reflection.Emit.OpCode,System.Object)">
+            <summary>
+            Create a new operation.
+            </summary>
+            <param name="opCode">Operation Code IL.</param>
+            <param name="instance">Value from instruction.</param>
+        </member>
+        <member name="M:Jitex.Builder.IL.Operation.#ctor(System.Reflection.Emit.OpCode,System.Object,System.Int32)">
+            <summary>
+            Create a new operation.
+            </summary>
+            <param name="opCode">Operation Code IL.</param>
+            <param name="instance">Value from instruction.</param>
+            <param name="metadataToken">MetadataToken from instruction.</param>
+        </member>
+        <member name="F:Jitex.Builder.IL.Operation.OpCodes">
+            <summary>
+                All Operation Codes.
+            </summary>
+        </member>
+        <member name="M:Jitex.Builder.IL.Operation.LoadOpCodes">
+            <summary>
+                Load all operation codes.
+            </summary>
+        </member>
+        <member name="M:Jitex.Builder.IL.Operation.Translate(System.Int16)">
+            <summary>
+                Get <see cref="P:Jitex.Builder.IL.Operation.OpCode" /> from instruction.
+            </summary>
+            <param name="identifier">Instruction IL.</param>
+            <returns>Operation code of instruction.</returns>
+        </member>
+        <member name="T:Jitex.Builder.IL.Resolver.ITokenResolver">
+            <summary>
+                Token resolver.
+            </summary>
+            <remarks>
+                Created by jnm2
+                https://stackoverflow.com/a/35711376
+            </remarks>
+        </member>
+        <member name="T:Jitex.Builder.Method.CorElementType">
+            <summary>
+            Type identifier used by CLR.
+            </summary>
+            <remarks>
+            Type identifier used internally by CLR.
+            Some of them are used only internally by CLR, not exposed to be used directly by developers.
+            </remarks>
+        </member>
+        <member name="F:Jitex.Builder.Method.CorElementType.ELEMENT_TYPE_END">
+            <summary>
+            Used internally.
+            </summary>
+        </member>
+        <member name="F:Jitex.Builder.Method.CorElementType.ELEMENT_TYPE_VOID">
+            <summary>
+            A void type.
+            </summary>
+        </member>
+        <member name="F:Jitex.Builder.Method.CorElementType.ELEMENT_TYPE_BOOLEAN">
+            <summary>
+            A Boolean type (bool).
+            </summary>
+        </member>
+        <member name="F:Jitex.Builder.Method.CorElementType.ELEMENT_TYPE_CHAR">
+            <summary>
+            A character type (char).
+            </summary>
+        </member>
+        <member name="F:Jitex.Builder.Method.CorElementType.ELEMENT_TYPE_I1">
+            <summary>
+            A signed 1-byte integer (sbyte).
+            </summary>
+        </member>
+        <member name="F:Jitex.Builder.Method.CorElementType.ELEMENT_TYPE_U1">
+            <summary>
+            An unsigned 1-byte integer (byte).
+            </summary>
+        </member>
+        <member name="F:Jitex.Builder.Method.CorElementType.ELEMENT_TYPE_I2">
+            <summary>
+            A signed 2-byte integer (short).
+            </summary>
+        </member>
+        <member name="F:Jitex.Builder.Method.CorElementType.ELEMENT_TYPE_U2">
+            <summary>
+            An unsigned 2-byte integer (ushort).
+            </summary>
+        </member>
+        <member name="F:Jitex.Builder.Method.CorElementType.ELEMENT_TYPE_I4">
+            <summary>
+            A signed 4-byte integer (int|Int32).
+            </summary>
+        </member>
+        <member name="F:Jitex.Builder.Method.CorElementType.ELEMENT_TYPE_U4">
+            <summary>
+            An unsigned 4-byte integer (uint|Uint32).
+            </summary>
+        </member>
+        <member name="F:Jitex.Builder.Method.CorElementType.ELEMENT_TYPE_I8">
+            <summary>
+            A signed 8-byte integer (long|Int64).
+            </summary>
+        </member>
+        <member name="F:Jitex.Builder.Method.CorElementType.ELEMENT_TYPE_U8">
+            <summary>
+            An unsigned 8-byte integer (ulong|Uint64).
+            </summary>
+        </member>
+        <member name="F:Jitex.Builder.Method.CorElementType.ELEMENT_TYPE_R4">
+            <summary>
+            A 4-byte floating point (float).
+            </summary>
+        </member>
+        <member name="F:Jitex.Builder.Method.CorElementType.ELEMENT_TYPE_R8">
+            <summary>
+            An 8-byte floating point (double).
+            </summary>
+        </member>
+        <member name="F:Jitex.Builder.Method.CorElementType.ELEMENT_TYPE_STRING">
+            <summary>
+            A System.String type (string).
+            </summary>
+        </member>
+        <member name="F:Jitex.Builder.Method.CorElementType.ELEMENT_TYPE_PTR">
+            <summary>
+            A pointer type modifier.
+            </summary>
+        </member>
+        <member name="F:Jitex.Builder.Method.CorElementType.ELEMENT_TYPE_BYREF">
+            <summary>
+            A reference type modifier.
+            </summary>
+        </member>
+        <member name="F:Jitex.Builder.Method.CorElementType.ELEMENT_TYPE_VALUETYPE">
+            <summary>
+            A value type modifier (struct).
+            </summary>
+        </member>
+        <member name="F:Jitex.Builder.Method.CorElementType.ELEMENT_TYPE_CLASS">
+            <summary>
+            A class type modifier (class).
+            </summary>
+        </member>
+        <member name="F:Jitex.Builder.Method.CorElementType.ELEMENT_TYPE_VAR">
+            <summary>
+            A class variable type modifier.
+            </summary>
+        </member>
+        <member name="F:Jitex.Builder.Method.CorElementType.ELEMENT_TYPE_ARRAY">
+            <summary>
+            A multi-dimensional array type modifier.
+            </summary>
+        </member>
+        <member name="F:Jitex.Builder.Method.CorElementType.ELEMENT_TYPE_GENERICINST">
+            <summary>
+            A type modifier for generic types.
+            </summary>
+        </member>
+        <member name="F:Jitex.Builder.Method.CorElementType.ELEMENT_TYPE_TYPEDBYREF">
+            <summary>
+            A typed reference.
+            </summary>
+        </member>
+        <member name="F:Jitex.Builder.Method.CorElementType.ELEMENT_TYPE_I">
+            <summary>
+            Size of a native integer.
+            </summary>
+        </member>
+        <member name="F:Jitex.Builder.Method.CorElementType.ELEMENT_TYPE_U">
+            <summary>
+            Size of an unsigned native integer.
+            </summary>
+        </member>
+        <member name="F:Jitex.Builder.Method.CorElementType.ELEMENT_TYPE_FNPTR">
+            <summary>
+            A pointer to a function.
+            </summary>
+        </member>
+        <member name="F:Jitex.Builder.Method.CorElementType.ELEMENT_TYPE_OBJECT">
+            <summary>
+            A System.Object type (object).
+            </summary>
+        </member>
+        <member name="F:Jitex.Builder.Method.CorElementType.ELEMENT_TYPE_SZARRAY">
+            <summary>
+            A single-dimensional, zero lower-bound array type modifier.
+            </summary>
+        </member>
+        <member name="F:Jitex.Builder.Method.CorElementType.ELEMENT_TYPE_MVAR">
+            <summary>
+            A method variable type modifier.
+            </summary>
+        </member>
+        <member name="F:Jitex.Builder.Method.CorElementType.ELEMENT_TYPE_CMOD_REQD">
+            <summary>
+            A C language required modifier.
+            </summary>
+        </member>
+        <member name="F:Jitex.Builder.Method.CorElementType.ELEMENT_TYPE_CMOD_OPT">
+            <summary>
+            A C language optional modifier.
+            </summary>
+        </member>
+        <member name="F:Jitex.Builder.Method.CorElementType.ELEMENT_TYPE_INTERNAL">
+            <summary>
+            Used internally.
+            </summary>
+        </member>
+        <member name="F:Jitex.Builder.Method.CorElementType.ELEMENT_TYPE_MAX">
+            <summary>
+            An invalid type.
+            </summary>
+        </member>
+        <member name="F:Jitex.Builder.Method.CorElementType.ELEMENT_TYPE_MODIFIER">
+            <summary>
+            Used internally.
+            </summary>
+        </member>
+        <member name="F:Jitex.Builder.Method.CorElementType.ELEMENT_TYPE_SENTINEL">
+            <summary>
+            A type modifier that is a sentinel for a list of a variable number of parameters.
+            </summary>
+        </member>
+        <member name="F:Jitex.Builder.Method.CorElementType.ELEMENT_TYPE_PINNED">
+            <summary>
+            Used internally.
+            </summary>
+        </member>
+        <member name="T:Jitex.Builder.Method.LocalVariableInfo">
+            <summary>
+            Information about local variables.
+            </summary>
+        </member>
+        <member name="P:Jitex.Builder.Method.LocalVariableInfo.Type">
+            <summary>
+            Type from local variable.
+            </summary>
+        </member>
+        <member name="P:Jitex.Builder.Method.LocalVariableInfo.ElementType">
+            <summary>
+            Type identifier from variable.
+            </summary>
+        </member>
+        <member name="M:Jitex.Builder.Method.LocalVariableInfo.#ctor(System.Type)">
+            <summary>
+            Create a local variable from type.
+            </summary>
+            <param name="type">Type of local variable.</param>
+        </member>
+        <member name="M:Jitex.Builder.Method.LocalVariableInfo.DetectCorElementType(System.Type)">
+            <summary>
+            Detect type identifier from a type.
+            </summary>
+            <param name="type">Type to detect.</param>
+            <returns>Identifier from type.</returns>
+        </member>
+        <member name="T:Jitex.Builder.Method.MethodBody">
+            <summary>
+            Provides create a body of a method.
+            </summary>
+        </member>
+        <member name="P:Jitex.Builder.Method.MethodBody.Module">
+            <summary>
+            Module from body.
+            </summary>
+        </member>
+        <member name="P:Jitex.Builder.Method.MethodBody.GenericTypeArguments">
+            <summary>
+            Generic class arguments used in body.
+            </summary>
+        </member>
+        <member name="P:Jitex.Builder.Method.MethodBody.GenericMethodArguments">
+            <summary>
+            Generic 
+            </summary>
+        </member>
+        <member name="P:Jitex.Builder.Method.MethodBody.IL">
+            <summary>
+            IL from body.
+            </summary>
+        </member>
+        <member name="P:Jitex.Builder.Method.MethodBody.LocalVariables">
+            <summary>
+                Local variables from method.
+            </summary>
+        </member>
+        <member name="P:Jitex.Builder.Method.MethodBody.HasLocalVariable">
+            <summary>
+            If body contains some local variable.
+            </summary>
+        </member>
+        <member name="P:Jitex.Builder.Method.MethodBody.MaxStackSize">
+            <summary>
+            Stack size from body.
+            </summary>
+        </member>
+        <member name="M:Jitex.Builder.Method.MethodBody.#ctor(System.Reflection.MethodBase)">
+            <summary>
+            Create a body from method.
+            </summary>
+            <param name="methodBase">Method to read.</param>
+        </member>
+        <member name="M:Jitex.Builder.Method.MethodBody.#ctor(System.Collections.Generic.IEnumerable{System.Byte},System.Reflection.Module,System.Type[],System.Type[],System.Type[])">
+            <summary>
+            Create a body from IL.
+            </summary>
+            <param name="il">IL instructions.</param>
+            <param name="module">Module from IL.</param>
+            <param name="genericTypeArguments">Generic class arguments used in body.</param>
+            <param name="genericMethodArguments">Generic method arguments used in body.</param>
+            <param name="variables">Local variables.</param>
+        </member>
+        <member name="M:Jitex.Builder.Method.MethodBody.#ctor(System.Byte[],System.Reflection.Module,System.Type[],System.Type[])">
+            <summary>
+            Create a body from IL.
+            </summary>
+            <param name="il">IL instructions.</param>
+            <param name="module">Module from IL.</param>
+            <param name="genericTypeArguments">Generic class arguments used in body.</param>
+            <param name="genericMethodArguments">Generic method arguments used in body.</param>
+        </member>
+        <member name="M:Jitex.Builder.Method.MethodBody.#ctor(System.Collections.Generic.IEnumerable{System.Byte},System.Reflection.Module,System.Type[])">
+            <summary>
+            Create a body from IL.
+            </summary>
+            <param name="il">IL instructions.</param>
+            <param name="module">Module from IL.</param>
+            <param name="variables">Local variables.</param>
+        </member>
+        <member name="M:Jitex.Builder.Method.MethodBody.#ctor(System.Collections.Generic.IEnumerable{System.Byte},System.Type[])">
+            <summary>
+            Create a body from IL.
+            </summary>
+            <param name="il">IL instructions.</param>
+            <param name="variables">Local variables.</param>
+        </member>
+        <member name="M:Jitex.Builder.Method.MethodBody.#ctor(System.Collections.Generic.IEnumerable{System.Byte},System.UInt32)">
+            <summary>
+            Create a body from IL.
+            </summary>
+            <param name="il">IL instructions.</param>
+            <param name="maxStack">Stack size to body.</param>
+        </member>
+        <member name="M:Jitex.Builder.Method.MethodBody.ReadIL">
+            <summary>
+            Read IL instructions from body.
+            </summary>
+            <returns>Operations from body.</returns>
+        </member>
+        <member name="M:Jitex.Builder.Method.MethodBody.CalculateMaxStack">
+            <summary>
+                Calculate .maxstack from body.
+            </summary>
+        </member>
+        <member name="M:Jitex.Builder.Method.MethodBody.GetSignatureVariables">
+            <summary>
+                Get compressed signature from local variables.
+            </summary>
+            <returns>Byte array - compressed signature.</returns>
+        </member>
+        <member name="T:Jitex.Builder.PE.MetadataInfo">
+            <summary>
+                Read Metadata from assembly.
+            </summary>
+        </member>
+        <member name="M:Jitex.Builder.PE.MetadataInfo.#ctor(System.Reflection.Assembly)">
+            <summary>
+                Read metadata from assembly.
+            </summary>
+            <param name="assembly">Assembly to read.</param>
+        </member>
+        <member name="M:Jitex.Builder.PE.MetadataInfo.GetTypeHandle(System.Type)">
+            <summary>
+                Get handle from Type.
+            </summary>
+            <param name="type">Type to get handle.</param>
+            <returns>EntityHandle from Type or default if not found on assembly.</returns>
+        </member>
+        <member name="M:Jitex.Builder.PE.MetadataInfo.ReadTypes(System.Reflection.Metadata.MetadataReader)">
+            <summary>
+                Read types from metadata.
+            </summary>
+            <param name="reader">Instance of MetadataReader</param>
+            <returns>A Dictionary of types found on metadata..</returns>
+        </member>
+    </members>
+</doc>

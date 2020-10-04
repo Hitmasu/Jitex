@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Reflection.Emit;
-using Jitex.Builder;
-using Jitex.JIT;
+using Jitex;
+using Jitex.Builder.Method;
+using Jitex.JIT.Context;
 
 namespace InjectMSIL
 {
@@ -9,13 +10,10 @@ namespace InjectMSIL
     {
         static void Main(string[] args)
         {
-            ManagedJit jit = ManagedJit.GetInstance();
-
-            //Custom resolver
-            jit.AddCompileResolver(CompileResolver);
-
+            JitexManager.AddMethodResolver(MethodResolver);
             int result = SimpleSum(5, 5);
             Console.WriteLine(result); //output is 25
+            Console.ReadKey();
         }
 
         /// <summary>
@@ -26,7 +24,7 @@ namespace InjectMSIL
             return num1 + num2;
         }
 
-        private static void CompileResolver(CompileContext context)
+        private static void MethodResolver(MethodContext context)
         {
             //Verify with method to be compile is our method who we want modify.
             if (context.Method.Name == "SimpleSum")

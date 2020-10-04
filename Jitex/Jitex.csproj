@@ -13,13 +13,15 @@
         <PackageLicenseFile></PackageLicenseFile>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageTags>JIT</PackageTags>
-        <Version>2.0.2-alpha</Version>
+        <Version>3.0.0-alpha</Version>
+        <AssemblyName>Jitex</AssemblyName>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
       <PlatformTarget>x64</PlatformTarget>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
       <PlatformTarget>x64</PlatformTarget>
+      <DocumentationFile>C:\Users\Hitmasu\Documents\Jitex\Jitex\Jitex\Jitex.xml</DocumentationFile>
     </PropertyGroup>
     <ItemGroup>
       <Compile Remove="Attributes\**" />
@@ -28,5 +30,8 @@
     </ItemGroup>
     <ItemGroup>
       <PackageReference Include="Lokad.ILPack" Version="0.1.4" />
+    </ItemGroup>
+    <ItemGroup>
+      <ProjectReference Include="..\Jitex.Builder\Jitex.Builder.csproj" />
     </ItemGroup>
 </Project>

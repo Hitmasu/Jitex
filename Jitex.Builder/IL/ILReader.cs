@@ -1,26 +1,46 @@
-﻿using Jitex.IL.Resolver;
-using Jitex.Utils.Extensions;
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Reflection.Emit;
+using Jitex.Builder.Exceptions;
+using Jitex.Builder.IL.Resolver;
+using Jitex.Builder.Utils.Extensions;
 
-namespace Jitex.IL
+namespace Jitex.Builder.IL
 {
+    /// <summary>
+    /// MSIL reader.
+    /// </summary>
+    /// <remarks>
+    /// Read MSIL instructions from array byte or method.
+    /// </remarks>
     public class ILReader : IEnumerable<Operation>
     {
         /// <summary>
-        ///     Instructions IL.
+        /// Instructions IL.
         /// </summary>
         private readonly byte[] _il;
 
+        /// <summary>
+        /// Module token resolver.
+        /// </summary>
         private readonly ITokenResolver _resolver;
 
+        /// <summary>
+        /// Generic class arguments used in instructions.
+        /// </summary>
         private readonly Type[] _genericTypeArguments;
+
+        /// <summary>
+        /// Generic method arguments used in instructions.
+        /// </summary>
         private readonly Type[] _genericMethodArguments;
 
-
+        /// <summary>
+        /// Read IL from method.
+        /// </summary>
+        /// <param name="methodILBase">Method to read IL.</param>
         public ILReader(MethodBase methodILBase)
         {
             if (methodILBase == null)
@@ -38,23 +58,27 @@ namespace Jitex.IL
         }
 
         /// <summary>
-        ///     Create a new instance of ILReader.
+        /// Read IL from array byte.
         /// </summary>
-        /// <param name="il">Instructions to read.</param>
-        /// <param name="module">Module of instructions.</param>
+        /// <param name="il">IL to read.</param>
+        /// <param name="module">Module from IL.</param>
+        /// <param name="genericTypeArguments">Generic class arguments used in instructions.</param>
+        /// <param name="genericMethodArguments">Generic method arguments used in instructions.</param>
         public ILReader(byte[] il, Module module, Type[] genericTypeArguments = null, Type[] genericMethodArguments = null)
         {
-            if (module == null)
-                throw new ArgumentNullException(nameof(module));
-
             _il = il;
 
             _genericTypeArguments = genericTypeArguments;
             _genericMethodArguments = genericMethodArguments;
 
-            _resolver = new ModuleTokenResolver(module);
+            if(module != null)
+                _resolver = new ModuleTokenResolver(module);
         }
 
+        /// <summary>
+        /// Get enumerator from reader.
+        /// </summary>
+        /// <returns></returns>
         public IEnumerator<Operation> GetEnumerator()
         {
             return new ILEnumerator(_il, _resolver, _genericTypeArguments, _genericMethodArguments);
@@ -66,25 +90,38 @@ namespace Jitex.IL
         }
 
         /// <summary>
-        ///     Enumerator to read instructions.
+        /// Enumerator to read instructions.
         /// </summary>
         private class ILEnumerator : IEnumerator<Operation>
         {
             /// <summary>
-            ///     Instructions IL.
+            /// Instructions IL.
             /// </summary>
             private readonly byte[] _il;
 
+            /// <summary>
+            /// Module token resolver.
+            /// </summary>
             private readonly ITokenResolver _resolver;
 
+            /// <summary>
+            /// Index from instructions.
+            /// </summary>
             private int _index;
 
             /// <summary>
-            ///     Current position of read.
+            /// Current position of read.
             /// </summary>
             private int _position;
 
+            /// <summary>
+            /// Generic class arguments used in instructions.
+            /// </summary>
             private readonly Type[] _genericTypeArguments;
+
+            /// <summary>
+            /// Generic method arguments used in instructions.
+            /// </summary>
             private readonly Type[] _genericMethodArguments;
 
             /// <summary>
@@ -93,14 +130,17 @@ namespace Jitex.IL
             public Operation Current => ReadNextOperation();
 
             /// <summary>
-            ///     Current operation.
+            /// Current operation.
             /// </summary>
             object IEnumerator.Current => Current;
 
             /// <summary>
-            ///     Create a new enumerator to read instructions.
+            /// Create a new enumerator to read instructions.
             /// </summary>
-            /// <param name="il">Instructions to read.</param>
+            /// <param name="il">IL to read.</param>
+            /// <param name="resolver">Module to resolver tokens.</param>
+            /// <param name="genericTypeArguments">Generic class arguments used in instructions.</param>
+            /// <param name="genericMethodArguments">Generic method arguments used in instructions.</param>
             public ILEnumerator(byte[] il, ITokenResolver resolver, Type[] genericTypeArguments, Type[] genericMethodArguments)
             {
                 _il = il;
@@ -120,7 +160,7 @@ namespace Jitex.IL
             }
 
             /// <summary>
-            ///     Read next operation from IL.
+            /// Read next operation from IL.
             /// </summary>
             /// <returns>The next operation.</returns>
             private Operation ReadNextOperation()
@@ -215,7 +255,7 @@ namespace Jitex.IL
                         break;
 
                     case OperandType.InlinePhi:
-                        break;
+                        throw new NotImplementedException("[IL Reader] - OperandType.InlinePhi is not implemented!");
 
                     default:
                         operation = new Operation(opCode, null);
@@ -226,7 +266,7 @@ namespace Jitex.IL
                 operation.Index = _index++;
 
                 //Current position in array byte
-                operation.ILIndex = ilIndex;
+                operation.Offset = ilIndex;
 
                 //Size bytes of operation
                 operation.Size = _position - ilIndex;
@@ -246,12 +286,12 @@ namespace Jitex.IL
             /// <returns><see cref="Type" /> referenced.</returns>
             private (Type Type, int Token) ReadType()
             {
+                if (_resolver == null)
+                    throw new ModuleNullException();
+
                 int token = ReadInt32();
 
-                if (_resolver == null)
-                    return (null, token);
-
-                Type type = null;
+                Type type;
 
                 if (_resolver is ModuleTokenResolver)
                     type = _resolver.ResolveType(token, _genericTypeArguments, _genericMethodArguments);
@@ -267,10 +307,10 @@ namespace Jitex.IL
             /// <returns><see cref="string" /> referenced.</returns>
             private (string String, int Token) ReadString()
             {
-                int token = ReadInt32();
-
                 if (_resolver == null)
-                    return (null, token);
+                    throw new ModuleNullException();
+
+                int token = ReadInt32();
 
                 return (_resolver.ResolveString(token), token);
             }
@@ -281,10 +321,10 @@ namespace Jitex.IL
             /// <returns><see cref="MethodInfo" /> referenced.</returns>
             private (MethodBase Method, int Token) ReadMethod()
             {
-                int token = ReadInt32();
-
                 if (_resolver == null)
-                    return (null, token);
+                    throw new ModuleNullException();
+
+                int token = ReadInt32();
 
                 MethodBase method;
 
@@ -297,30 +337,15 @@ namespace Jitex.IL
             }
 
             /// <summary>
-            ///     Read <see cref="ConstructorInfo" /> reference from module.
-            /// </summary>
-            /// <returns><see cref="ConstructorInfo" /> referenced.</returns>
-            private (ConstructorInfo Constructor, int Token) ReadConstructor()
-            {
-                int token = ReadInt32();
-
-                if (_resolver == null)
-                    return (null, token);
-
-                ConstructorInfo constructor = (ConstructorInfo)_resolver.ResolveMethod(token);
-                return (constructor, token);
-            }
-
-            /// <summary>
             ///     Read <see cref="FieldInfo" /> reference from module.
             /// </summary>
             /// <returns><see cref="FieldInfo" /> referenced.</returns>
             private (FieldInfo Field, int Token) ReadField()
             {
-                int token = ReadInt32();
-
                 if (_resolver == null)
-                    return (null, token);
+                    throw new ModuleNullException();
+
+                int token = ReadInt32();
 
                 FieldInfo field;
 
@@ -338,10 +363,10 @@ namespace Jitex.IL
             /// <returns></returns>
             private (byte[] Signature, int Token) ReadSignature()
             {
-                int token = ReadInt32();
-
                 if (_resolver == null)
-                    return (null, token);
+                    throw new ModuleNullException();
+
+                int token = ReadInt32();
 
                 byte[] signature = _resolver.ResolveSignature(token);
                 return (signature, token);
@@ -353,10 +378,10 @@ namespace Jitex.IL
             /// <returns></returns>
             private (MemberInfo Member, int Token) ReadMember()
             {
-                int token = ReadInt32();
+                if(_resolver == null)
+                    throw new ModuleNullException();
 
-                if (_resolver == null)
-                    return (null, token);
+                int token = ReadInt32();
 
                 MemberInfo member;
                 

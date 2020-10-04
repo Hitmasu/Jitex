@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Jitex" Version="2.0.0-alpha" />
+    <ProjectReference Include="..\..\Jitex\Jitex.csproj" />
   </ItemGroup>
 
 </Project>

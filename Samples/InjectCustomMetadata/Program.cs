@@ -10,6 +10,7 @@ namespace InjectCustomMetadata
             ExternLibrary.Initialize();
             int result = SimpleSum(1, 7);
             Console.WriteLine(result);
+            Console.ReadKey();
         }
 
         static int SimpleSum(int num1, int num2)

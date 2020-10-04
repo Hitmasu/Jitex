@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Reflection;
 
-namespace Jitex.IL.Resolver
+namespace Jitex.Builder.IL.Resolver
 {
     /// <summary>
     ///     Token resolver.

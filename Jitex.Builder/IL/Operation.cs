@@ -3,34 +3,53 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Reflection.Emit;
 
-namespace Jitex.IL
+namespace Jitex.Builder.IL
 {
+    /// <summary>
+    /// Operation from a IL instruction.
+    /// </summary>
+    /// <remarks>
+    /// An operation contains informations from an IL instruction.
+    /// </remarks>
     [DebuggerDisplay("{OpCode} - {Instance}")]
     public partial class Operation
     {
+        /// <summary>
+        /// MetadataToken from instruction.
+        /// </summary>
         public int? MetadataToken { get; }
 
+        /// <summary>
+        /// Index instruction.
+        /// </summary>
         public int Index { get; internal set; }
-        public int ILIndex { get; internal set; }
 
+        /// <summary>
+        /// Offset insruction.
+        /// </summary>
+        public int Offset { get; internal set; }
+
+        /// <summary>
+        /// Size operation (instruction length + value length)
+        /// </summary>
         public int Size { get; internal set; }
 
         /// <summary>
-        ///     Operation Code IL.
+        /// Operation Code IL.
         /// </summary>
         public OpCode OpCode { get; }
 
         /// <summary>
-        ///     Instance value of operation.
+        /// Value from instruction.
         /// </summary>
         public dynamic Instance { get; set; }
 
         /// <summary>
-        ///     Create new operation.
+        /// Create a new operation.
         /// </summary>
         /// <param name="opCode">Operation Code IL.</param>
-        /// <param name="instance">Operation value instance.</param>
-        public Operation(OpCode opCode, dynamic instance)
+        /// <param name="instance">Value from instruction.</param>
+        internal Operation(OpCode opCode, dynamic instance)
         {
             OpCode = opCode;
             Instance = instance;
@@ -41,7 +60,13 @@ namespace Jitex.IL
             }
         }
 
-        public Operation(OpCode opCode, dynamic instance, int metadataToken)
+        /// <summary>
+        /// Create a new operation.
+        /// </summary>
+        /// <param name="opCode">Operation Code IL.</param>
+        /// <param name="instance">Value from instruction.</param>
+        /// <param name="metadataToken">MetadataToken from instruction.</param>
+        internal Operation(OpCode opCode, dynamic instance, int metadataToken)
         {
             OpCode = opCode;
             Instance = instance;
@@ -49,14 +74,21 @@ namespace Jitex.IL
         }
     }
 
+    /// <summary>
+    /// Class helper to read IL instructions.
+    /// </summary>
     public partial class Operation
     {
-        private static readonly object LockState = new object();
-
         /// <summary>
         ///     All Operation Codes.
         /// </summary>
-        private static IDictionary<short, OpCode> _opCodes;
+        private static readonly IDictionary<short, OpCode> OpCodes;
+
+        static Operation()
+        {
+            OpCodes = new Dictionary<short, OpCode>();
+            LoadOpCodes();
+        }
 
         /// <summary>
         ///     Load all operation codes.
@@ -67,8 +99,8 @@ namespace Jitex.IL
 
             foreach (FieldInfo field in fields)
             {
-                OpCode opCode = (OpCode) field.GetValue(null);
-                _opCodes.Add(opCode.Value, opCode);
+                OpCode opCode = (OpCode)field.GetValue(null);
+                OpCodes.Add(opCode.Value, opCode);
             }
         }
 
@@ -79,16 +111,7 @@ namespace Jitex.IL
         /// <returns>Operation code of instruction.</returns>
         public static OpCode Translate(short identifier)
         {
-            lock (LockState)
-            {
-                if (_opCodes == null)
-                {
-                    _opCodes = new Dictionary<short, OpCode>();
-                    LoadOpCodes();
-                }
-            }
-
-            return _opCodes[identifier];
+            return OpCodes[identifier];
         }
     }
 }

@@ -121,6 +121,9 @@ namespace Jitex.JIT.CorInfo
 
     internal struct CORINFO_METHOD_INFO
     {
+        /// <summary>
+        /// Instance MethodDesc.
+        /// </summary>
         public IntPtr ftn;
         public IntPtr scope;
         public IntPtr ILCode;
@@ -187,7 +190,7 @@ namespace Jitex.JIT.CorInfo
         Ldnvirtftn = 0x402,
     };
 
-    public enum InfoAccessType
+    internal enum InfoAccessType
     {
         IAT_VALUE,      // The info value is directly available
         IAT_PVALUE,     // The value needs to be accessed via an         indirection
