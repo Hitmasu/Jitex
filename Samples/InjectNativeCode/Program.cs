@@ -41,7 +41,6 @@ namespace InjectNativeCode
                 assembler.mov(eax, 1);
                 assembler.mov(ecx, 2);
                 assembler.cmp(edx, 0x02);
-
                 assembler.jl(assembler.@F);
                 assembler.AnonymousLabel();
                 assembler.imul(eax, ecx);
