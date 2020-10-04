@@ -21,8 +21,8 @@ namespace Jitex.Tests
 
         public ResolveILTests()
         {
-            Jitex.AddMethodResolver(MethodResolver);
-            Jitex.AddTokenResolver(TokenResolver);
+            JitexManager.AddMethodResolver(MethodResolver);
+            JitexManager.AddTokenResolver(TokenResolver);
         }
 
         [Fact]

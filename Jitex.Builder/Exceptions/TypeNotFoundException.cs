@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Jitex.Builder.Method.Exceptions
+namespace Jitex.Builder.Exceptions
 {
     
     /// <summary>

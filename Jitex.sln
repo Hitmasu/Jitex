@@ -9,7 +9,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Jitex.Tests", "Jitex.Tests\
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Jitex.Tests.Context", "Jitex.Tests.Context\Jitex.Tests.Context.csproj", "{03A8DD83-A540-49DF-8545-D269EF28F788}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Jitex.Builder", "Jitex.Builder\Jitex.Builder.csproj", "{4DCAB129-FFCB-405A-A58A-19E906CED105}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Jitex.Builder", "Jitex.Builder\Jitex.Builder.csproj", "{4DCAB129-FFCB-405A-A58A-19E906CED105}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

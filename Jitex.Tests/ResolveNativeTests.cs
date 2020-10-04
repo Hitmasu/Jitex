@@ -1,13 +1,11 @@
 ﻿using System.IO;
 using System.Runtime.CompilerServices;
-using System.Text;
 using Iced.Intel;
 using Jitex.JIT.Context;
 using Xunit;
 
 using static Jitex.Tests.Utils;
 using static Iced.Intel.AssemblerRegisters;
-using Decoder = Iced.Intel.Decoder;
 
 namespace Jitex.Tests
 {
@@ -15,7 +13,7 @@ namespace Jitex.Tests
     {
         static ResolveNativeTests()
         {
-            Jitex.AddMethodResolver(MethodResolver);
+            JitexManager.AddMethodResolver(MethodResolver);
         }
 
         [Fact]

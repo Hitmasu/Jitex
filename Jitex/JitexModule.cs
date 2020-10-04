@@ -13,7 +13,7 @@ namespace Jitex
         /// Return if module is loaded in Jitex.
         /// </summary>
         /// <returns>Return <b>true</b> if module is installed and false if not.</returns>
-        public bool IsLoaded => Jitex.IsLoaded && Jitex.HasMethodResolver(CompileResolver) && Jitex.HasTokenResolver(TokenResolver);
+        public bool IsLoaded => JitexManager.IsLoaded && JitexManager.HasMethodResolver(CompileResolver) && JitexManager.HasTokenResolver(TokenResolver);
 
         /// <summary>
         /// Instance a new module.
@@ -30,13 +30,13 @@ namespace Jitex
         /// </summary>
         protected void Load()
         {
-            if(!Jitex.IsLoaded)
+            if(!JitexManager.IsLoaded)
                 throw new JitexNotLoadedException();
 
             if (!IsLoaded)
             {
-                Jitex.AddMethodResolver(CompileResolver);
-                Jitex.AddTokenResolver(TokenResolver);
+                JitexManager.AddMethodResolver(CompileResolver);
+                JitexManager.AddTokenResolver(TokenResolver);
             }
         }
         
@@ -63,8 +63,8 @@ namespace Jitex
         /// </summary>
         public void Dispose()
         {
-            Jitex.RemoveMethodResolver(CompileResolver);
-            Jitex.RemoveTokenResolver(TokenResolver);
+            JitexManager.RemoveMethodResolver(CompileResolver);
+            JitexManager.RemoveTokenResolver(TokenResolver);
         }
     }
 }

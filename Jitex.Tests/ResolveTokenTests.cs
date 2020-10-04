@@ -12,8 +12,8 @@ namespace Jitex.Tests
     {
         public ResolveTokenTests()
         {
-            Jitex.AddMethodResolver(CompileResolver);
-            Jitex.AddTokenResolver(TokenResolver);
+            JitexManager.AddMethodResolver(CompileResolver);
+            JitexManager.AddTokenResolver(TokenResolver);
         }
 
         [Fact]

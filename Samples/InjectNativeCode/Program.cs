@@ -1,5 +1,10 @@
 ﻿using System;
-using Jitex.JIT;
+using System.IO;
+using System.Runtime.CompilerServices;
+using Iced.Intel;
+using Jitex;
+using Jitex.JIT.Context;
+using static Iced.Intel.AssemblerRegisters;
 
 namespace InjectNativeCode
 {
@@ -7,21 +12,24 @@ namespace InjectNativeCode
     {
         static void Main(string[] args)
         {
-            ManagedJit jit = ManagedJit.GetInstance();
-            jit.AddCompileResolver(CompileResolver);
+            JitexManager.AddMethodResolver(MethodResolver);
             int result = SimpleSum(1, 7);
             Console.WriteLine(result);
+            Console.ReadKey();
         }
 
+        [MethodImpl(MethodImplOptions.NoInlining)]
         static int SimpleSum(int num1, int num2)
         {
             return num1 + num2;
         }
 
-        private static void CompileResolver(CompileContext context)
+        private static void MethodResolver(MethodContext context)
         {
             if (context.Method.Name == "SimpleSum")
             {
+                Assembler assembler = new Assembler(64);
+
                 //Replace with fatorial number:
                 //int sum = num1+num2;
                 //int fatorial = 1;
@@ -29,21 +37,26 @@ namespace InjectNativeCode
                 //    fatorial *= i;
                 //}
                 //return fatorial;
-                byte[] asm =
-                {
-                    0x01, 0xCA,                     //add    edx,ecx
-                    0xB8, 0x01, 0x00, 0x00, 0x00,   //mov    eax,0x1
-                    0xB9, 0x02, 0x00, 0x00, 0x00,   //mov    ecx,0x2
-                    0x83, 0xFA, 0x02,               //cmp    edx,0x2
-                    0x7C, 0x09,                     //jl
-                    0x0F, 0xAF, 0xC1,               //imul   eax,ecx
-                    0xFF, 0xC1,                     //inc    ecx
-                    0x39, 0xD1,                     //cmp    ecx,edx
-                    0x7E, 0xF7,                     //jle
-                    0xC3                            //ret
-                };
+                assembler.add(edx, ecx);
+                assembler.mov(eax, 1);
+                assembler.mov(ecx, 2);
+                assembler.cmp(edx, 0x02);
 
-                context.ResolveByteCode(asm);
+                assembler.jl(assembler.@F);
+                assembler.AnonymousLabel();
+                assembler.imul(eax, ecx);
+                assembler.inc(ecx);
+                assembler.cmp(ecx, edx);
+                assembler.jle(assembler.@B);
+                assembler.AnonymousLabel();
+                assembler.ret();
+
+                using MemoryStream ms = new MemoryStream();
+                assembler.Assemble(new StreamCodeWriter(ms), 0);
+
+                byte[] asm = ms.ToArray();
+
+                context.ResolveNative(asm);
             }
         }
     }

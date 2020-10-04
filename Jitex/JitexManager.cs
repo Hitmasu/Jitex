@@ -5,7 +5,7 @@ namespace Jitex
     /// <summary>
     /// Jitex manager.
     /// </summary>
-    public static class Jitex
+    public static class JitexManager
     {
         private static ManagedJit _jit;
 

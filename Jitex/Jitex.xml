@@ -47,55 +47,55 @@
                 New address.
             </summary>
         </member>
-        <member name="T:Jitex.Jitex">
+        <member name="T:Jitex.JitexManager">
             <summary>
             Jitex manager.
             </summary>
         </member>
-        <member name="P:Jitex.Jitex.IsLoaded">
+        <member name="P:Jitex.JitexManager.IsLoaded">
             <summary>
             Returns if Jitex is loaded on application. 
             </summary>
         </member>
-        <member name="M:Jitex.Jitex.AddMethodResolver(Jitex.JIT.JitexHandler.MethodResolverHandler)">
+        <member name="M:Jitex.JitexManager.AddMethodResolver(Jitex.JIT.JitexHandler.MethodResolverHandler)">
             <summary>
             Add a method resolver.
             </summary>
             <param name="methodResolver">Method resolver to add.</param>
         </member>
-        <member name="M:Jitex.Jitex.AddTokenResolver(Jitex.JIT.JitexHandler.TokenResolverHandler)">
+        <member name="M:Jitex.JitexManager.AddTokenResolver(Jitex.JIT.JitexHandler.TokenResolverHandler)">
             <summary>
             Add a token resolver.
             </summary>
             <param name="tokenResolver">Token resolver to add.</param>
         </member>
-        <member name="M:Jitex.Jitex.RemoveMethodResolver(Jitex.JIT.JitexHandler.MethodResolverHandler)">
+        <member name="M:Jitex.JitexManager.RemoveMethodResolver(Jitex.JIT.JitexHandler.MethodResolverHandler)">
             <summary>
             Remove a method resolver.
             </summary>
             <param name="methodResolver">Method resolver to remove.</param>
         </member>
-        <member name="M:Jitex.Jitex.RemoveTokenResolver(Jitex.JIT.JitexHandler.TokenResolverHandler)">
+        <member name="M:Jitex.JitexManager.RemoveTokenResolver(Jitex.JIT.JitexHandler.TokenResolverHandler)">
             <summary>
             Remove a token resolver.
             </summary>
             <param name="tokenResolver">Token resolver to remove.</param>
         </member>
-        <member name="M:Jitex.Jitex.HasMethodResolver(Jitex.JIT.JitexHandler.MethodResolverHandler)">
+        <member name="M:Jitex.JitexManager.HasMethodResolver(Jitex.JIT.JitexHandler.MethodResolverHandler)">
             <summary>
             If a method resolver is already loaded.
             </summary>
             <param name="methodResolver">Method resolver.</param>
             <returns>True to already loaded. False to not loaded.</returns>
         </member>
-        <member name="M:Jitex.Jitex.HasTokenResolver(Jitex.JIT.JitexHandler.TokenResolverHandler)">
+        <member name="M:Jitex.JitexManager.HasTokenResolver(Jitex.JIT.JitexHandler.TokenResolverHandler)">
             <summary>
             If a token resolver is already loaded.
             </summary>
             <param name="tokenResolver">Token resolver.</param>
             <returns>True to already loaded. False to not loaded.</returns>
         </member>
-        <member name="M:Jitex.Jitex.Remove">
+        <member name="M:Jitex.JitexManager.Remove">
             <summary>
             Unload Jitex and modules from application.
             </summary>

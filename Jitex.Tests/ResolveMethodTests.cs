@@ -11,7 +11,7 @@ namespace Jitex.Tests
     {
         public ResolveMethodTests()
         {
-            Jitex.AddMethodResolver(MethodResolver);
+            JitexManager.AddMethodResolver(MethodResolver);
         }
 
         #region EmptyBody
