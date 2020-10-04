@@ -249,7 +249,7 @@ Disassembly debug in Visual Studio and Windbg works fine!
 
 ## Proof of Concept
 
-[AutoMapper Patcher](https://github.com/Hitmasu/AutoMapper.Patcher) - A simple remove AutoMapper at runtime.
+[AutoMapper Patcher](https://github.com/Hitmasu/AutoMapper.Patcher) - A simple remover AutoMapper at runtime.
 
 
 ## Thanks
