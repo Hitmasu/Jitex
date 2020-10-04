@@ -46,12 +46,6 @@ namespace Jitex.Builder.Method
 
         public uint MaxStackSize { get; set; }
 
-        public MethodBody(IEnumerable<byte> il, uint maxStack = 8, bool readIl = false)
-        {
-            _il = il.ToArray();
-            MaxStackSize = maxStack;
-        }
-
         public MethodBody(MethodBase methodBase)
         {
             Module = methodBase.Module;
@@ -74,6 +68,26 @@ namespace Jitex.Builder.Method
             GenericMethodArguments = genericMethodArguments;
 
             IL = il.ToArray();
+        }
+
+        public MethodBody(IEnumerable<byte> il, Module module, params Type[] variables)
+        {
+            Module = module;
+            LocalVariables = variables.Select(s => new LocalVariableInfo(s)).ToList();
+
+            IL = il.ToArray();
+        }
+
+        public MethodBody(IEnumerable<byte> il, params Type[] variables)
+        {
+            LocalVariables = variables.Select(s => new LocalVariableInfo(s)).ToList();
+            _il = il.ToArray();
+        }
+
+        public MethodBody(IEnumerable<byte> il, uint maxStack = 8)
+        {
+            _il = il.ToArray();
+            MaxStackSize = maxStack;
         }
 
         /// <summary>
@@ -181,7 +195,7 @@ namespace Jitex.Builder.Method
             blob.WriteByte(0x07);
             blob.WriteCompressedInteger(LocalVariables.Count);
 
-            MetadataInfo medatataModule = new MetadataInfo(Module.Assembly);
+            MetadataInfo metadataInfo = null;
 
             foreach (LocalVariableInfo variable in LocalVariables)
             {
@@ -198,15 +212,21 @@ namespace Jitex.Builder.Method
                     //TODO
                     //Pinned variables
 
-                    if (Module == null)
-                        throw new ModuleNullException("Module can't be null with a Local Variable of type Class");
+                    if (Module != null)
+                    {
+                        metadataInfo ??= new MetadataInfo(Module.Assembly);
+                    }
+                    else
+                    {
+                        metadataInfo = new MetadataInfo(variable.Type.Assembly);
+                    }
 
-                    EntityHandle typeHandle = medatataModule.GetTypeHandle(variable.Type);
+                    EntityHandle typeHandle = metadataInfo.GetTypeHandle(variable.Type);
 
-                    //Check if type was already referenced on metadata from module
+                    //Check if type is referenced on assembly,
                     //If not, we should get reference in assembly of type.
-                    //Ex.: String
-                    if (typeHandle == default)
+                    //Ex.: String is not referenced directly on metadata assembly.
+                    if (typeHandle == default && metadataInfo.Assembly != variable.Type.Assembly)
                     {
                         MetadataInfo metadataAssembly = new MetadataInfo(variable.Type.Assembly);
                         typeHandle = metadataAssembly.GetTypeHandle(variable.Type);

@@ -12,13 +12,7 @@ namespace Jitex.Builder.Method
 
         public Type Type { get; }
 
-        public CorElementType ElementType
-        {
-            get
-            {
-                return DetectCorElementType(Type);
-            }
-        }
+        public CorElementType ElementType => DetectCorElementType(Type);
 
         static LocalVariableInfo()
         {

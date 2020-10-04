@@ -21,6 +21,8 @@ namespace Jitex.Builder.PE
 
         private ImmutableDictionary<Type, EntityHandle> Types { get; }
 
+        public Assembly Assembly { get; }
+
         /// <summary>
         ///     Read metadata from assembly.
         /// </summary>
@@ -28,6 +30,7 @@ namespace Jitex.Builder.PE
         public MetadataInfo(Assembly assembly)
         {
             _module = assembly.ManifestModule;
+            Assembly = assembly;
 
             Stream assemblyStream;
 

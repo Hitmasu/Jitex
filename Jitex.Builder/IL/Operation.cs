@@ -56,7 +56,13 @@ namespace Jitex.Builder.IL
         /// <summary>
         ///     All Operation Codes.
         /// </summary>
-        private static IDictionary<short, OpCode> _opCodes;
+        private static readonly IDictionary<short, OpCode> OpCodes;
+
+        static Operation()
+        {
+            OpCodes = new Dictionary<short, OpCode>();
+            LoadOpCodes();
+        }
 
         /// <summary>
         ///     Load all operation codes.
@@ -67,8 +73,8 @@ namespace Jitex.Builder.IL
 
             foreach (FieldInfo field in fields)
             {
-                OpCode opCode = (OpCode) field.GetValue(null);
-                _opCodes.Add(opCode.Value, opCode);
+                OpCode opCode = (OpCode)field.GetValue(null);
+                OpCodes.Add(opCode.Value, opCode);
             }
         }
 
@@ -79,16 +85,7 @@ namespace Jitex.Builder.IL
         /// <returns>Operation code of instruction.</returns>
         public static OpCode Translate(short identifier)
         {
-            lock (LockState)
-            {
-                if (_opCodes == null)
-                {
-                    _opCodes = new Dictionary<short, OpCode>();
-                    LoadOpCodes();
-                }
-            }
-
-            return _opCodes[identifier];
+            return OpCodes[identifier];
         }
     }
 }

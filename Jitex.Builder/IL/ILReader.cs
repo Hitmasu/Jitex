@@ -3,7 +3,9 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Reflection.Emit;
+using Jitex.Builder.Exceptions;
 using Jitex.Builder.IL.Resolver;
+using Jitex.Builder.Method.Exceptions;
 using Jitex.Builder.Utils.Extensions;
 
 namespace Jitex.Builder.IL
@@ -44,15 +46,13 @@ namespace Jitex.Builder.IL
         /// <param name="module">Module of instructions.</param>
         public ILReader(byte[] il, Module module, Type[] genericTypeArguments = null, Type[] genericMethodArguments = null)
         {
-            if (module == null)
-                throw new ArgumentNullException(nameof(module));
-
             _il = il;
 
             _genericTypeArguments = genericTypeArguments;
             _genericMethodArguments = genericMethodArguments;
 
-            _resolver = new ModuleTokenResolver(module);
+            if(module != null)
+                _resolver = new ModuleTokenResolver(module);
         }
 
         public IEnumerator<Operation> GetEnumerator()
@@ -246,12 +246,12 @@ namespace Jitex.Builder.IL
             /// <returns><see cref="Type" /> referenced.</returns>
             private (Type Type, int Token) ReadType()
             {
+                if (_resolver == null)
+                    throw new ModuleNullException();
+
                 int token = ReadInt32();
 
-                if (_resolver == null)
-                    return (null, token);
-
-                Type type = null;
+                Type type;
 
                 if (_resolver is ModuleTokenResolver)
                     type = _resolver.ResolveType(token, _genericTypeArguments, _genericMethodArguments);
@@ -267,10 +267,10 @@ namespace Jitex.Builder.IL
             /// <returns><see cref="string" /> referenced.</returns>
             private (string String, int Token) ReadString()
             {
-                int token = ReadInt32();
-
                 if (_resolver == null)
-                    return (null, token);
+                    throw new ModuleNullException();
+
+                int token = ReadInt32();
 
                 return (_resolver.ResolveString(token), token);
             }
@@ -281,10 +281,10 @@ namespace Jitex.Builder.IL
             /// <returns><see cref="MethodInfo" /> referenced.</returns>
             private (MethodBase Method, int Token) ReadMethod()
             {
-                int token = ReadInt32();
-
                 if (_resolver == null)
-                    return (null, token);
+                    throw new ModuleNullException();
+
+                int token = ReadInt32();
 
                 MethodBase method;
 
@@ -297,30 +297,15 @@ namespace Jitex.Builder.IL
             }
 
             /// <summary>
-            ///     Read <see cref="ConstructorInfo" /> reference from module.
-            /// </summary>
-            /// <returns><see cref="ConstructorInfo" /> referenced.</returns>
-            private (ConstructorInfo Constructor, int Token) ReadConstructor()
-            {
-                int token = ReadInt32();
-
-                if (_resolver == null)
-                    return (null, token);
-
-                ConstructorInfo constructor = (ConstructorInfo)_resolver.ResolveMethod(token);
-                return (constructor, token);
-            }
-
-            /// <summary>
             ///     Read <see cref="FieldInfo" /> reference from module.
             /// </summary>
             /// <returns><see cref="FieldInfo" /> referenced.</returns>
             private (FieldInfo Field, int Token) ReadField()
             {
-                int token = ReadInt32();
-
                 if (_resolver == null)
-                    return (null, token);
+                    throw new ModuleNullException();
+
+                int token = ReadInt32();
 
                 FieldInfo field;
 
@@ -338,10 +323,10 @@ namespace Jitex.Builder.IL
             /// <returns></returns>
             private (byte[] Signature, int Token) ReadSignature()
             {
-                int token = ReadInt32();
-
                 if (_resolver == null)
-                    return (null, token);
+                    throw new ModuleNullException();
+
+                int token = ReadInt32();
 
                 byte[] signature = _resolver.ResolveSignature(token);
                 return (signature, token);
@@ -353,10 +338,10 @@ namespace Jitex.Builder.IL
             /// <returns></returns>
             private (MemberInfo Member, int Token) ReadMember()
             {
-                int token = ReadInt32();
+                if(_resolver == null)
+                    throw new ModuleNullException();
 
-                if (_resolver == null)
-                    return (null, token);
+                int token = ReadInt32();
 
                 MemberInfo member;
                 

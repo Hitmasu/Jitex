@@ -55,7 +55,10 @@ namespace Jitex.JIT
 
         [ThreadStatic] private static TokenTls _tokenTls;
 
-        private static readonly object JitLock;
+        private static readonly object MethodResolverLock = new object();
+        private static readonly object TokenResolverLock = new object();
+        private static readonly object InstanceLock = new object();
+        private static readonly object JitLock = new object();
 
         private static ManagedJit _instance;
 
@@ -75,8 +78,6 @@ namespace Jitex.JIT
 
         static ManagedJit()
         {
-            JitLock = new object();
-
             IntPtr jit = GetJit();
 
             JitVTable = Marshal.ReadIntPtr(jit);
@@ -85,22 +86,26 @@ namespace Jitex.JIT
 
         public void AddMethodResolver(MethodResolverHandler methodResolver)
         {
-            _resolversMethod += methodResolver;
+            lock (MethodResolverLock)
+                _resolversMethod += methodResolver;
         }
 
         public void AddTokenResolver(TokenResolverHandler tokenResolver)
         {
-            _resolversToken += tokenResolver;
+            lock (TokenResolverLock)
+                _resolversToken += tokenResolver;
         }
 
         public void RemoveMethodResolver(MethodResolverHandler methodResolver)
         {
-            _resolversMethod -= methodResolver;
+            lock (MethodResolverLock)
+                _resolversMethod -= methodResolver;
         }
 
         public void RemoveTokenResolver(TokenResolverHandler tokenResolver)
         {
-            _resolversToken -= tokenResolver;
+            lock (TokenResolverLock)
+                _resolversToken -= tokenResolver;
         }
 
         public bool HasMethodResolver(MethodResolverHandler methodResolver) => _resolversMethod.GetInvocationList().Any(del => del.Method == methodResolver.Method);
@@ -124,6 +129,19 @@ namespace Jitex.JIT
             RuntimeHelperExtension.PrepareDelegate(_constructStringLiteral, IntPtr.Zero, IntPtr.Zero, 0, IntPtr.Zero);
 
             _hookManager.InjectHook(JitVTable, _compileMethod);
+        }
+
+        /// <summary>
+        /// Get singleton instance from ManagedJit.
+        /// </summary>
+        /// <returns></returns>
+        public static ManagedJit GetInstance()
+        {
+            lock (InstanceLock)
+            {
+                _instance ??= new ManagedJit();
+                return _instance;
+            }
         }
 
         /// <summary>
@@ -295,15 +313,6 @@ namespace Jitex.JIT
             }
         }
 
-        public static ManagedJit GetInstance()
-        {
-            lock (JitLock)
-            {
-                _instance ??= new ManagedJit();
-                return _instance;
-            }
-        }
-
         private void ResolveToken(IntPtr thisHandle, ref CORINFO_RESOLVED_TOKEN pResolvedToken)
         {
             _tokenTls ??= new TokenTls();
@@ -395,7 +404,7 @@ namespace Jitex.JIT
                         if (context.IsResolved)
                         {
                             if (string.IsNullOrEmpty(context.Content))
-                                throw new StringShouldNotBeNullOrEmpty();
+                                throw new StringNullOrEmptyException();
 
                             InfoAccessType result = _ceeInfo.ConstructStringLiteral(thisHandle, hModule, metadataToken, ppValue);
 
@@ -444,6 +453,7 @@ namespace Jitex.JIT
 
                 _compileMethod = null;
                 _resolveToken = null;
+                _constructStringLiteral = null;
 
                 _instance = null;
                 _isDisposed = true;

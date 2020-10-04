@@ -47,9 +47,6 @@ namespace Jitex.Tests
         {
             if (context.Source != null)
             {
-                if(context.Source.Module.Name.Contains("Jitex.Test"))
-                    Debugger.Break();
-
                 if (context.Source.Name == nameof(ResolveTokenReplace))
                 {
                     Type personType = typeof(Caller).Module.GetType("Jitex.Tests.Context.Person");
