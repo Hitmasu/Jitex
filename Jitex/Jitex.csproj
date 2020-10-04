@@ -13,7 +13,7 @@
         <PackageLicenseFile></PackageLicenseFile>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageTags>JIT</PackageTags>
-        <Version>3.0.0-alpha</Version>
+        <Version>3.0.1-alpha</Version>
         <AssemblyName>Jitex</AssemblyName>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
@@ -32,6 +32,9 @@
       <PackageReference Include="Lokad.ILPack" Version="0.1.4" />
     </ItemGroup>
     <ItemGroup>
-      <ProjectReference Include="..\Jitex.Builder\Jitex.Builder.csproj" />
+		<ProjectReference Include="..\Jitex.Builder\Jitex.Builder.csproj">
+			<ReferenceOutputAssembly>true</ReferenceOutputAssembly>
+			<IncludeAssets>{ProjectName}.dll</IncludeAssets>
+		</ProjectReference>
     </ItemGroup>
 </Project>
