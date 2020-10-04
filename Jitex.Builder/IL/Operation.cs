@@ -5,32 +5,48 @@ using System.Reflection.Emit;
 
 namespace Jitex.Builder.IL
 {
+    /// <summary>
+    /// Operation from a IL instruction.
+    /// </summary>
+    /// <remarks>
+    /// An operation contains informations from an IL instruction.
+    /// </remarks>
     [DebuggerDisplay("{OpCode} - {Instance}")]
-    public partial class Operation
+    public partial class Operation<TValue>
     {
+        /// <summary>
+        /// MetadataToken from instruction.
+        /// </summary>
         public int? MetadataToken { get; }
 
+        /// <summary>
+        /// Index instruction.
+        /// </summary>
         public int Index { get; internal set; }
-        public int ILIndex { get; internal set; }
+
+        /// <summary>
+        /// Offset insruction.
+        /// </summary>
+        public int Offset { get; internal set; }
 
         public int Size { get; internal set; }
 
         /// <summary>
-        ///     Operation Code IL.
+        /// Operation Code IL.
         /// </summary>
         public OpCode OpCode { get; }
 
         /// <summary>
-        ///     Instance value of operation.
+        /// Value from instruction.
         /// </summary>
-        public dynamic Instance { get; set; }
+        public TValue Instance { get; set; }
 
         /// <summary>
         ///     Create new operation.
         /// </summary>
         /// <param name="opCode">Operation Code IL.</param>
         /// <param name="instance">Operation value instance.</param>
-        public Operation(OpCode opCode, dynamic instance)
+        public Operation(OpCode opCode, TValue instance)
         {
             OpCode = opCode;
             Instance = instance;
@@ -41,7 +57,7 @@ namespace Jitex.Builder.IL
             }
         }
 
-        public Operation(OpCode opCode, dynamic instance, int metadataToken)
+        public Operation(OpCode opCode, TValue instance, int metadataToken)
         {
             OpCode = opCode;
             Instance = instance;
@@ -49,7 +65,7 @@ namespace Jitex.Builder.IL
         }
     }
 
-    public partial class Operation
+    public class Operation
     {
         private static readonly object LockState = new object();
 

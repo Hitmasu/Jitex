@@ -1,0 +1,218 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Jitex.Builder</name>
+    </assembly>
+    <members>
+        <member name="P:Jitex.Builder.Method.MethodBody.Module">
+            <summary>
+                Module from method body.
+            </summary>
+        </member>
+        <member name="P:Jitex.Builder.Method.MethodBody.LocalVariables">
+            <summary>
+                Local variables from method.
+            </summary>
+        </member>
+        <member name="P:Jitex.Builder.Method.MethodBody.HasLocalVariable">
+            <summary>
+                If body contains some local variable.
+            </summary>
+        </member>
+        <member name="M:Jitex.Builder.Method.MethodBody.#ctor(System.Byte[],System.Reflection.Module,System.Type[],System.Type[])">
+            <summary>
+                Create a new method body.
+            </summary>
+            <param name="il">IL of method.</param>
+            <param name="module">Module from body.</param>
+        </member>
+        <member name="M:Jitex.Builder.Method.MethodBody.CalculateMaxStack">
+            <summary>
+                Calculate .maxstack from body.
+            </summary>
+        </member>
+        <member name="M:Jitex.Builder.Method.MethodBody.GetSignatureVariables">
+            <summary>
+                Get compressed signature from local variables.
+            </summary>
+            <returns>Byte array - compressed signature.</returns>
+        </member>
+        <member name="F:Jitex.Builder.IL.ILReader._il">
+            <summary>
+                Instructions IL.
+            </summary>
+        </member>
+        <member name="M:Jitex.Builder.IL.ILReader.#ctor(System.Byte[],System.Reflection.Module,System.Type[],System.Type[])">
+            <summary>
+                Create a new instance of ILReader.
+            </summary>
+            <param name="il">Instructions to read.</param>
+            <param name="module">Module of instructions.</param>
+        </member>
+        <member name="T:Jitex.Builder.IL.ILReader.ILEnumerator">
+            <summary>
+                Enumerator to read instructions.
+            </summary>
+        </member>
+        <member name="F:Jitex.Builder.IL.ILReader.ILEnumerator._il">
+            <summary>
+                Instructions IL.
+            </summary>
+        </member>
+        <member name="F:Jitex.Builder.IL.ILReader.ILEnumerator._position">
+            <summary>
+                Current position of read.
+            </summary>
+        </member>
+        <member name="P:Jitex.Builder.IL.ILReader.ILEnumerator.Current">
+            <summary>
+                Current operation.
+            </summary>
+        </member>
+        <member name="P:Jitex.Builder.IL.ILReader.ILEnumerator.System#Collections#IEnumerator#Current">
+            <summary>
+                Current operation.
+            </summary>
+        </member>
+        <member name="M:Jitex.Builder.IL.ILReader.ILEnumerator.#ctor(System.Byte[],Jitex.Builder.IL.Resolver.ITokenResolver,System.Type[],System.Type[])">
+            <summary>
+                Create a new enumerator to read instructions.
+            </summary>
+            <param name="il">Instructions to read.</param>
+        </member>
+        <member name="M:Jitex.Builder.IL.ILReader.ILEnumerator.ReadNextOperation">
+            <summary>
+                Read next operation from IL.
+            </summary>
+            <returns>The next operation.</returns>
+        </member>
+        <member name="M:Jitex.Builder.IL.ILReader.ILEnumerator.ReadType">
+            <summary>
+                Read <see cref="T:System.Type" /> reference from module.
+            </summary>
+            <returns><see cref="T:System.Type" /> referenced.</returns>
+        </member>
+        <member name="M:Jitex.Builder.IL.ILReader.ILEnumerator.ReadString">
+            <summary>
+                Read <see cref="T:System.String" /> reference from module.
+            </summary>
+            <returns><see cref="T:System.String" /> referenced.</returns>
+        </member>
+        <member name="M:Jitex.Builder.IL.ILReader.ILEnumerator.ReadMethod">
+            <summary>
+                Read <see cref="T:System.Reflection.MethodInfo" /> reference from module.
+            </summary>
+            <returns><see cref="T:System.Reflection.MethodInfo" /> referenced.</returns>
+        </member>
+        <member name="M:Jitex.Builder.IL.ILReader.ILEnumerator.ReadField">
+            <summary>
+                Read <see cref="T:System.Reflection.FieldInfo" /> reference from module.
+            </summary>
+            <returns><see cref="T:System.Reflection.FieldInfo" /> referenced.</returns>
+        </member>
+        <member name="M:Jitex.Builder.IL.ILReader.ILEnumerator.ReadSignature">
+            <summary>
+                Read Signature reference from module.
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Jitex.Builder.IL.ILReader.ILEnumerator.ReadMember">
+            <summary>
+                Read <see cref="T:System.Reflection.MemberInfo" /> reference from module.
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Jitex.Builder.IL.ILReader.ILEnumerator.ReadInt64">
+            <summary>
+                Read <see cref="T:System.Int64" /> value.
+            </summary>
+            <returns><see cref="T:System.Int64" /> value.</returns>
+        </member>
+        <member name="M:Jitex.Builder.IL.ILReader.ILEnumerator.ReadInt32">
+            <summary>
+                Read <see cref="T:System.Int32" /> value.
+            </summary>
+            <returns><see cref="T:System.Int32" /> value.</returns>
+        </member>
+        <member name="M:Jitex.Builder.IL.ILReader.ILEnumerator.ReadDouble">
+            <summary>
+                Read <see cref="T:System.Double" /> value.
+            </summary>
+            <returns><see cref="T:System.Double" /> value.</returns>
+        </member>
+        <member name="M:Jitex.Builder.IL.ILReader.ILEnumerator.ReadByte">
+            <summary>
+                Read <see cref="T:System.Byte" /> value.
+            </summary>
+            <returns><see cref="T:System.Byte" /> value.</returns>
+        </member>
+        <member name="P:Jitex.Builder.IL.Operation.OpCode">
+            <summary>
+                Operation Code IL.
+            </summary>
+        </member>
+        <member name="P:Jitex.Builder.IL.Operation.Instance">
+            <summary>
+                Instance value of operation.
+            </summary>
+        </member>
+        <member name="M:Jitex.Builder.IL.Operation.#ctor(System.Reflection.Emit.OpCode,System.Object)">
+            <summary>
+                Create new operation.
+            </summary>
+            <param name="opCode">Operation Code IL.</param>
+            <param name="instance">Operation value instance.</param>
+        </member>
+        <member name="F:Jitex.Builder.IL.Operation.OpCodes">
+            <summary>
+                All Operation Codes.
+            </summary>
+        </member>
+        <member name="M:Jitex.Builder.IL.Operation.LoadOpCodes">
+            <summary>
+                Load all operation codes.
+            </summary>
+        </member>
+        <member name="M:Jitex.Builder.IL.Operation.Translate(System.Int16)">
+            <summary>
+                Get <see cref="P:Jitex.Builder.IL.Operation.OpCode" /> from instruction.
+            </summary>
+            <param name="identifier">Instruction IL.</param>
+            <returns>Operation code of instruction.</returns>
+        </member>
+        <member name="T:Jitex.Builder.IL.Resolver.ITokenResolver">
+            <summary>
+                Token resolver.
+            </summary>
+            <remarks>
+                Created by jnm2
+                https://stackoverflow.com/a/35711376
+            </remarks>
+        </member>
+        <member name="T:Jitex.Builder.PE.MetadataInfo">
+            <summary>
+                Read Metadata from assembly.
+            </summary>
+        </member>
+        <member name="M:Jitex.Builder.PE.MetadataInfo.#ctor(System.Reflection.Assembly)">
+            <summary>
+                Read metadata from assembly.
+            </summary>
+            <param name="assembly">Assembly to read.</param>
+        </member>
+        <member name="M:Jitex.Builder.PE.MetadataInfo.GetTypeHandle(System.Type)">
+            <summary>
+                Get handle from Type.
+            </summary>
+            <param name="type">Type to get handle.</param>
+            <returns>EntityHandle from Type or default if not found on assembly.</returns>
+        </member>
+        <member name="M:Jitex.Builder.PE.MetadataInfo.ReadTypes(System.Reflection.Metadata.MetadataReader)">
+            <summary>
+                Read types from metadata.
+            </summary>
+            <param name="reader">Instance of MetadataReader</param>
+            <returns>A Dictionary of types found on metadata..</returns>
+        </member>
+    </members>
+</doc>

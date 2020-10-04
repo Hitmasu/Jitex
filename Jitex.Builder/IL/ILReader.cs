@@ -9,19 +9,38 @@ using Jitex.Builder.Utils.Extensions;
 
 namespace Jitex.Builder.IL
 {
+    /// <summary>
+    /// MSIL reader.
+    /// </summary>
+    /// <remarks>
+    /// Read MSIL instructions from array byte or method.
+    /// </remarks>
     public class ILReader : IEnumerable<Operation>
     {
         /// <summary>
-        ///     Instructions IL.
+        /// Instructions IL.
         /// </summary>
         private readonly byte[] _il;
 
+        /// <summary>
+        /// Module token resolver.
+        /// </summary>
         private readonly ITokenResolver _resolver;
 
+        /// <summary>
+        /// Generic types used on method.
+        /// </summary>
         private readonly Type[] _genericTypeArguments;
+
+        /// <summary>
+        /// Generic arguments from method.
+        /// </summary>
         private readonly Type[] _genericMethodArguments;
 
-
+        /// <summary>
+        /// Read IL from method.
+        /// </summary>
+        /// <param name="methodILBase">Method to read IL.</param>
         public ILReader(MethodBase methodILBase)
         {
             if (methodILBase == null)
@@ -39,10 +58,12 @@ namespace Jitex.Builder.IL
         }
 
         /// <summary>
-        ///     Create a new instance of ILReader.
+        /// Read IL from array byte.
         /// </summary>
-        /// <param name="il">Instructions to read.</param>
-        /// <param name="module">Module of instructions.</param>
+        /// <param name="il">IL to read.</param>
+        /// <param name="module">Module from IL.</param>
+        /// <param name="genericTypeArguments">Generic types used on instructions.</param>
+        /// <param name="genericMethodArguments">Generic arguments used on instructions.</param>
         public ILReader(byte[] il, Module module, Type[] genericTypeArguments = null, Type[] genericMethodArguments = null)
         {
             _il = il;
@@ -54,6 +75,10 @@ namespace Jitex.Builder.IL
                 _resolver = new ModuleTokenResolver(module);
         }
 
+        /// <summary>
+        /// Get enumerator from reader.
+        /// </summary>
+        /// <returns></returns>
         public IEnumerator<Operation> GetEnumerator()
         {
             return new ILEnumerator(_il, _resolver, _genericTypeArguments, _genericMethodArguments);
@@ -65,25 +90,38 @@ namespace Jitex.Builder.IL
         }
 
         /// <summary>
-        ///     Enumerator to read instructions.
+        /// Enumerator to read instructions.
         /// </summary>
         private class ILEnumerator : IEnumerator<Operation>
         {
             /// <summary>
-            ///     Instructions IL.
+            /// Instructions IL.
             /// </summary>
             private readonly byte[] _il;
 
+            /// <summary>
+            /// Module token resolver.
+            /// </summary>
             private readonly ITokenResolver _resolver;
 
+            /// <summary>
+            /// Index from instructions.
+            /// </summary>
             private int _index;
 
             /// <summary>
-            ///     Current position of read.
+            /// Current position of read.
             /// </summary>
             private int _position;
 
+            /// <summary>
+            /// Generic types used on instructions.
+            /// </summary>
             private readonly Type[] _genericTypeArguments;
+
+            /// <summary>
+            /// Generic arguments from instructions.
+            /// </summary>
             private readonly Type[] _genericMethodArguments;
 
             /// <summary>
@@ -92,14 +130,17 @@ namespace Jitex.Builder.IL
             public Operation Current => ReadNextOperation();
 
             /// <summary>
-            ///     Current operation.
+            /// Current operation.
             /// </summary>
             object IEnumerator.Current => Current;
 
             /// <summary>
-            ///     Create a new enumerator to read instructions.
+            /// Create a new enumerator to read instructions.
             /// </summary>
-            /// <param name="il">Instructions to read.</param>
+            /// <param name="il">IL to read.</param>
+            /// <param name="resolver">Module to resolver tokens.</param>
+            /// <param name="genericTypeArguments">Generic types used on instructions.</param>
+            /// <param name="genericMethodArguments">Generic arguments used on instructions.</param>
             public ILEnumerator(byte[] il, ITokenResolver resolver, Type[] genericTypeArguments, Type[] genericMethodArguments)
             {
                 _il = il;
@@ -119,7 +160,7 @@ namespace Jitex.Builder.IL
             }
 
             /// <summary>
-            ///     Read next operation from IL.
+            /// Read next operation from IL.
             /// </summary>
             /// <returns>The next operation.</returns>
             private Operation ReadNextOperation()
@@ -225,7 +266,7 @@ namespace Jitex.Builder.IL
                 operation.Index = _index++;
 
                 //Current position in array byte
-                operation.ILIndex = ilIndex;
+                operation.Offset = ilIndex;
 
                 //Size bytes of operation
                 operation.Size = _position - ilIndex;
