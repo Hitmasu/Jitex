@@ -2,7 +2,7 @@
     <PropertyGroup>
         <TargetFramework>netcoreapp3.1</TargetFramework>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-        <Platforms>AnyCPU;x64</Platforms>
+        <Platforms>x64</Platforms>
         <Authors>Hitmasu</Authors>
         <Company />
         <Description>A framework to modify MSIL/Bytecode at runtime.</Description>
@@ -32,9 +32,6 @@
       <PackageReference Include="Lokad.ILPack" Version="0.1.4" />
     </ItemGroup>
     <ItemGroup>
-		<ProjectReference Include="..\Jitex.Builder\Jitex.Builder.csproj">
-			<ReferenceOutputAssembly>true</ReferenceOutputAssembly>
-			<IncludeAssets>{ProjectName}.dll</IncludeAssets>
-		</ProjectReference>
+		<ProjectReference Include="..\Jitex.Builder\Jitex.Builder.csproj"/>
     </ItemGroup>
 </Project>
