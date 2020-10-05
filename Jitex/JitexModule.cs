@@ -1,5 +1,5 @@
 ﻿using System;
-using Jitex.Exceptions;
+using System.Collections.Generic;
 using Jitex.JIT.Context;
 
 namespace Jitex
@@ -13,7 +13,7 @@ namespace Jitex
         /// Return if module is loaded in Jitex.
         /// </summary>
         /// <returns>Return <b>true</b> if module is installed and false if not.</returns>
-        public bool IsLoaded => JitexManager.IsLoaded && JitexManager.HasMethodResolver(CompileResolver) && JitexManager.HasTokenResolver(TokenResolver);
+        public bool IsLoaded => JitexManager.HasMethodResolver(MethodResolver) && JitexManager.HasTokenResolver(TokenResolver);
 
         /// <summary>
         /// Instance a new module.
@@ -28,18 +28,23 @@ namespace Jitex
         /// <summary>
         /// Load module on Jitex (if not already loaded).
         /// </summary>
-        protected void Load()
+        protected internal void Load()
         {
-            if(!JitexManager.IsLoaded)
-                throw new JitexNotLoadedException();
-
-            if (!IsLoaded)
+            if (!JitexManager.ModuleIsLoaded(GetType()))
             {
-                JitexManager.AddMethodResolver(CompileResolver);
-                JitexManager.AddTokenResolver(TokenResolver);
+                JitexManager.LoadModule(this);
             }
         }
-        
+
+        /// <summary>
+        /// Load resolver from module.
+        /// </summary>
+        internal void LoadResolvers()
+        {
+            JitexManager.AddMethodResolver(MethodResolver);
+            JitexManager.AddTokenResolver(TokenResolver);
+        }
+
         /// <summary>
         /// Resolver to methods.
         /// </summary>
@@ -47,7 +52,7 @@ namespace Jitex
         /// Capture all methods before compile.
         /// </remarks>
         /// <param name="context">Context of Method will be compiled.</param>
-        protected abstract void CompileResolver(MethodContext context);
+        protected abstract void MethodResolver(MethodContext context);
 
         /// <summary>
         /// Resolver to tokens.
@@ -63,8 +68,9 @@ namespace Jitex
         /// </summary>
         public void Dispose()
         {
-            JitexManager.RemoveMethodResolver(CompileResolver);
+            JitexManager.RemoveMethodResolver(MethodResolver);
             JitexManager.RemoveTokenResolver(TokenResolver);
+            JitexManager.RemoveModule(GetType());
         }
     }
 }
