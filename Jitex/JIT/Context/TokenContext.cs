@@ -66,6 +66,8 @@ namespace Jitex.JIT.Context
         /// </summary>
         public string Content { get; private set; }
 
+        internal bool CanResolve { get; set; } = true;
+
         /// <summary>
         /// Constructor for token type. (non-string)
         /// </summary>
@@ -112,7 +114,9 @@ namespace Jitex.JIT.Context
             TokenType = TokenKind.String;
             Scope = constructString.HandleModule;
             MetadataToken = constructString.MetadataToken;
-            Content = Module.ResolveString(MetadataToken);
+
+            if(Module != null)
+                Content = Module.ResolveString(MetadataToken);
         }
 
         /// <summary>
