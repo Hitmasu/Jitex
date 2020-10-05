@@ -2,6 +2,7 @@
 using Jitex.JIT.CorInfo;
 using Jitex.Utils;
 using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -398,33 +399,36 @@ namespace Jitex.JIT
                     CORINFO_CONSTRUCT_STRING constructString = new CORINFO_CONSTRUCT_STRING(hModule, metadataToken, ppValue);
                     TokenContext context = new TokenContext(ref constructString, _tokenTls.Source);
 
-                    foreach (TokenResolverHandler resolver in _resolversToken.GetInvocationList())
+                    if (context.CanResolve)
                     {
-                        resolver(context);
-
-                        if (context.IsResolved)
+                        foreach (TokenResolverHandler resolver in _resolversToken.GetInvocationList())
                         {
-                            if (string.IsNullOrEmpty(context.Content))
-                                throw new StringNullOrEmptyException();
+                            resolver(context);
 
-                            InfoAccessType result = _ceeInfo.ConstructStringLiteral(thisHandle, hModule, metadataToken, ppValue);
+                            if (context.IsResolved)
+                            {
+                                if (string.IsNullOrEmpty(context.Content))
+                                    throw new StringNullOrEmptyException();
 
-                            IntPtr pEntry = Marshal.ReadIntPtr(ppValue);
+                                InfoAccessType result = _ceeInfo.ConstructStringLiteral(thisHandle, hModule, metadataToken, ppValue);
 
-                            IntPtr objectHandle = Marshal.ReadIntPtr(pEntry);
-                            IntPtr hashMapPtr = Marshal.ReadIntPtr(objectHandle);
+                                IntPtr pEntry = Marshal.ReadIntPtr(ppValue);
 
-                            byte[] newContent = Encoding.Unicode.GetBytes(context.Content);
+                                IntPtr objectHandle = Marshal.ReadIntPtr(pEntry);
+                                IntPtr hashMapPtr = Marshal.ReadIntPtr(objectHandle);
 
-                            objectHandle = Marshal.AllocHGlobal(IntPtr.Size + sizeof(int) + newContent.Length);
+                                byte[] newContent = Encoding.Unicode.GetBytes(context.Content);
 
-                            Marshal.WriteIntPtr(objectHandle, hashMapPtr);
-                            Marshal.WriteInt32(objectHandle + IntPtr.Size, newContent.Length / 2);
-                            Marshal.Copy(newContent, 0, objectHandle + IntPtr.Size + sizeof(int), newContent.Length);
+                                objectHandle = Marshal.AllocHGlobal(IntPtr.Size + sizeof(int) + newContent.Length);
 
-                            Marshal.WriteIntPtr(pEntry, objectHandle);
+                                Marshal.WriteIntPtr(objectHandle, hashMapPtr);
+                                Marshal.WriteInt32(objectHandle + IntPtr.Size, newContent.Length / 2);
+                                Marshal.Copy(newContent, 0, objectHandle + IntPtr.Size + sizeof(int), newContent.Length);
 
-                            return result;
+                                Marshal.WriteIntPtr(pEntry, objectHandle);
+
+                                return result;
+                            }
                         }
                     }
                 }
