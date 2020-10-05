@@ -19,6 +19,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "InjectCustomString.Library"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Jitex", "..\Jitex\Jitex.csproj", "{3D1E9D1E-A366-446A-9638-DE3938347C12}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Jitex.Builder", "..\Jitex.Builder\Jitex.Builder.csproj", "{78A6208E-3391-4C92-B637-0A3E077E53FA}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -91,6 +93,14 @@ Global
 		{3D1E9D1E-A366-446A-9638-DE3938347C12}.Release|Any CPU.Build.0 = Release|Any CPU
 		{3D1E9D1E-A366-446A-9638-DE3938347C12}.Release|x64.ActiveCfg = Release|x64
 		{3D1E9D1E-A366-446A-9638-DE3938347C12}.Release|x64.Build.0 = Release|x64
+		{78A6208E-3391-4C92-B637-0A3E077E53FA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{78A6208E-3391-4C92-B637-0A3E077E53FA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{78A6208E-3391-4C92-B637-0A3E077E53FA}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{78A6208E-3391-4C92-B637-0A3E077E53FA}.Debug|x64.Build.0 = Debug|Any CPU
+		{78A6208E-3391-4C92-B637-0A3E077E53FA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{78A6208E-3391-4C92-B637-0A3E077E53FA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{78A6208E-3391-4C92-B637-0A3E077E53FA}.Release|x64.ActiveCfg = Release|Any CPU
+		{78A6208E-3391-4C92-B637-0A3E077E53FA}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
