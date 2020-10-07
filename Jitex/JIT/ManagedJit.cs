@@ -66,8 +66,6 @@ namespace Jitex.JIT
 
         [ThreadStatic] private static TokenTls _tokenTls;
 
-        private static readonly object MethodResolverLock = new object();
-        private static readonly object TokenResolverLock = new object();
         private static readonly object InstanceLock = new object();
         private static readonly object JitLock = new object();
 
@@ -95,33 +93,29 @@ namespace Jitex.JIT
             Compiler = Marshal.PtrToStructure<CorJitCompiler>(JitVTable);
         }
 
-        public void AddMethodResolver(MethodResolverHandler methodResolver)
+        internal void AddMethodResolver(MethodResolverHandler methodResolver)
         {
-            lock (MethodResolverLock)
-                _resolversMethod += methodResolver;
+            _resolversMethod += methodResolver;
         }
 
-        public void AddTokenResolver(TokenResolverHandler tokenResolver)
+        internal void AddTokenResolver(TokenResolverHandler tokenResolver)
         {
-            lock (TokenResolverLock)
-                _resolversToken += tokenResolver;
+            _resolversToken += tokenResolver;
         }
 
-        public void RemoveMethodResolver(MethodResolverHandler methodResolver)
+        internal void RemoveMethodResolver(MethodResolverHandler methodResolver)
         {
-            lock (MethodResolverLock)
-                _resolversMethod -= methodResolver;
+            _resolversMethod -= methodResolver;
         }
 
-        public void RemoveTokenResolver(TokenResolverHandler tokenResolver)
+        internal void RemoveTokenResolver(TokenResolverHandler tokenResolver)
         {
-            lock (TokenResolverLock)
-                _resolversToken -= tokenResolver;
+            _resolversToken -= tokenResolver;
         }
 
-        public bool HasMethodResolver(MethodResolverHandler methodResolver) => _resolversMethod.GetInvocationList().Any(del => del.Method == methodResolver.Method);
+        internal bool HasMethodResolver(MethodResolverHandler methodResolver) => _resolversMethod.GetInvocationList().Any(del => del.Method == methodResolver.Method);
 
-        public bool HasTokenResolver(TokenResolverHandler tokenResolver) => _resolversToken.GetInvocationList().Any(del => del.Method == tokenResolver.Method);
+        internal bool HasTokenResolver(TokenResolverHandler tokenResolver) => _resolversToken.GetInvocationList().Any(del => del.Method == tokenResolver.Method);
 
         /// <summary>
         ///     Prepare custom JIT.
@@ -146,7 +140,7 @@ namespace Jitex.JIT
         /// Get singleton instance from ManagedJit.
         /// </summary>
         /// <returns></returns>
-        public static ManagedJit GetInstance()
+        internal static ManagedJit GetInstance()
         {
             lock (InstanceLock)
             {

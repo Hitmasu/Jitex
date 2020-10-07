@@ -10,6 +10,10 @@ namespace Jitex
     /// </summary>
     public static class JitexManager
     {
+        private static readonly object LockModules = new object();
+        private static readonly object MethodResolverLock = new object();
+        private static readonly object TokenResolverLock = new object();
+
         private static ManagedJit _jit;
 
         private static ManagedJit Jit => _jit ??= ManagedJit.GetInstance();
@@ -27,37 +31,27 @@ namespace Jitex
         /// <summary>
         /// Load module on Jitex.
         /// </summary>
-        /// <typeparam name="TModule">Module to load.</typeparam>
-        public static void LoadModule<TModule>() where TModule : JitexModule, new()
-        {
-            if (!ModuleIsLoaded<TModule>())
-            {
-                JitexModule module = new TModule();
-                module.LoadResolvers();
-            }
-        }
-
-        /// <summary>
-        /// Load module on Jitex.
-        /// </summary>
         /// <param name="typeModule">Module to load.</param>
         public static void LoadModule(Type typeModule)
         {
-            if (!ModuleIsLoaded(typeModule))
+            lock (LockModules)
             {
-                JitexModule module = (JitexModule)Activator.CreateInstance(typeModule);
-                module.LoadResolvers();
+                if (!ModuleIsLoaded(typeModule))
+                {
+                    JitexModule module = (JitexModule)Activator.CreateInstance(typeModule);
+                    module.LoadResolvers();
+                    ModulesLoaded.Add(typeModule, module);
+                }
             }
         }
 
         /// <summary>
         /// Load module on Jitex.
         /// </summary>
-        /// <param name="module">Module to load.</param>
-        internal static void LoadModule(JitexModule module)
+        /// <typeparam name="TModule">Module to load.</typeparam>
+        public static void LoadModule<TModule>() where TModule : JitexModule, new()
         {
-            ModulesLoaded.Add(module.GetType(), module);
-            module.LoadResolvers();
+            LoadModule(typeof(TModule));
         }
 
         /// <summary>
@@ -75,10 +69,13 @@ namespace Jitex
         /// <param name="typeModule">Module to remove.</param>
         public static void RemoveModule(Type typeModule)
         {
-            if (ModulesLoaded.TryGetValue(typeModule, out JitexModule module))
+            lock (LockModules)
             {
-                ModulesLoaded.Remove(typeModule);
-                module.Dispose();
+                if (ModulesLoaded.TryGetValue(typeModule, out JitexModule module))
+                {
+                    ModulesLoaded.Remove(typeModule);
+                    module.Dispose();
+                }
             }
         }
 
@@ -112,7 +109,8 @@ namespace Jitex
         /// <param name="methodResolver">Method resolver to add.</param>
         public static void AddMethodResolver(JitexHandler.MethodResolverHandler methodResolver)
         {
-            Jit.AddMethodResolver(methodResolver);
+            lock (MethodResolverLock)
+                Jit.AddMethodResolver(methodResolver);
         }
 
         /// <summary>
@@ -121,7 +119,8 @@ namespace Jitex
         /// <param name="tokenResolver">Token resolver to add.</param>
         public static void AddTokenResolver(JitexHandler.TokenResolverHandler tokenResolver)
         {
-            Jit.AddTokenResolver(tokenResolver);
+            lock (TokenResolverLock)
+                Jit.AddTokenResolver(tokenResolver);
         }
 
         /// <summary>
@@ -130,7 +129,8 @@ namespace Jitex
         /// <param name="methodResolver">Method resolver to remove.</param>
         public static void RemoveMethodResolver(JitexHandler.MethodResolverHandler methodResolver)
         {
-            Jit.RemoveMethodResolver(methodResolver);
+            lock (MethodResolverLock)
+                Jit.RemoveMethodResolver(methodResolver);
         }
 
         /// <summary>
@@ -139,7 +139,8 @@ namespace Jitex
         /// <param name="tokenResolver">Token resolver to remove.</param>
         public static void RemoveTokenResolver(JitexHandler.TokenResolverHandler tokenResolver)
         {
-            Jit.RemoveTokenResolver(tokenResolver);
+            lock (TokenResolverLock)
+                Jit.RemoveTokenResolver(tokenResolver);
         }
 
         /// <summary>
