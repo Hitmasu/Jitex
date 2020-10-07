@@ -1,18 +1,17 @@
-﻿using Jitex.Builder;
-using Jitex.JIT;
-using Jitex.Tests.Context;
+﻿using Jitex.Tests.Context;
 using System;
+using Jitex.Builder.Method;
+using Jitex.JIT.Context;
 using Xunit;
 using static Jitex.Tests.Utils;
 
 namespace Jitex.Tests
 {
-    public class ReplaceILTests
+    public class ResolveMethodTests
     {
-        public ReplaceILTests()
+        public ResolveMethodTests()
         {
-            ManagedJit jit = ManagedJit.GetInstance();
-            jit.AddCompileResolver(CompileResolver);
+            JitexManager.AddMethodResolver(MethodResolver);
         }
 
         #region EmptyBody
@@ -20,7 +19,7 @@ namespace Jitex.Tests
         [Fact]
         public void EmptyBodyTest()
         {
-            Assert.True(false, "IL not replaced.");
+            Assert.True(false, "IL not replaced");
         }
 
         public void EmptyBodyReplace()
@@ -59,17 +58,17 @@ namespace Jitex.Tests
         public void ReturnNativeTypeTest()
         {
             int returnInt = ReturnSimpleInt();
-            Assert.True(returnInt == 4321, $"Body not replaced. Return type {typeof(int).Name}.");
+            Assert.True(returnInt == 4321, $"Body not replaced. Return type {nameof(Int32)}.");
 
             double returnDouble = ReturnSimpleDouble();
-            Assert.True(returnDouble == 1.5d, $"Body not replaced. Return type {typeof(double).Name}.");
+            Assert.True(returnDouble == 1.5d, $"Body not replaced. Return type {nameof(Double)}.");
         }
 
         [Fact]
         public void ReturnReferenceTypeTest()
         {
             object ob = ReturnSimpleObj();
-            Assert.True(ob is Caller, $"Body not replaced. Return type {typeof(object).Name}.");
+            Assert.True(ob is Caller, $"Body not replaced. Return type {nameof(Object)}.");
         }
 
         public int ReturnSimpleInt()
@@ -119,7 +118,7 @@ namespace Jitex.Tests
         [Fact]
         public void LocalVariableReferenceTypeTest()
         {
-            string expected = "ManagedJit | ReplaceILTests | Random | CorElementType";
+            string expected = $"{nameof(ResolveMethodTests)} | Random | CorElementType";
             string actual = LocalVariableReferenceType();
 
             Assert.True(expected == actual, "\nVariable not inserted.");
@@ -150,44 +149,43 @@ namespace Jitex.Tests
 
         public string LocalVariableReferenceTypeReplace()
         {
-            ManagedJit type1 = ManagedJit.GetInstance();
-            ReplaceILTests type2 = this;
+            ResolveMethodTests type2 = this;
             Random type3 = new Random();
             CorElementType type4 = CorElementType.ELEMENT_TYPE_OBJECT;
-            return $"{type1.GetType().Name} | {type2.GetType().Name} | {type3.GetType().Name} | {type4.GetType().Name}";
+            return $"{type2.GetType().Name} | {type3.GetType().Name} | {type4.GetType().Name}";
         }
 
         #endregion
 
-        private void CompileResolver(CompileContext context)
+        private void MethodResolver(MethodContext context)
         {
-            if (context.Method == GetMethod<ReplaceILTests>(nameof(EmptyBodyTest)))
+            if (context.Method == GetMethod<ResolveMethodTests>(nameof(EmptyBodyTest)))
             {
-                context.ResolveMethod(GetMethod<ReplaceILTests>(nameof(EmptyBodyReplace)));
+                context.ResolveMethod(GetMethod<ResolveMethodTests>(nameof(EmptyBodyReplace)));
             }
-            else if (context.Method == GetMethod<ReplaceILTests>(nameof(BodyImpTest)))
+            else if (context.Method == GetMethod<ResolveMethodTests>(nameof(BodyImpTest)))
             {
-                context.ResolveMethod(GetMethod<ReplaceILTests>(nameof(BodyImpReplace)));
+                context.ResolveMethod(GetMethod<ResolveMethodTests>(nameof(BodyImpReplace)));
             }
-            else if (context.Method == GetMethod<ReplaceILTests>(nameof(ReturnSimpleInt)))
+            else if (context.Method == GetMethod<ResolveMethodTests>(nameof(ReturnSimpleInt)))
             {
-                context.ResolveMethod(GetMethod<ReplaceILTests>(nameof(ReturnSimpleIntReplace)));
+                context.ResolveMethod(GetMethod<ResolveMethodTests>(nameof(ReturnSimpleIntReplace)));
             }
-            else if (context.Method == GetMethod<ReplaceILTests>(nameof(ReturnSimpleDouble)))
+            else if (context.Method == GetMethod<ResolveMethodTests>(nameof(ReturnSimpleDouble)))
             {
-                context.ResolveMethod(GetMethod<ReplaceILTests>(nameof(ReturnSimpleDoubleReplace)));
+                context.ResolveMethod(GetMethod<ResolveMethodTests>(nameof(ReturnSimpleDoubleReplace)));
             }
-            else if (context.Method == GetMethod<ReplaceILTests>(nameof(ReturnSimpleObj)))
+            else if (context.Method == GetMethod<ResolveMethodTests>(nameof(ReturnSimpleObj)))
             {
-                context.ResolveMethod(GetMethod<ReplaceILTests>(nameof(ReturnSimpleObjReplace)));
+                context.ResolveMethod(GetMethod<ResolveMethodTests>(nameof(ReturnSimpleObjReplace)));
             }
-            else if (context.Method == GetMethod<ReplaceILTests>(nameof(LocalVariableNativeType)))
+            else if (context.Method == GetMethod<ResolveMethodTests>(nameof(LocalVariableNativeType)))
             {
-                context.ResolveMethod(GetMethod<ReplaceILTests>(nameof(LocalVariableNativeTypeReplace)));
+                context.ResolveMethod(GetMethod<ResolveMethodTests>(nameof(LocalVariableNativeTypeReplace)));
             }
-            else if (context.Method == GetMethod<ReplaceILTests>(nameof(LocalVariableReferenceType)))
+            else if (context.Method == GetMethod<ResolveMethodTests>(nameof(LocalVariableReferenceType)))
             {
-                context.ResolveMethod(GetMethod<ReplaceILTests>(nameof(LocalVariableReferenceTypeReplace)));
+                context.ResolveMethod(GetMethod<ResolveMethodTests>(nameof(LocalVariableReferenceTypeReplace)));
             }
         }
     }

@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Net.Http;
 using System.Reflection;
-using Jitex.JIT;
+using Jitex;
+using Jitex.JIT.Context;
 
 namespace InjectMethod
 {
@@ -9,10 +10,10 @@ namespace InjectMethod
     {
         static void Main(string[] args)
         {
-            ManagedJit jit = ManagedJit.GetInstance();
-            jit.AddCompileResolver(CompileResolver);
+            JitexManager.AddMethodResolver(MethodResolver);
             int result = SimpleSum(5, 5);
             Console.WriteLine(result);
+            Console.ReadKey();
         }
 
         /// <summary>
@@ -41,12 +42,12 @@ namespace InjectMethod
             return num1 + num2;
         }
 
-        private static void CompileResolver(CompileContext context)
+        private static void MethodResolver(MethodContext context)
         {
             if (context.Method.Name == "SimpleSum")
             {
                 //Replace SimpleSum to our SimpleSumReplace
-                MethodInfo replaceSumMethod = typeof(Program).GetMethod("SimpleSumReplace");
+                MethodInfo replaceSumMethod = typeof(Program).GetMethod(nameof(SimpleSumReplace));
                 context.ResolveMethod(replaceSumMethod);
             }
         }

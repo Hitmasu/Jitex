@@ -1,10 +1,14 @@
-﻿using System;
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 
 namespace Jitex.Tests.Context
 {
     public class Caller
     {
+        public int GetWrong()
+        {
+            return -1;
+        }
+
         [MethodImpl(MethodImplOptions.NoInlining)]
         public int GetIdade()
         {

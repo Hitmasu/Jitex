@@ -1,6 +1,6 @@
 ﻿using System.Reflection.Emit;
 
-namespace Jitex.Utils.Extensions
+namespace Jitex.Builder.Utils.Extensions
 {
     internal static class DynamicMethodExtensions
     {

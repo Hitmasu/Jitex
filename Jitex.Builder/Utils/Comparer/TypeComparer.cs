@@ -1,8 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
 
-namespace Jitex.Utils.Comparer
+namespace Jitex.Builder.Utils.Comparer
 {
     public class TypeComparer : IEqualityComparer<Type>
     {

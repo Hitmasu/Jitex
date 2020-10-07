@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Jitex.JIT
+﻿namespace Jitex.JIT
 {
     internal class CompileTls
     {

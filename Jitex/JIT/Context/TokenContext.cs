@@ -1,35 +1,38 @@
-﻿using Jitex.JIT.CorInfo;
-using System;
+﻿using System;
 using System.Reflection;
 using System.Reflection.Emit;
+using Jitex.JIT.CorInfo;
+using Jitex.Utils;
 
-namespace Jitex.JIT
+namespace Jitex.JIT.Context
 {
+    /// <summary>
+    /// Context for token resolution.
+    /// </summary>
     public class TokenContext
     {
         /// <summary>
-        /// Instância do CEEInfo
+        /// Token to be resolved.
         /// </summary>
-        private static CEEInfo _ceeInfo;
-
         private CORINFO_RESOLVED_TOKEN _resolvedToken;
-        private CORINFO_CONSTRUCT_STRING _constructString;
-
-        internal CORINFO_RESOLVED_TOKEN ResolvedToken => _resolvedToken;
-        internal CORINFO_CONSTRUCT_STRING ConstructString => _constructString;
 
         /// <summary>
-        /// Tipo do Token
+        /// Token to be resolved. 
+        /// </summary>
+        internal CORINFO_RESOLVED_TOKEN ResolvedToken => _resolvedToken;
+
+        /// <summary>
+        /// Token type.
         /// </summary>
         public TokenKind TokenType { get; }
-
-        /// <summary>
-        /// Modulo do Token
-        /// </summary>
-        public IntPtr Scope { get; }
         
         /// <summary>
-        /// Contexto do Token (Tipos genéricos)
+        /// Address module from token.
+        /// </summary>
+        public IntPtr Scope { get; }
+
+        /// <summary>
+        /// Address context from token (to generic types).
         /// </summary>
         public IntPtr Context { get; }
 
@@ -37,42 +40,39 @@ namespace Jitex.JIT
         /// Metadata Token
         /// </summary>
         public int MetadataToken { get; }
-        
+
         /// <summary>
-        /// Handle do Método
+        /// Address handle from token
         /// </summary>
-        public IntPtr MethodHandle { get; }
+        public IntPtr Handle { get; set; }
 
         /// <summary>
-        /// Handle do Field
-        /// </summary>
-        public IntPtr FieldHandle { get; }
-
-        public IntPtr ClassHandle { get; }
-
-        /// <summary>
-        /// Módulo original do token
+        /// Source module from token.
         /// </summary>
         public Module Module { get; }
 
         /// <summary>
-        /// Origem da chamada
+        /// Source from compile tree ("requester compile").
         /// </summary>
         public MemberInfo Source { get; set; }
 
         /// <summary>
-        /// Se o Token já foi resolvido.
+        /// If context is already resolved.
         /// </summary>
         public bool IsResolved { get; private set; }
 
-        internal bool IsStringResolved { get; private set; }
-
+        /// <summary>
+        /// Content from string (only to string).
+        /// </summary>
         public string Content { get; private set; }
 
-        internal TokenContext(ref CORINFO_RESOLVED_TOKEN resolvedToken, MemberInfo source, CEEInfo ceeInfo)
+        /// <summary>
+        /// Constructor for token type. (non-string)
+        /// </summary>
+        /// <param name="resolvedToken">Original token.</param>
+        /// <param name="source">Source method from compile tree ("requester").</param>
+        internal TokenContext(ref CORINFO_RESOLVED_TOKEN resolvedToken, MemberInfo source)
         {
-            _ceeInfo ??= ceeInfo;
-
             _resolvedToken = resolvedToken;
 
             Module = AppModules.GetModuleByPointer(resolvedToken.tokenScope);
@@ -82,16 +82,30 @@ namespace Jitex.JIT
             Scope = resolvedToken.tokenScope;
             Context = resolvedToken.tokenContext;
             MetadataToken = resolvedToken.token;
-            MethodHandle = resolvedToken.hMethod;
-            FieldHandle = resolvedToken.hField;
-            ClassHandle = resolvedToken.hClass;
+
+            switch (TokenType)
+            {
+                case TokenKind.Method:
+                    Handle = resolvedToken.hMethod;
+                    break;
+
+                case TokenKind.Field:
+                    Handle = resolvedToken.hField;
+                    break;
+
+                case TokenKind.Class:
+                    Handle = resolvedToken.hClass;
+                    break;
+            }
         }
 
-        internal TokenContext(ref CORINFO_CONSTRUCT_STRING constructString, MemberInfo source, CEEInfo ceeInfo)
+        /// <summary>
+        /// Constructor for string type.
+        /// </summary>
+        /// <param name="constructString">Original string.</param>
+        /// <param name="source">Source method from compile tree ("requester").</param>
+        internal TokenContext(ref CORINFO_CONSTRUCT_STRING constructString, MemberInfo source)
         {
-            _ceeInfo ??= ceeInfo;
-            _constructString = constructString;
-
             Module = AppModules.GetModuleByPointer(constructString.HandleModule);
             Source = source;
 
@@ -101,6 +115,10 @@ namespace Jitex.JIT
             Content = Module.ResolveString(MetadataToken);
         }
 
+        /// <summary>
+        /// Resolve token by module.
+        /// </summary>
+        /// <param name="module">Module containing token.</param>
         public void ResolveFromModule(Module module)
         {
             IsResolved = true;
@@ -116,40 +134,41 @@ namespace Jitex.JIT
                     MethodBase method = module.ResolveMethod(MetadataToken);
                     ResolveMethod(method);
                     break;
-
-                case TokenKind.String:
-                    ResolveString(MetadataToken,module);
-                    break;
             }
         }
 
+        /// <summary>
+        /// Resolve token by method.
+        /// </summary>
+        /// <param name="method">Method to replace.</param>
         public void ResolveMethod(MethodBase method)
         {
+            IsResolved = true;
+
             if (method is DynamicMethod)
                 throw new NotImplementedException();
 
             _resolvedToken.tokenScope = AppModules.GetPointerFromModule(method.Module);
             _resolvedToken.token = method.MetadataToken;
-            
-            IsResolved = true;
         }
 
-        public void ResolveString(int metadataToken, Module module)
-        {
-            _constructString.MetadataToken = metadataToken;
-            _constructString.HandleModule = AppModules.GetPointerFromModule(module);
-            IsResolved = true;
-        }
-
-        public void ResolveString(string content)
-        {
-            Content = content;
-            IsStringResolved = true;
-        }
-
+        /// <summary>
+        /// Resolve token by constructor.
+        /// </summary>
+        /// <param name="constructor">Constructor to replace.</param>
         public void ResolveConstructor(ConstructorInfo constructor)
         {
             ResolveMethod(constructor);
+        }
+
+        /// <summary>
+        /// Resolve string by content string.
+        /// </summary>
+        /// <param name="content">Content to replace.</param>
+        public void ResolveString(string content)
+        {
+            IsResolved = true;
+            Content = content;
         }
     }
 }

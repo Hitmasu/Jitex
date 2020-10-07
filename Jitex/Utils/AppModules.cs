@@ -1,10 +1,10 @@
-﻿using Jitex.Utils.Comparer;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using Jitex.Utils.Comparer;
 
-namespace Jitex.JIT
+namespace Jitex.Utils
 {
     internal static class AppModules
     {
@@ -31,7 +31,7 @@ namespace Jitex.JIT
             MapScopeToHandle.Add(scope, module);
         }
 
-        private static void CurrentDomainOnAssemblyLoad(object? sender, AssemblyLoadEventArgs args)
+        private static void CurrentDomainOnAssemblyLoad(object sender, AssemblyLoadEventArgs args)
         {
             AddAssembly(args.LoadedAssembly);
         }

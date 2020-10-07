@@ -1,5 +1,4 @@
-﻿using Jitex.Utils.Comparer;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
@@ -8,9 +7,10 @@ using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
 using System.Reflection.PortableExecutable;
+using Jitex.Builder.Utils.Comparer;
 using Lokad.ILPack;
 
-namespace Jitex.PE
+namespace Jitex.Builder.PE
 {
     /// <summary>
     ///     Read Metadata from assembly.
@@ -21,6 +21,8 @@ namespace Jitex.PE
 
         private ImmutableDictionary<Type, EntityHandle> Types { get; }
 
+        public Assembly Assembly { get; }
+
         /// <summary>
         ///     Read metadata from assembly.
         /// </summary>
@@ -28,6 +30,7 @@ namespace Jitex.PE
         public MetadataInfo(Assembly assembly)
         {
             _module = assembly.ManifestModule;
+            Assembly = assembly;
 
             Stream assemblyStream;
 

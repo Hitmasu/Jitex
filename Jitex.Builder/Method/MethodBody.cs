@@ -1,29 +1,41 @@
-﻿using Jitex.Builder.Exceptions;
-using Jitex.IL;
-using Jitex.PE;
-using Jitex.Utils.Extensions;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
+using Jitex.Builder.IL;
+using Jitex.Builder.PE;
+using Jitex.Builder.Utils.Extensions;
 
-namespace Jitex.Builder
+namespace Jitex.Builder.Method
 {
+    /// <summary>
+    /// Provides create a body of a method.
+    /// </summary>
     public class MethodBody
     {
         private byte[] _il;
 
         /// <summary>
-        ///     Module from method body.
+        /// Module from body.
         /// </summary>
         public Module Module { get; }
 
+        /// <summary>
+        /// Generic class arguments used in body.
+        /// </summary>
         public Type[] GenericTypeArguments { get; set; }
+
+        /// <summary>
+        /// Generic 
+        /// </summary>
         public Type[] GenericMethodArguments { get; set; }
 
+        /// <summary>
+        /// IL from body.
+        /// </summary>
         public byte[] IL
         {
             get => _il;
@@ -40,12 +52,19 @@ namespace Jitex.Builder
         public IList<LocalVariableInfo> LocalVariables { get; set; }
 
         /// <summary>
-        ///     If body contains some local variable.
+        /// If body contains some local variable.
         /// </summary>
         public bool HasLocalVariable => LocalVariables?.Count > 0;
 
+        /// <summary>
+        /// Stack size from body.
+        /// </summary>
         public uint MaxStackSize { get; set; }
 
+        /// <summary>
+        /// Create a body from method.
+        /// </summary>
+        /// <param name="methodBase">Method to read.</param>
         public MethodBody(MethodBase methodBase)
         {
             Module = methodBase.Module;
@@ -59,22 +78,33 @@ namespace Jitex.Builder
 
             IL = methodBase.GetILBytes();
         }
-
-        public MethodBody(byte[] il, Module module, Type[] genericTypeArguments = null, Type[] genericMethodArguments = null, params Type[] variables)
+        
+        /// <summary>
+        /// Create a body from IL.
+        /// </summary>
+        /// <param name="il">IL instructions.</param>
+        /// <param name="module">Module from IL.</param>
+        /// <param name="genericTypeArguments">Generic class arguments used in body.</param>
+        /// <param name="genericMethodArguments">Generic method arguments used in body.</param>
+        /// <param name="variables">Local variables.</param>
+        public MethodBody(IEnumerable<byte> il, Module module, Type[] genericTypeArguments = null, Type[] genericMethodArguments = null, params Type[] variables)
         {
             Module = module;
             LocalVariables = variables.Select(s => new LocalVariableInfo(s)).ToList();
             GenericTypeArguments = genericTypeArguments;
             GenericMethodArguments = genericMethodArguments;
 
-            IL = il;
+            IL = il.ToArray();
         }
 
+
         /// <summary>
-        ///     Create a new method body.
+        /// Create a body from IL.
         /// </summary>
-        /// <param name="il">IL of method.</param>
-        /// <param name="module">Module from body.</param>
+        /// <param name="il">IL instructions.</param>
+        /// <param name="module">Module from IL.</param>
+        /// <param name="genericTypeArguments">Generic class arguments used in body.</param>
+        /// <param name="genericMethodArguments">Generic method arguments used in body.</param>
         public MethodBody(byte[] il, Module module, Type[] genericTypeArguments = null, Type[] genericMethodArguments = null)
         {
             Module = module;
@@ -84,6 +114,46 @@ namespace Jitex.Builder
             IL = il;
         }
 
+        /// <summary>
+        /// Create a body from IL.
+        /// </summary>
+        /// <param name="il">IL instructions.</param>
+        /// <param name="module">Module from IL.</param>
+        /// <param name="variables">Local variables.</param>
+        public MethodBody(IEnumerable<byte> il, Module module, params Type[] variables)
+        {
+            Module = module;
+            LocalVariables = variables.Select(s => new LocalVariableInfo(s)).ToList();
+
+            IL = il.ToArray();
+        }
+
+        /// <summary>
+        /// Create a body from IL.
+        /// </summary>
+        /// <param name="il">IL instructions.</param>
+        /// <param name="variables">Local variables.</param>
+        public MethodBody(IEnumerable<byte> il, params Type[] variables)
+        {
+            LocalVariables = variables.Select(s => new LocalVariableInfo(s)).ToList();
+            _il = il.ToArray();
+        }
+
+        /// <summary>
+        /// Create a body from IL.
+        /// </summary>
+        /// <param name="il">IL instructions.</param>
+        /// <param name="maxStack">Stack size to body.</param>
+        public MethodBody(IEnumerable<byte> il, uint maxStack = 8)
+        {
+            _il = il.ToArray();
+            MaxStackSize = maxStack;
+        }
+
+        /// <summary>
+        /// Read IL instructions from body.
+        /// </summary>
+        /// <returns>Operations from body.</returns>
         public IEnumerable<Operation> ReadIL()
         {
             return new ILReader(IL, Module, GenericTypeArguments, GenericMethodArguments);
@@ -175,7 +245,7 @@ namespace Jitex.Builder
             blob.WriteByte(0x07);
             blob.WriteCompressedInteger(LocalVariables.Count);
 
-            MetadataInfo medatataModule = new MetadataInfo(Module.Assembly);
+            MetadataInfo metadataInfo = null;
 
             foreach (LocalVariableInfo variable in LocalVariables)
             {
@@ -192,15 +262,21 @@ namespace Jitex.Builder
                     //TODO
                     //Pinned variables
 
-                    if (Module == null)
-                        throw new ModuleNullException("Module can't be null with a Local Variable of type Class");
+                    if (Module != null)
+                    {
+                        metadataInfo ??= new MetadataInfo(Module.Assembly);
+                    }
+                    else
+                    {
+                        metadataInfo = new MetadataInfo(variable.Type.Assembly);
+                    }
 
-                    EntityHandle typeHandle = medatataModule.GetTypeHandle(variable.Type);
+                    EntityHandle typeHandle = metadataInfo.GetTypeHandle(variable.Type);
 
-                    //Check if type was already referenced on metadata from module
+                    //Check if type is referenced on assembly,
                     //If not, we should get reference in assembly of type.
-                    //Ex.: String
-                    if (typeHandle == default)
+                    //Ex.: String is not referenced directly on metadata assembly.
+                    if (typeHandle == default && metadataInfo.Assembly != variable.Type.Assembly)
                     {
                         MetadataInfo metadataAssembly = new MetadataInfo(variable.Type.Assembly);
                         typeHandle = metadataAssembly.GetTypeHandle(variable.Type);

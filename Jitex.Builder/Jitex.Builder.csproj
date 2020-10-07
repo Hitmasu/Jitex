@@ -1,0 +1,27 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFramework>netcoreapp3.1</TargetFramework>
+		<Platforms>x64</Platforms>
+		<Authors>Hitmasu</Authors>
+		<Company />
+		<Description>Method Builder to Jitex.</Description>
+		<PackageProjectUrl>https://github.com/Hitmasu/Jitex</PackageProjectUrl>
+		<RepositoryUrl>https://github.com/Hitmasu/Jitex</RepositoryUrl>
+		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+		<PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+		<PackageLicenseFile></PackageLicenseFile>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<PackageTags>JIT Jitex</PackageTags>
+		<Version>1.0.1-alpha</Version>
+		<AssemblyName>Jitex.Builder</AssemblyName>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+		<DocumentationFile>C:\Users\Hitmasu\Documents\Jitex\Jitex\Jitex.Builder\Jitex.Builder.xml</DocumentationFile>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Lokad.ILPack" Version="0.1.4" />
+	</ItemGroup>
+
+</Project>

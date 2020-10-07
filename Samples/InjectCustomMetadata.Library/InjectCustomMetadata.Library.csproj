@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
@@ -6,7 +6,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Jitex" Version="2.0.0-alpha" />
+    <ProjectReference Include="..\..\Jitex.Builder\Jitex.Builder.csproj" />
+    <ProjectReference Include="..\..\Jitex\Jitex.csproj" />
   </ItemGroup>
 
 </Project>

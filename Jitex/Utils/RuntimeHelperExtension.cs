@@ -4,7 +4,7 @@ using static Jitex.Utils.Memory;
 
 namespace Jitex.Utils
 {
-    public static class RuntimeHelperExtension
+    internal static class RuntimeHelperExtension
     {
         public static void PrepareDelegate(Delegate del, params object[] parameters)
         {
