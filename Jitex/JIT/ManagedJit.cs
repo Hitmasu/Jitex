@@ -2,9 +2,7 @@
 using Jitex.JIT.CorInfo;
 using Jitex.Utils;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -385,29 +383,30 @@ namespace Jitex.JIT
                     {
                         resolver(context);
 
-                        if (context.IsResolved)
-                        {
-                            if (string.IsNullOrEmpty(context.Content))
-                                throw new StringNullOrEmptyException();
+                            if (context.IsResolved)
+                            {
+                                if (string.IsNullOrEmpty(context.Content))
+                                    throw new StringNullOrEmptyException();
 
-                            InfoAccessType result = _ceeInfo.ConstructStringLiteral(thisHandle, hModule, metadataToken, ppValue);
+                                InfoAccessType result = _ceeInfo.ConstructStringLiteral(thisHandle, hModule, metadataToken, ppValue);
 
-                            IntPtr pEntry = Marshal.ReadIntPtr(ppValue);
+                                IntPtr pEntry = Marshal.ReadIntPtr(ppValue);
 
-                            IntPtr objectHandle = Marshal.ReadIntPtr(pEntry);
-                            IntPtr hashMapPtr = Marshal.ReadIntPtr(objectHandle);
+                                IntPtr objectHandle = Marshal.ReadIntPtr(pEntry);
+                                IntPtr hashMapPtr = Marshal.ReadIntPtr(objectHandle);
 
-                            byte[] newContent = Encoding.Unicode.GetBytes(context.Content);
+                                byte[] newContent = Encoding.Unicode.GetBytes(context.Content);
 
-                            objectHandle = Marshal.AllocHGlobal(IntPtr.Size + sizeof(int) + newContent.Length);
+                                objectHandle = Marshal.AllocHGlobal(IntPtr.Size + sizeof(int) + newContent.Length);
 
-                            Marshal.WriteIntPtr(objectHandle, hashMapPtr);
-                            Marshal.WriteInt32(objectHandle + IntPtr.Size, newContent.Length / 2);
-                            Marshal.Copy(newContent, 0, objectHandle + IntPtr.Size + sizeof(int), newContent.Length);
+                                Marshal.WriteIntPtr(objectHandle, hashMapPtr);
+                                Marshal.WriteInt32(objectHandle + IntPtr.Size, newContent.Length / 2);
+                                Marshal.Copy(newContent, 0, objectHandle + IntPtr.Size + sizeof(int), newContent.Length);
 
-                            Marshal.WriteIntPtr(pEntry, objectHandle);
+                                Marshal.WriteIntPtr(pEntry, objectHandle);
 
-                            return result;
+                                return result;
+                            }
                         }
                     }
                 }

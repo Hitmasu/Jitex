@@ -13,7 +13,7 @@
         <PackageLicenseFile></PackageLicenseFile>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageTags>JIT</PackageTags>
-        <Version>3.0.3-alpha</Version>
+        <Version>3.0.4-alpha</Version>
         <AssemblyName>Jitex</AssemblyName>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">

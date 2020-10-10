@@ -2,7 +2,7 @@
 
 [![Build status](https://ci.appveyor.com/api/projects/status/2h0y08mk82iwmyfr/branch/master?svg=true)](https://ci.appveyor.com/project/Hitmasu/jitex/branch/master) [![Nuget](https://img.shields.io/nuget/vpre/Jitex)](https://www.nuget.org/packages/Jitex/)
 
-A framework to modify MSIL/Native code at runtime.
+A library to modify MSIL/Native code at runtime.
 
 Jitex can help you inject code at runtime easily.
 
