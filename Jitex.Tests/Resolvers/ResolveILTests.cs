@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -9,8 +8,9 @@ using Xunit;
 using static Jitex.Tests.Utils;
 using MethodBody = Jitex.Builder.Method.MethodBody;
 
-namespace Jitex.Tests
+namespace Jitex.Tests.Resolvers
 {
+    [Collection("Manager")]
     public class ResolveILTests
     {
         private static readonly MethodInfo AssertTrue;

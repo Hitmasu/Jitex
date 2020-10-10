@@ -1,12 +1,13 @@
-﻿using Jitex.Tests.Context;
-using System;
+﻿using System;
 using Jitex.Builder.Method;
 using Jitex.JIT.Context;
+using Jitex.Tests.Context;
 using Xunit;
 using static Jitex.Tests.Utils;
 
-namespace Jitex.Tests
+namespace Jitex.Tests.Resolvers
 {
+    [Collection("Manager")]
     public class ResolveMethodTests
     {
         public ResolveMethodTests()

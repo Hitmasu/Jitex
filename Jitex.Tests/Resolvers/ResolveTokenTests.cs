@@ -1,13 +1,14 @@
-﻿using Jitex.Tests.Context;
-using System;
+﻿using System;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using Jitex.JIT.Context;
+using Jitex.Tests.Context;
 using Xunit;
 using static Jitex.Tests.Utils;
 
-namespace Jitex.Tests
+namespace Jitex.Tests.Resolvers
 {
+    [Collection("Manager")]
     public class ResolveTokenTests
     {
         public ResolveTokenTests()
@@ -44,7 +45,7 @@ namespace Jitex.Tests
 
         private void TokenResolver(TokenContext context)
         {
-            if (context.Source.Name == nameof(ResolveTokenReplace))
+            if (context.Source == GetMethod<ResolveTokenTests>(nameof(ResolveTokenReplace)))
             {
                 Type personType = typeof(Caller).Module.GetType("Jitex.Tests.Context.Person");
 

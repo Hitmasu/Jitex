@@ -82,9 +82,9 @@ namespace Jitex.JIT
 
         private static CEEInfo _ceeInfo;
 
-        private MethodResolverHandler _resolversMethod;
+        private MethodResolverHandler _methodResolvers;
 
-        private TokenResolverHandler _resolversToken;
+        private TokenResolverHandler _tokenResolvers;
 
         public static bool IsLoaded => _instance != null;
 
@@ -96,17 +96,17 @@ namespace Jitex.JIT
             Compiler = Marshal.PtrToStructure<CorJitCompiler>(JitVTable);
         }
 
-        internal void AddMethodResolver(MethodResolverHandler methodResolver) => _resolversMethod += methodResolver;
+        internal void AddMethodResolver(MethodResolverHandler methodResolver) => _methodResolvers += methodResolver;
 
-        internal void AddTokenResolver(TokenResolverHandler tokenResolver) => _resolversToken += tokenResolver;
+        internal void AddTokenResolver(TokenResolverHandler tokenResolver) => _tokenResolvers += tokenResolver;
 
-        internal void RemoveMethodResolver(MethodResolverHandler methodResolver) => _resolversMethod -= methodResolver;
+        internal void RemoveMethodResolver(MethodResolverHandler methodResolver) => _methodResolvers -= methodResolver;
 
-        internal void RemoveTokenResolver(TokenResolverHandler tokenResolver) => _resolversToken -= tokenResolver;
+        internal void RemoveTokenResolver(TokenResolverHandler tokenResolver) => _tokenResolvers -= tokenResolver;
 
-        internal bool HasMethodResolver(MethodResolverHandler methodResolver) => _resolversMethod != null && _resolversMethod.GetInvocationList().Any(del => del.Method == methodResolver.Method);
+        internal bool HasMethodResolver(MethodResolverHandler methodResolver) => _methodResolvers != null && _methodResolvers.GetInvocationList().Any(del => del.Method == methodResolver.Method);
 
-        internal bool HasTokenResolver(TokenResolverHandler tokenResolver) => _resolversToken != null && _resolversToken.GetInvocationList().Any(del => del.Method == tokenResolver.Method);
+        internal bool HasTokenResolver(TokenResolverHandler tokenResolver) => _tokenResolvers != null && _tokenResolvers.GetInvocationList().Any(del => del.Method == tokenResolver.Method);
 
         /// <summary>
         ///     Prepare custom JIT.
@@ -167,11 +167,9 @@ namespace Jitex.JIT
                 IntPtr sigAddress = IntPtr.Zero;
                 IntPtr ilAddress = IntPtr.Zero;
 
-
-
                 if (compileEntry.EnterCount == 1)
                 {
-                    IEnumerable<Delegate> resolvers = _resolversMethod?.GetInvocationList();
+                    IEnumerable<Delegate> resolvers = _methodResolvers?.GetInvocationList();
 
                     if (resolvers != null && resolvers.Any())
                     {
@@ -323,7 +321,7 @@ namespace Jitex.JIT
             {
                 if (_tokenTls.EnterCount == 1)
                 {
-                    IEnumerable<Delegate> resolvers = _resolversToken?.GetInvocationList();
+                    IEnumerable<Delegate> resolvers = _tokenResolvers?.GetInvocationList();
 
                     if (resolvers == null || !resolvers.Any())
                     {
@@ -370,7 +368,7 @@ namespace Jitex.JIT
 
                 if (_tokenTls.EnterCount == 1)
                 {
-                    IEnumerable<Delegate> resolvers = _resolversToken?.GetInvocationList();
+                    IEnumerable<Delegate> resolvers = _tokenResolvers?.GetInvocationList();
 
                     if (resolvers == null || !resolvers.Any())
                     {
@@ -433,8 +431,8 @@ namespace Jitex.JIT
                 _hookManager.RemoveHook(_compileMethod);
                 _hookManager.RemoveHook(_constructStringLiteral);
 
-                _resolversMethod = null;
-                _resolversToken = null;
+                _methodResolvers = null;
+                _tokenResolvers = null;
                 _constructStringLiteral = null;
 
                 _compileMethod = null;

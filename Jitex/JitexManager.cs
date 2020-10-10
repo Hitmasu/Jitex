@@ -162,8 +162,11 @@ namespace Jitex
         /// </summary>
         public static void Remove()
         {
-            _jit.Dispose();
-            _jit = null;
+            if (_jit != null)
+            {
+                _jit.Dispose();
+                _jit = null;
+            }
         }
     }
 }

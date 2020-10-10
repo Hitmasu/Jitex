@@ -1,12 +1,12 @@
-﻿using System;
+﻿using System.Linq;
 using System.Reflection;
-using Jitex.Tests.Modules;
 using Xunit;
 using Xunit.Extensions.Ordering;
 using static Jitex.Tests.Utils;
 
-namespace Jitex.Tests
+namespace Jitex.Tests.Modules
 {
+    [Collection("Manager")]
     public class ModuleTests
     {
 
@@ -19,24 +19,24 @@ namespace Jitex.Tests
         }
 
         [Fact, Order(2)]
-        public void ResolveMethodTest()
+        public void MethodResolverTest()
         {
             MethodInfo method = GetMethod<ModuleTests>(nameof(MethodToCompileOnLoad));
             MethodToCompileOnLoad();
-            bool called = ModuleJitex.MethodsCompiled.Contains(method);
-            Assert.True(called, "Resolver method not called!");
+            bool called = ModuleJitex.MethodsCompiled.ToList().Count(m => m == method) == 1;
+            Assert.True(called, "Method resolver not called!");
         }
 
-        [Fact, Order(3)]
-        public void ResolveTokenTest()
+        [Fact, Order(2)]
+        public void TokenResolverTest()
         {
             MethodInfo method = GetMethod<ModuleTests>(nameof(TokenToCompileOnLoad));
             MethodToCallTokenOnLoad();
-            bool called = ModuleJitex.TokensCompiled.Contains(method.MetadataToken);
-            Assert.True(called, "Resolver token not called!");
+            bool called = ModuleJitex.TokensCompiled.ToList().Count(m => m == method.MetadataToken) == 1;
+            Assert.True(called, "Token resolver not called!");
         }
 
-        [Fact, Order(4)]
+        [Fact, Order(3)]
         public void RemoveModuleTest()
         {
             JitexManager.RemoveModule<ModuleJitex>();
@@ -44,8 +44,8 @@ namespace Jitex.Tests
             Assert.False(moduleIsLoaded, "Module still loaded!");
         }
 
-        [Fact, Order(5)]
-        public void RemoveMethodTest()
+        [Fact, Order(4)]
+        public void RemoveMethodResolverTest()
         {
             ModuleLoadTest();
             JitexManager.RemoveModule<ModuleJitex>();
@@ -53,11 +53,11 @@ namespace Jitex.Tests
             MethodInfo method = GetMethod<ModuleTests>(nameof(MethodToCompileOnRemove));
             MethodToCompileOnRemove();
             bool called = ModuleJitex.MethodsCompiled.Contains(method);
-            Assert.False(called, "Resolver method called!");
+            Assert.False(called, "Method resolver called!");
         }
 
-        [Fact, Order(6)]
-        public void RemoveTokenTest()
+        [Fact, Order(5)]
+        public void RemoveTokenResolverTest()
         {
             ModuleLoadTest();
             JitexManager.RemoveModule<ModuleJitex>();
@@ -65,7 +65,7 @@ namespace Jitex.Tests
             MethodInfo method = GetMethod<ModuleTests>(nameof(TokenToCompileOnRemove));
             MethodToCallTokenOnRemove();
             bool called = ModuleJitex.TokensCompiled.Contains(method.MetadataToken);
-            Assert.False(called, "Resolver token called!");
+            Assert.False(called, "Token resolver called!");
         }
 
         /// <summary>
