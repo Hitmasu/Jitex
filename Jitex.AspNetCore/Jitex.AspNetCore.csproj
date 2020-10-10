@@ -2,6 +2,18 @@
 
     <PropertyGroup>
         <TargetFramework>netcoreapp3.1</TargetFramework>
+        <SignAssembly>false</SignAssembly>
+		<Authors>Hitmasu</Authors>
+	    <Company />
+	    <Description>ASP.NET Core extension to Jitex</Description>
+	    <PackageProjectUrl>https://github.com/Hitmasu/Jitex</PackageProjectUrl>
+	    <RepositoryUrl>https://github.com/Hitmasu/Jitex</RepositoryUrl>
+	    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+	    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+	    <PackageLicenseFile></PackageLicenseFile>
+	    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+	    <PackageTags>JIT</PackageTags>
+	    <Version>1.0.0-alpha</Version>
     </PropertyGroup>
 
     <ItemGroup>
