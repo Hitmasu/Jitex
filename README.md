@@ -237,7 +237,43 @@ static void HelloWorld () {
 }
 ```
 
+## Modules
 
+Jitex can support modules. To create your own module, just extend JitexModule:
+
+```c#
+public class ModuleJitex : JitexModule
+{
+    protected override void MethodResolver(MethodContext context)
+    {
+        //...
+    }
+
+    protected override void TokenResolver(TokenContext context)
+    {
+        //...
+    }
+}
+```
+
+And load module:
+
+```c#
+JitexManager.LoadModule<ModuleJitex>();
+//or...
+JitexManager.LoadModule(typeof(ModuleJitex));
+```
+## ASP.NET Core support
+
+To load module in ASP.NET Core, just call UseModule in Configure (Startup.cs):
+
+```c#
+app.UseModule<ModuleJitex>();
+app.UseModule<ModuleJitex1>();
+app.UseModule<ModuleJitex2>();
+//or
+app.UseModule(typeof(ModuleJitex);
+```
 
 ## Debugging
 

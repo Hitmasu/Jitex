@@ -7,7 +7,7 @@ namespace Jitex.AspNetCore
 {
     public static class LoadJitex
     {
-        public static void LoadModule(this IApplicationBuilder app, params Type[] modules)
+        public static void UseModule(this IApplicationBuilder app, params Type[] modules)
         {
             IHostApplicationLifetime applicationLifetime = app.ApplicationServices.GetService<IHostApplicationLifetime>();
 
@@ -22,9 +22,9 @@ namespace Jitex.AspNetCore
             });
         }
 
-        public static void LoadModule<TModule>(this IApplicationBuilder app) where TModule : JitexModule, new()
+        public static void UseModule<TModule>(this IApplicationBuilder app) where TModule : JitexModule, new()
         {
-            LoadModule(app, typeof(TModule));
+            UseModule(app, typeof(TModule));
         }
 
         private static void LoadModules(params Type[] modules)
