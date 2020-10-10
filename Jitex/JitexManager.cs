@@ -148,14 +148,14 @@ namespace Jitex
         /// </summary>
         /// <param name="methodResolver">Method resolver.</param>
         /// <returns>True to already loaded. False to not loaded.</returns>
-        public static bool HasMethodResolver(JitexHandler.MethodResolverHandler methodResolver) => _jit.HasMethodResolver(methodResolver);
+        public static bool HasMethodResolver(JitexHandler.MethodResolverHandler methodResolver) => Jit.HasMethodResolver(methodResolver);
 
         /// <summary>
         /// If a token resolver is already loaded.
         /// </summary>
         /// <param name="tokenResolver">Token resolver.</param>
         /// <returns>True to already loaded. False to not loaded.</returns>
-        public static bool HasTokenResolver(JitexHandler.TokenResolverHandler tokenResolver) => _jit.HasTokenResolver(tokenResolver);
+        public static bool HasTokenResolver(JitexHandler.TokenResolverHandler tokenResolver) => Jit.HasTokenResolver(tokenResolver);
 
         /// <summary>
         /// Unload Jitex and modules from application.

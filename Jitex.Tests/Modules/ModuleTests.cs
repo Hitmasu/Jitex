@@ -1,28 +1,24 @@
 ﻿using System;
-using System.Collections;
-using System.Collections.Generic;
 using System.Reflection;
-using Jitex.JIT.Context;
 using Jitex.Tests.Modules;
 using Xunit;
+using Xunit.Extensions.Ordering;
 using static Jitex.Tests.Utils;
+
 namespace Jitex.Tests
 {
     public class ModuleTests
     {
-        static ModuleTests()
-        {
-            JitexManager.LoadModule<ModuleJitex>();
-        }
 
-        [Fact]
+        [Fact, Order(1)]
         public void ModuleLoadTest()
         {
+            JitexManager.LoadModule<ModuleJitex>();
             bool moduleIsLoaded = JitexManager.ModuleIsLoaded<ModuleJitex>();
             Assert.True(moduleIsLoaded, "Module is not loaded!");
         }
 
-        [Fact]
+        [Fact, Order(2)]
         public void ResolveMethodTest()
         {
             MethodInfo method = GetMethod<ModuleTests>(nameof(MethodToCompileOnLoad));
@@ -31,7 +27,7 @@ namespace Jitex.Tests
             Assert.True(called, "Resolver method not called!");
         }
 
-        [Fact]
+        [Fact, Order(3)]
         public void ResolveTokenTest()
         {
             MethodInfo method = GetMethod<ModuleTests>(nameof(TokenToCompileOnLoad));
@@ -40,19 +36,35 @@ namespace Jitex.Tests
             Assert.True(called, "Resolver token not called!");
         }
 
-        [Fact]
-        public void RemoveModule()
+        [Fact, Order(4)]
+        public void RemoveModuleTest()
         {
-            JitexManager.RemoveModule<JitexModule>();
+            JitexManager.RemoveModule<ModuleJitex>();
+            bool moduleIsLoaded = JitexManager.ModuleIsLoaded<ModuleJitex>();
+            Assert.False(moduleIsLoaded, "Module still loaded!");
+        }
+
+        [Fact, Order(5)]
+        public void RemoveMethodTest()
+        {
+            ModuleLoadTest();
+            JitexManager.RemoveModule<ModuleJitex>();
 
             MethodInfo method = GetMethod<ModuleTests>(nameof(MethodToCompileOnRemove));
             MethodToCompileOnRemove();
             bool called = ModuleJitex.MethodsCompiled.Contains(method);
             Assert.False(called, "Resolver method called!");
+        }
 
-            method = GetMethod<ModuleTests>(nameof(TokenToCompileOnRemove));
+        [Fact, Order(6)]
+        public void RemoveTokenTest()
+        {
+            ModuleLoadTest();
+            JitexManager.RemoveModule<ModuleJitex>();
+
+            MethodInfo method = GetMethod<ModuleTests>(nameof(TokenToCompileOnRemove));
             MethodToCallTokenOnRemove();
-            called = ModuleJitex.TokensCompiled.Contains(method.MetadataToken);
+            bool called = ModuleJitex.TokensCompiled.Contains(method.MetadataToken);
             Assert.False(called, "Resolver token called!");
         }
 

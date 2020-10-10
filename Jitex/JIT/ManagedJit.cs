@@ -2,6 +2,9 @@
 using Jitex.JIT.CorInfo;
 using Jitex.Utils;
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -93,29 +96,17 @@ namespace Jitex.JIT
             Compiler = Marshal.PtrToStructure<CorJitCompiler>(JitVTable);
         }
 
-        internal void AddMethodResolver(MethodResolverHandler methodResolver)
-        {
-            _resolversMethod += methodResolver;
-        }
+        internal void AddMethodResolver(MethodResolverHandler methodResolver) => _resolversMethod += methodResolver;
 
-        internal void AddTokenResolver(TokenResolverHandler tokenResolver)
-        {
-            _resolversToken += tokenResolver;
-        }
+        internal void AddTokenResolver(TokenResolverHandler tokenResolver) => _resolversToken += tokenResolver;
 
-        internal void RemoveMethodResolver(MethodResolverHandler methodResolver)
-        {
-            _resolversMethod -= methodResolver;
-        }
+        internal void RemoveMethodResolver(MethodResolverHandler methodResolver) => _resolversMethod -= methodResolver;
 
-        internal void RemoveTokenResolver(TokenResolverHandler tokenResolver)
-        {
-            _resolversToken -= tokenResolver;
-        }
+        internal void RemoveTokenResolver(TokenResolverHandler tokenResolver) => _resolversToken -= tokenResolver;
 
-        internal bool HasMethodResolver(MethodResolverHandler methodResolver) => _resolversMethod.GetInvocationList().Any(del => del.Method == methodResolver.Method);
+        internal bool HasMethodResolver(MethodResolverHandler methodResolver) => _resolversMethod != null && _resolversMethod.GetInvocationList().Any(del => del.Method == methodResolver.Method);
 
-        internal bool HasTokenResolver(TokenResolverHandler tokenResolver) => _resolversToken.GetInvocationList().Any(del => del.Method == tokenResolver.Method);
+        internal bool HasTokenResolver(TokenResolverHandler tokenResolver) => _resolversToken != null && _resolversToken.GetInvocationList().Any(del => del.Method == tokenResolver.Method);
 
         /// <summary>
         ///     Prepare custom JIT.
@@ -176,114 +167,125 @@ namespace Jitex.JIT
                 IntPtr sigAddress = IntPtr.Zero;
                 IntPtr ilAddress = IntPtr.Zero;
 
-                if (compileEntry.EnterCount == 1 && _resolversMethod != null)
+
+
+                if (compileEntry.EnterCount == 1)
                 {
-                    lock (JitLock)
+                    IEnumerable<Delegate> resolvers = _resolversMethod?.GetInvocationList();
+
+                    if (resolvers != null && resolvers.Any())
                     {
-                        if (_corJitInfoPtr == IntPtr.Zero)
+                        lock (JitLock)
                         {
-                            _corJitInfoPtr = Marshal.ReadIntPtr(comp);
-                            _ceeInfo = new CEEInfo(_corJitInfoPtr);
-
-                            _hookManager.InjectHook(_ceeInfo.ResolveTokenIndex, _resolveToken);
-                            _hookManager.InjectHook(_ceeInfo.ConstructStringLiteralIndex, _constructStringLiteral);
-                        }
-                    }
-
-                    Module module = AppModules.GetModuleByPointer(info.scope);
-
-                    if (module != null)
-                    {
-                        uint methodToken = _ceeInfo.GetMethodDefFromMethod(info.ftn);
-                        MethodBase methodFound = module.ResolveMethod((int)methodToken);
-                        _tokenTls = new TokenTls { Root = methodFound };
-
-                        methodContext = new MethodContext(methodFound);
-
-                        foreach (MethodResolverHandler resolver in _resolversMethod.GetInvocationList())
-                        {
-                            resolver(methodContext);
-
-                            if (methodContext.IsResolved)
-                                break;
-                        }
-                    }
-
-                    if (methodContext != null && methodContext.IsResolved)
-                    {
-                        int ilLength;
-
-                        if (methodContext.Mode == MethodContext.ResolveMode.IL)
-                        {
-                            MethodBody methodBody = methodContext.MethodBody;
-
-                            ilLength = methodBody.IL.Length;
-                            ilAddress = Marshal.AllocHGlobal(methodBody.IL.Length);
-                            Marshal.Copy(methodBody.IL, 0, ilAddress, methodBody.IL.Length);
-
-                            if (methodBody.HasLocalVariable)
+                            if (_corJitInfoPtr == IntPtr.Zero)
                             {
-                                byte[] signatureVariables = methodBody.GetSignatureVariables();
-                                sigAddress = Marshal.AllocHGlobal(signatureVariables.Length);
-                                Marshal.Copy(signatureVariables, 0, sigAddress, signatureVariables.Length);
-                                //IntPtr sigAddress = signatureVariables.ToPointer();
+                                _corJitInfoPtr = Marshal.ReadIntPtr(comp);
+                                _ceeInfo = new CEEInfo(_corJitInfoPtr);
 
-                                info.locals.pSig = sigAddress + 1;
-                                info.locals.args = sigAddress + 3;
-                                info.locals.numArgs = (ushort)methodBody.LocalVariables.Count;
-                            }
-
-                            info.maxStack = methodBody.MaxStackSize;
-                        }
-                        else
-                        {
-                            //Size of native code generated for AND
-                            const int sizeBitwise = 3;
-
-                            //TODO: A better way to calculate size.
-                            //Calculate the size of IL to allocate native code
-                            //For each bitwise operation (ldc.i4 + And) is generated 3 byte-code
-                            //Example: 
-                            //IL with 1 bitwise = 21 bytes
-                            //IL with 2 bitwise = 24 bytes
-                            //IL with 3 bitwise = 27 bytes
-                            //...
-
-                            int nextMinLength = methodContext.NativeCode.Length + sizeBitwise + methodContext.NativeCode.Length % sizeBitwise;
-                            ilLength = 2 * (int)Math.Ceiling((double)nextMinLength / sizeBitwise);
-
-                            if (ilLength % 2 != 0)
-                                ilLength++;
-
-                            ilAddress = Marshal.AllocHGlobal(ilLength);
-
-                            Span<byte> emptyBody;
-
-                            unsafe
-                            {
-                                emptyBody = new Span<byte>(ilAddress.ToPointer(), ilLength);
-                            }
-
-                            //populate IL with bitwise operations
-                            emptyBody[0] = (byte)OpCodes.Ldc_I4_1.Value;
-                            emptyBody[1] = (byte)OpCodes.Ldc_I4_1.Value;
-                            emptyBody[2] = (byte)OpCodes.And.Value;
-                            emptyBody[^1] = (byte)OpCodes.Ret.Value;
-
-                            for (int i = 3; i < emptyBody.Length - 2; i += 2)
-                            {
-                                emptyBody[i] = (byte)OpCodes.Ldc_I4_1.Value;
-                                emptyBody[i + 1] = (byte)OpCodes.And.Value;
-                            }
-
-                            if (info.maxStack < 8)
-                            {
-                                info.maxStack = 8;
+                                _hookManager.InjectHook(_ceeInfo.ResolveTokenIndex, _resolveToken);
+                                _hookManager.InjectHook(_ceeInfo.ConstructStringLiteralIndex, _constructStringLiteral);
                             }
                         }
 
-                        info.ILCode = ilAddress;
-                        info.ILCodeSize = ilLength;
+                        Module module = AppModules.GetModuleByPointer(info.scope);
+
+                        if (module != null)
+                        {
+                            uint methodToken = _ceeInfo.GetMethodDefFromMethod(info.ftn);
+                            MethodBase methodFound = module.ResolveMethod((int)methodToken);
+
+                            if (methodFound == null)
+                                Debugger.Break();
+
+                            _tokenTls = new TokenTls { Root = methodFound };
+
+                            methodContext = new MethodContext(methodFound);
+
+                            foreach (MethodResolverHandler resolver in resolvers)
+                            {
+                                resolver(methodContext);
+
+                                if (methodContext.IsResolved)
+                                    break;
+                            }
+                        }
+
+                        if (methodContext != null && methodContext.IsResolved)
+                        {
+                            int ilLength;
+
+                            if (methodContext.Mode == MethodContext.ResolveMode.IL)
+                            {
+                                MethodBody methodBody = methodContext.MethodBody;
+
+                                ilLength = methodBody.IL.Length;
+                                ilAddress = Marshal.AllocHGlobal(methodBody.IL.Length);
+                                Marshal.Copy(methodBody.IL, 0, ilAddress, methodBody.IL.Length);
+
+                                if (methodBody.HasLocalVariable)
+                                {
+                                    byte[] signatureVariables = methodBody.GetSignatureVariables();
+                                    sigAddress = Marshal.AllocHGlobal(signatureVariables.Length);
+                                    Marshal.Copy(signatureVariables, 0, sigAddress, signatureVariables.Length);
+                                    //IntPtr sigAddress = signatureVariables.ToPointer();
+
+                                    info.locals.pSig = sigAddress + 1;
+                                    info.locals.args = sigAddress + 3;
+                                    info.locals.numArgs = (ushort)methodBody.LocalVariables.Count;
+                                }
+
+                                info.maxStack = methodBody.MaxStackSize;
+                            }
+                            else
+                            {
+                                //Size of native code generated for AND
+                                const int sizeBitwise = 3;
+
+                                //TODO: A better way to calculate size.
+                                //Calculate the size of IL to allocate native code
+                                //For each bitwise operation (ldc.i4 + And) is generated 3 byte-code
+                                //Example: 
+                                //IL with 1 bitwise = 21 bytes
+                                //IL with 2 bitwise = 24 bytes
+                                //IL with 3 bitwise = 27 bytes
+                                //...
+
+                                int nextMinLength = methodContext.NativeCode.Length + sizeBitwise + methodContext.NativeCode.Length % sizeBitwise;
+                                ilLength = 2 * (int)Math.Ceiling((double)nextMinLength / sizeBitwise);
+
+                                if (ilLength % 2 != 0)
+                                    ilLength++;
+
+                                ilAddress = Marshal.AllocHGlobal(ilLength);
+
+                                Span<byte> emptyBody;
+
+                                unsafe
+                                {
+                                    emptyBody = new Span<byte>(ilAddress.ToPointer(), ilLength);
+                                }
+
+                                //populate IL with bitwise operations
+                                emptyBody[0] = (byte)OpCodes.Ldc_I4_1.Value;
+                                emptyBody[1] = (byte)OpCodes.Ldc_I4_1.Value;
+                                emptyBody[2] = (byte)OpCodes.And.Value;
+                                emptyBody[^1] = (byte)OpCodes.Ret.Value;
+
+                                for (int i = 3; i < emptyBody.Length - 2; i += 2)
+                                {
+                                    emptyBody[i] = (byte)OpCodes.Ldc_I4_1.Value;
+                                    emptyBody[i + 1] = (byte)OpCodes.And.Value;
+                                }
+
+                                if (info.maxStack < 8)
+                                {
+                                    info.maxStack = 8;
+                                }
+                            }
+
+                            info.ILCode = ilAddress;
+                            info.ILCodeSize = ilLength;
+                        }
                     }
                 }
 
@@ -317,30 +319,24 @@ namespace Jitex.JIT
 
             _tokenTls.EnterCount++;
 
-            if (_resolversToken == null)
-            {
-                try
-                {
-                    _ceeInfo.ResolveToken(thisHandle, ref pResolvedToken);
-                }
-                finally
-                {
-                    _tokenTls.EnterCount--;
-                }
-
-                return;
-            }
-
             try
             {
                 if (_tokenTls.EnterCount == 1)
                 {
+                    IEnumerable<Delegate> resolvers = _resolversToken?.GetInvocationList();
+
+                    if (resolvers == null || !resolvers.Any())
+                    {
+                        _ceeInfo.ResolveToken(thisHandle, ref pResolvedToken);
+                        return;
+                    }
+
                     //Capture method who trying resolve that token.
                     _tokenTls.Source = _tokenTls.GetSource();
 
                     TokenContext context = new TokenContext(ref pResolvedToken, _tokenTls.Source);
 
-                    foreach (TokenResolverHandler resolver in _resolversToken.GetInvocationList())
+                    foreach (TokenResolverHandler resolver in resolvers)
                     {
                         resolver(context);
 
@@ -369,30 +365,25 @@ namespace Jitex.JIT
 
             _tokenTls.EnterCount++;
 
-            if (_resolversToken == null)
-            {
-                try
-                {
-                    return _ceeInfo.ConstructStringLiteral(thisHandle, hModule, metadataToken, ppValue);
-                }
-                finally
-                {
-                    _tokenTls.EnterCount--;
-                }
-            }
-
             try
             {
 
                 if (_tokenTls.EnterCount == 1)
                 {
+                    IEnumerable<Delegate> resolvers = _resolversToken?.GetInvocationList();
+
+                    if (resolvers == null || !resolvers.Any())
+                    {
+                        return _ceeInfo.ConstructStringLiteral(thisHandle, hModule, metadataToken, ppValue);
+                    }
+
                     //Capture method who trying resolve that token.
                     _tokenTls.Source = _tokenTls.GetSource();
 
                     CORINFO_CONSTRUCT_STRING constructString = new CORINFO_CONSTRUCT_STRING(hModule, metadataToken, ppValue);
                     TokenContext context = new TokenContext(ref constructString, _tokenTls.Source);
 
-                    foreach (TokenResolverHandler resolver in _resolversToken.GetInvocationList())
+                    foreach (TokenResolverHandler resolver in resolvers)
                     {
                         resolver(context);
 
