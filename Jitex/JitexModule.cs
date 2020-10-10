@@ -19,21 +19,8 @@ namespace Jitex
         /// Instance a new module.
         /// </summary>
         /// <param name="load">If module should be loaded on instance.</param>WWW
-        protected JitexModule(bool load = true)
+        protected JitexModule()
         {
-            if (load)
-                Load();
-        }
-
-        /// <summary>
-        /// Load module on Jitex (if not already loaded).
-        /// </summary>
-        protected internal void Load()
-        {
-            if (!JitexManager.ModuleIsLoaded(GetType()))
-            {
-                JitexManager.LoadModule(this);
-            }
         }
 
         /// <summary>

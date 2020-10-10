@@ -8,8 +8,9 @@ using Xunit;
 using static Jitex.Tests.Utils;
 using MethodBody = Jitex.Builder.Method.MethodBody;
 
-namespace Jitex.Tests
+namespace Jitex.Tests.Resolvers
 {
+    [Collection("Manager")]
     public class ResolveILTests
     {
         private static readonly MethodInfo AssertTrue;

@@ -13,7 +13,7 @@
         <PackageLicenseFile></PackageLicenseFile>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageTags>JIT</PackageTags>
-        <Version>3.0.4-alpha</Version>
+        <Version>3.1.0-alpha</Version>
         <AssemblyName>Jitex</AssemblyName>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
@@ -23,11 +23,9 @@
       <PlatformTarget>x64</PlatformTarget>
       <DocumentationFile>C:\Users\Hitmasu\Documents\Jitex\Jitex\Jitex\Jitex.xml</DocumentationFile>
     </PropertyGroup>
-    <ItemGroup>
-      <Compile Remove="Attributes\**" />
-      <EmbeddedResource Remove="Attributes\**" />
-      <None Remove="Attributes\**" />
-    </ItemGroup>
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      <GenerateSerializationAssemblies>On</GenerateSerializationAssemblies>
+    </PropertyGroup>
     <ItemGroup>
 		<ProjectReference Include="..\Jitex.Builder\Jitex.Builder.csproj" />
     </ItemGroup>

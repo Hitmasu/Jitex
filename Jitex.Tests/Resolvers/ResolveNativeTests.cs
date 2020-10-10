@@ -3,12 +3,12 @@ using System.Runtime.CompilerServices;
 using Iced.Intel;
 using Jitex.JIT.Context;
 using Xunit;
-
 using static Jitex.Tests.Utils;
 using static Iced.Intel.AssemblerRegisters;
 
-namespace Jitex.Tests
+namespace Jitex.Tests.Resolvers
 {
+    [Collection("Manager")]
     public class ResolveNativeTests
     {
         static ResolveNativeTests()

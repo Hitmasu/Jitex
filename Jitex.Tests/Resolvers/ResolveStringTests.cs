@@ -1,8 +1,9 @@
 ﻿using Jitex.JIT.Context;
 using Xunit;
 
-namespace Jitex.Tests
+namespace Jitex.Tests.Resolvers
 {
+    [Collection("Manager")]
     public class ResolveStringTests
     {
         static ResolveStringTests()
