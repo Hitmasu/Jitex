@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
-using static Jitex.Utils.WinApi;
+using static Jitex.Utils.NativeAPI.Windows.Kernel32;
 
 namespace Jitex.Hook
 {

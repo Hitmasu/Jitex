@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 
-namespace Jitex.Utils
+namespace Jitex.Utils.NativeAPI.Windows
 {
-    internal static class WinApi
+    internal static class Kernel32
     {
         [Flags]
         public enum AllocationType
