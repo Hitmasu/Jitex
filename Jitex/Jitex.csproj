@@ -16,10 +16,15 @@
 
 	<ItemGroup>
 	  <PackageReference Include="System.Memory" Version="4.5.4" />
+	  <PackageReference Include="System.Runtime.InteropServices" Version="4.3.0" />
 	</ItemGroup>
 
 	<ItemGroup>
 	  <ProjectReference Include="..\Jitex.Builder\Jitex.Builder.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Folder Include="Utils\NativeAPI\Unix\" />
 	</ItemGroup>
 
 </Project>

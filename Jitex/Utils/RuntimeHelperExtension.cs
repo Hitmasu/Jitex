@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Runtime.InteropServices;
-using static Jitex.Utils.Memory;
+using static Jitex.Utils.Trampoline;
 
 namespace Jitex.Utils
 {

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Reflection;
 using System.Reflection.Emit;
 using Jitex.Builder.Exceptions;
@@ -172,7 +173,7 @@ namespace Jitex.Builder.IL
                 short instruction = _il[_position++];
 
                 if (instruction == 0xFE)
-                    instruction = (short)((byte)instruction | _il[_position++] << 8);
+                    instruction = BitConverter.ToInt16(new[] { _il[_position++], (byte)instruction }, 0);
 
                 OpCode opCode = Operation.Translate(instruction);
 
@@ -410,7 +411,7 @@ namespace Jitex.Builder.IL
             /// <returns><see cref="int" /> value.</returns>
             private int ReadInt32()
             {
-                int value = BitConverter.ToInt32(_il, _position);
+                int value = BitConverter.ToInt32(_il,_position);
                 _position += 4;
                 return value;
             }

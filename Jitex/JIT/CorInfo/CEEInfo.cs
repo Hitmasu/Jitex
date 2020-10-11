@@ -23,9 +23,6 @@ namespace Jitex.JIT.CorInfo
         public delegate uint GetMethodDefFromMethodDelegate(IntPtr thisHandle, IntPtr hMethod);
 
         [UnmanagedFunctionPointer(default)]
-        public delegate IntPtr GetMethodModuleDelegate(IntPtr thisHandle, IntPtr hMethod);
-
-        [UnmanagedFunctionPointer(default)]
         public delegate void ResolveTokenDelegate(IntPtr thisHandle, ref CORINFO_RESOLVED_TOKEN pResolvedToken);
 
         [UnmanagedFunctionPointer(default)]

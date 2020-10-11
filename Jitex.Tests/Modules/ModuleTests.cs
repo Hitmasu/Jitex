@@ -39,6 +39,7 @@ namespace Jitex.Tests.Modules
         [Fact, Order(3)]
         public void RemoveModuleTest()
         {
+            ModuleLoadTest();
             JitexManager.RemoveModule<ModuleJitex>();
             bool moduleIsLoaded = JitexManager.ModuleIsLoaded<ModuleJitex>();
             Assert.False(moduleIsLoaded, "Module still loaded!");

@@ -1,35 +1,27 @@
 ﻿using System;
+using System.Reflection.Metadata;
 using System.Runtime.InteropServices;
+using Jitex.Utils.Extension;
 
 namespace Jitex.Utils
 {
-    internal static class Memory
+    internal static class Trampoline
     {
         private static readonly byte[] TrampolineInstruction;
 
-        static Memory()
+        static Trampoline()
         {
-            if (IntPtr.Size == 4)
+            TrampolineInstruction = new byte[]
             {
-                TrampolineInstruction = new byte[]
-                {
-                    0xE9, 0x00, 0x00, 0x00, 0x00
-                };
-            }
-            else
-            {
-                TrampolineInstruction = new byte[]
-                {
                     // mov rax, 0000000000000000h ;Pointer to delegate
                     0x48, 0xB8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                     // jmp rax
                     0xFF, 0xE0
-                };
-            }
+            };
         }
 
         /// <summary>
-        ///     Create a trampoline 64 bits.
+        /// Create a trampoline 64 bits.
         /// </summary>
         /// <param name="address"></param>
         /// <returns></returns>
@@ -37,14 +29,12 @@ namespace Jitex.Utils
         {
             IntPtr jmpNative = WinApi.VirtualAlloc(IntPtr.Zero, TrampolineInstruction.Length, WinApi.AllocationType.Commit, WinApi.MemoryProtection.ExecuteReadWrite);
             Marshal.Copy(TrampolineInstruction, 0, jmpNative, TrampolineInstruction.Length);
-
-            int startAddress = IntPtr.Size == 8 ? 2 : 1;
-            Marshal.WriteIntPtr(jmpNative, startAddress, address);
+            Marshal.WriteIntPtr(jmpNative, 2, address);
             return jmpNative;
         }
 
         /// <summary>
-        ///     Free memory trampoline.
+        /// Free memory trampoline.
         /// </summary>
         /// <param name="address"></param>
         public static void FreeTrampoline(IntPtr address)

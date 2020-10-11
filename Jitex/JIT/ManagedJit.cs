@@ -11,6 +11,8 @@ using System.Runtime.InteropServices;
 using System.Text;
 using Jitex.Exceptions;
 using Jitex.JIT.Context;
+using Jitex.Runtime;
+using Jitex.Utils.Extension;
 using static Jitex.JIT.CorInfo.CEEInfo;
 using static Jitex.JIT.CorInfo.CorJitCompiler;
 using static Jitex.JIT.JitexHandler;
@@ -40,12 +42,29 @@ namespace Jitex.JIT
     /// <summary>
     /// Hook instance from JIT.
     /// </summary>
-    internal class ManagedJit : IDisposable
+    internal sealed class ManagedJit : IDisposable
     {
-        [DllImport("clrjit.dll", CallingConvention = CallingConvention.StdCall, SetLastError = true, EntryPoint = "getJit", BestFitMapping = true)]
-        private static extern IntPtr GetJit();
-
         private readonly HookManager _hookManager = new HookManager();
+
+        /// <summary>
+        /// Running framework.
+        /// </summary>
+        private static readonly RuntimeFramework Framework;
+
+        /// <summary>
+        /// Lock to prevent multiple instance.
+        /// </summary>
+        private static readonly object InstanceLock = new object();
+
+        /// <summary>
+        /// Lock to prevent unload in compile time.
+        /// </summary>
+        private static readonly object JitLock = new object();
+
+        /// <summary>
+        /// Instance of CEEInfo.
+        /// </summary>
+        private static CEEInfo CEEInfo => Framework.CEEInfo;
 
         /// <summary>
         /// Custom compíle method.
@@ -68,18 +87,7 @@ namespace Jitex.JIT
 
         [ThreadStatic] private static TokenTls _tokenTls;
 
-        private static readonly object InstanceLock = new object();
-        private static readonly object JitLock = new object();
-
         private static ManagedJit _instance;
-
-        private static readonly IntPtr JitVTable;
-
-        private static readonly CorJitCompiler Compiler;
-
-        private static IntPtr _corJitInfoPtr = IntPtr.Zero;
-
-        private static CEEInfo _ceeInfo;
 
         private MethodResolverHandler _methodResolvers;
 
@@ -89,10 +97,7 @@ namespace Jitex.JIT
 
         static ManagedJit()
         {
-            IntPtr jit = GetJit();
-
-            JitVTable = Marshal.ReadIntPtr(jit);
-            Compiler = Marshal.PtrToStructure<CorJitCompiler>(JitVTable);
+            Framework = RuntimeFramework.GetFramework();
         }
 
         internal void AddMethodResolver(MethodResolverHandler methodResolver) => _methodResolvers += methodResolver;
@@ -123,7 +128,7 @@ namespace Jitex.JIT
             RuntimeHelperExtension.PrepareDelegate(_resolveToken, IntPtr.Zero, corinfoResolvedToken);
             RuntimeHelperExtension.PrepareDelegate(_constructStringLiteral, IntPtr.Zero, IntPtr.Zero, 0, IntPtr.Zero);
 
-            _hookManager.InjectHook(JitVTable, _compileMethod);
+            _hookManager.InjectHook(Framework.JitVTable, _compileMethod);
         }
 
         /// <summary>
@@ -174,13 +179,12 @@ namespace Jitex.JIT
                     {
                         lock (JitLock)
                         {
-                            if (_corJitInfoPtr == IntPtr.Zero)
+                            if (Framework.CorJitInfo == IntPtr.Zero)
                             {
-                                _corJitInfoPtr = Marshal.ReadIntPtr(comp);
-                                _ceeInfo = new CEEInfo(_corJitInfoPtr);
+                                Framework.ReadJITInfo(comp);
 
-                                _hookManager.InjectHook(_ceeInfo.ResolveTokenIndex, _resolveToken);
-                                _hookManager.InjectHook(_ceeInfo.ConstructStringLiteralIndex, _constructStringLiteral);
+                                _hookManager.InjectHook(CEEInfo.ResolveTokenIndex, _resolveToken);
+                                _hookManager.InjectHook(CEEInfo.ConstructStringLiteralIndex, _constructStringLiteral);
                             }
                         }
 
@@ -188,7 +192,7 @@ namespace Jitex.JIT
 
                         if (module != null)
                         {
-                            uint methodToken = _ceeInfo.GetMethodDefFromMethod(info.ftn);
+                            uint methodToken = CEEInfo.GetMethodDefFromMethod(info.ftn);
                             MethodBase methodFound = module.ResolveMethod((int)methodToken);
 
                             if (methodFound == null)
@@ -216,15 +220,12 @@ namespace Jitex.JIT
                                 MethodBody methodBody = methodContext.MethodBody;
 
                                 ilLength = methodBody.IL.Length;
-                                ilAddress = Marshal.AllocHGlobal(methodBody.IL.Length);
-                                Marshal.Copy(methodBody.IL, 0, ilAddress, methodBody.IL.Length);
+                                ilAddress = methodBody.IL.ToPointer();
 
                                 if (methodBody.HasLocalVariable)
                                 {
                                     byte[] signatureVariables = methodBody.GetSignatureVariables();
-                                    sigAddress = Marshal.AllocHGlobal(signatureVariables.Length);
-                                    Marshal.Copy(signatureVariables, 0, sigAddress, signatureVariables.Length);
-                                    //IntPtr sigAddress = signatureVariables.ToPointer();
+                                    sigAddress = signatureVariables.ToPointer();
 
                                     info.locals.pSig = sigAddress + 1;
                                     info.locals.args = sigAddress + 3;
@@ -235,44 +236,7 @@ namespace Jitex.JIT
                             }
                             else
                             {
-                                //Size of native code generated for AND
-                                const int sizeBitwise = 3;
-
-                                //TODO: A better way to calculate size.
-                                //Calculate the size of IL to allocate native code
-                                //For each bitwise operation (ldc.i4 + And) is generated 3 byte-code
-                                //Example: 
-                                //IL with 1 bitwise = 21 bytes
-                                //IL with 2 bitwise = 24 bytes
-                                //IL with 3 bitwise = 27 bytes
-                                //...
-
-                                int nextMinLength = methodContext.NativeCode.Length + sizeBitwise + methodContext.NativeCode.Length % sizeBitwise;
-                                ilLength = 2 * (int)Math.Ceiling((double)nextMinLength / sizeBitwise);
-
-                                if (ilLength % 2 != 0)
-                                    ilLength++;
-
-                                ilAddress = Marshal.AllocHGlobal(ilLength);
-
-                                Span<byte> emptyBody;
-
-                                unsafe
-                                {
-                                    emptyBody = new Span<byte>(ilAddress.ToPointer(), ilLength);
-                                }
-
-                                //populate IL with bitwise operations
-                                emptyBody[0] = (byte)OpCodes.Ldc_I4_1.Value;
-                                emptyBody[1] = (byte)OpCodes.Ldc_I4_1.Value;
-                                emptyBody[2] = (byte)OpCodes.And.Value;
-                                emptyBody[^1] = (byte)OpCodes.Ret.Value;
-
-                                for (int i = 3; i < emptyBody.Length - 2; i += 2)
-                                {
-                                    emptyBody[i] = (byte)OpCodes.Ldc_I4_1.Value;
-                                    emptyBody[i + 1] = (byte)OpCodes.And.Value;
-                                }
+                                (ilAddress, ilLength) = PrepareIL(methodContext.NativeCode);
 
                                 if (info.maxStack < 8)
                                 {
@@ -286,7 +250,7 @@ namespace Jitex.JIT
                     }
                 }
 
-                CorJitResult result = Compiler.CompileMethod(thisPtr, comp, ref info, flags, out nativeEntry, out nativeSizeOfCode);
+                CorJitResult result = Framework.CorJitCompiler.CompileMethod(thisPtr, comp, ref info, flags, out nativeEntry, out nativeSizeOfCode);
 
                 if (ilAddress != IntPtr.Zero && methodContext!.Mode == MethodContext.ResolveMode.IL)
                     Marshal.FreeHGlobal(ilAddress);
@@ -324,7 +288,7 @@ namespace Jitex.JIT
 
                     if (resolvers == null || !resolvers.Any())
                     {
-                        _ceeInfo.ResolveToken(thisHandle, ref pResolvedToken);
+                        CEEInfo.ResolveToken(thisHandle, ref pResolvedToken);
                         return;
                     }
 
@@ -345,7 +309,7 @@ namespace Jitex.JIT
                     }
                 }
 
-                _ceeInfo.ResolveToken(thisHandle, ref pResolvedToken);
+                CEEInfo.ResolveToken(thisHandle, ref pResolvedToken);
             }
             finally
             {
@@ -371,7 +335,7 @@ namespace Jitex.JIT
 
                     if (resolvers == null || !resolvers.Any())
                     {
-                        return _ceeInfo.ConstructStringLiteral(thisHandle, hModule, metadataToken, ppValue);
+                        return CEEInfo.ConstructStringLiteral(thisHandle, hModule, metadataToken, ppValue);
                     }
 
                     //Capture method who trying resolve that token.
@@ -389,34 +353,95 @@ namespace Jitex.JIT
                             if (string.IsNullOrEmpty(context.Content))
                                 throw new StringNullOrEmptyException();
 
-                            InfoAccessType result = _ceeInfo.ConstructStringLiteral(thisHandle, hModule, metadataToken, ppValue);
-
-                            IntPtr pEntry = Marshal.ReadIntPtr(ppValue);
-
-                            IntPtr objectHandle = Marshal.ReadIntPtr(pEntry);
-                            IntPtr hashMapPtr = Marshal.ReadIntPtr(objectHandle);
-
-                            byte[] newContent = Encoding.Unicode.GetBytes(context.Content);
-
-                            objectHandle = Marshal.AllocHGlobal(IntPtr.Size + sizeof(int) + newContent.Length);
-
-                            Marshal.WriteIntPtr(objectHandle, hashMapPtr);
-                            Marshal.WriteInt32(objectHandle + IntPtr.Size, newContent.Length / 2);
-                            Marshal.Copy(newContent, 0, objectHandle + IntPtr.Size + sizeof(int), newContent.Length);
-
-                            Marshal.WriteIntPtr(pEntry, objectHandle);
-
+                            InfoAccessType result = CEEInfo.ConstructStringLiteral(thisHandle, hModule, metadataToken, ppValue);
+                            WriteString(ppValue, context.Content);
                             return result;
                         }
                     }
                 }
 
-                return _ceeInfo.ConstructStringLiteral(thisHandle, hModule, metadataToken, ppValue);
+                return CEEInfo.ConstructStringLiteral(thisHandle, hModule, metadataToken, ppValue);
             }
             finally
             {
                 _tokenTls.EnterCount--;
             }
+        }
+
+        /// <summary>
+        /// Write string on OBJECTHANDLE.
+        /// </summary>
+        /// <param name="ppValue">Pointer to OBJECTHANDLE.</param>
+        /// <param name="content">Content to write.</param>
+        private void WriteString(IntPtr ppValue, string content)
+        {
+            IntPtr pEntry = Marshal.ReadIntPtr(ppValue);
+
+            IntPtr objectHandle = Marshal.ReadIntPtr(pEntry);
+            IntPtr hashMapPtr = Marshal.ReadIntPtr(objectHandle);
+
+            byte[] newContent = Encoding.Unicode.GetBytes(content);
+
+            objectHandle = Marshal.AllocHGlobal(IntPtr.Size + sizeof(int) + newContent.Length);
+
+            Marshal.WriteIntPtr(objectHandle, hashMapPtr);
+            Marshal.WriteInt32(objectHandle + IntPtr.Size, newContent.Length / 2);
+            Marshal.Copy(newContent, 0, objectHandle + IntPtr.Size + sizeof(int), newContent.Length);
+
+            Marshal.WriteIntPtr(pEntry, objectHandle);
+        }
+
+        /// <summary>
+        /// Prepare IL to inject native code.
+        /// </summary>
+        /// <remarks>
+        /// To inject native code, its necessary generate a IL which native code size generated by JIT
+        /// is greater than or equals native code size to inject.
+        /// </remarks>
+        /// <param name="nativeCode">Native code to read.</param>
+        /// <returns>Address and size of IL.</returns>
+        private static (IntPtr ilAddress, int ilLength) PrepareIL(byte[] nativeCode)
+        {
+            //Size of native code generated for AND
+            const int sizeBitwise = 3;
+
+            //TODO: A better way to calculate size.
+            //Calculate the size of IL to allocate native code
+            //For each bitwise operation (ldc.i4 + And) is generated 3 byte-code
+            //Example: 
+            //IL with 1 bitwise = 21 bytes
+            //IL with 2 bitwise = 24 bytes
+            //IL with 3 bitwise = 27 bytes
+            //...
+
+            int nextMinLength = nativeCode.Length + sizeBitwise + nativeCode.Length % sizeBitwise;
+            int ilLength = 2 * (int)Math.Ceiling((double)nextMinLength / sizeBitwise);
+
+            if (ilLength % 2 != 0)
+                ilLength++;
+
+            IntPtr ilAddress = Marshal.AllocHGlobal(ilLength);
+
+            Span<byte> emptyBody;
+
+            unsafe
+            {
+                emptyBody = new Span<byte>(ilAddress.ToPointer(), ilLength);
+            }
+
+            //populate IL with bitwise operations
+            emptyBody[0] = (byte)OpCodes.Ldc_I4_1.Value;
+            emptyBody[1] = (byte)OpCodes.Ldc_I4_1.Value;
+            emptyBody[2] = (byte)OpCodes.And.Value;
+            emptyBody[^1] = (byte)OpCodes.Ret.Value;
+
+            for (int i = 3; i < emptyBody.Length - 2; i += 2)
+            {
+                emptyBody[i] = (byte)OpCodes.Ldc_I4_1.Value;
+                emptyBody[i + 1] = (byte)OpCodes.And.Value;
+            }
+
+            return (ilAddress, ilLength);
         }
 
         public void Dispose()
