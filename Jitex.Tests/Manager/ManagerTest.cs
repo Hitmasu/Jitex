@@ -60,6 +60,7 @@ namespace Jitex.Tests.Manager
         [Fact, Order(3)]
         public void RemoveTest()
         {
+            LoadJitexTest();
             JitexManager.Remove();
             Assert.False(JitexManager.IsLoaded, "Jitex still loaded!");
         }

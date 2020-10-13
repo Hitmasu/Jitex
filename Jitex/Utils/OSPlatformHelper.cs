@@ -7,6 +7,6 @@ namespace Jitex.Utils
 {
     public static class OSPlatformHelper
     {
-        public static bool IsPosix => RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+        public static bool IsPosix => !RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
     }
 }
