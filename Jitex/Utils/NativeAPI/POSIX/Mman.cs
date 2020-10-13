@@ -1,9 +1,10 @@
 ﻿using System;
+using System.Runtime.InteropServices;
 using Mono.Unix.Native;
 
 namespace Jitex.Utils.NativeAPI.POSIX
 {
-    // ReSharper disable once InconsistentNaming
+    // ReSharper disable InconsistentNaming
     /// <summary>
     /// Interface to mman.h from POSIX.
     /// </summary>
@@ -13,23 +14,35 @@ namespace Jitex.Utils.NativeAPI.POSIX
         /// Allocate memory block.
         /// </summary>
         /// <param name="length">Length to allocate.</param>
-        /// <param name="prot">Permissions.</param>
-        /// <param name="flag">Visiblity.</param>
         /// <returns>Address of block allocated.</returns>
-        public static IntPtr mmap(ulong length, MmapProts prot, MmapFlags flag)
+        public static IntPtr mmap(int length, MmapProts prots, MmapFlags flags)
         {
-            return Syscall.mmap(IntPtr.Zero, length, prot, flag, 0, 0);
+            return Syscall.mmap(IntPtr.Zero, (ulong) length, prots, flags, 0, 0);
         }
 
         /// <summary>
         /// Free memory block.
         /// </summary>
         /// <param name="address">Address of block.</param>
-        /// <param name="length">Size of block.</param>
+        /// <param name="length">Size of block</param>
         /// <returns>True to success | False to failed.</returns>
-        public static bool munmap(IntPtr address, ulong length)
+        public static void munmap(IntPtr address, int length)
         {
-            return Syscall.munmap(address, length) == 0;
+            Syscall.munmap(address, (ulong) length);
+        }
+
+        /// <summary>
+        /// Set protection on memory block.
+        /// </summary>
+        /// <param name="address">Address of block.</param>
+        /// <param name="length">Length of block.</param>
+        /// <param name="flags">Protection to set.</param>
+        /// <returns></returns>
+        public static bool mprotect(IntPtr address, ulong length, MmapProts flags)
+        {
+            Console.WriteLine(Syscall.mprotect(address, length, flags));
+            return Syscall.mprotect(address, length, flags) == 0;
         }
     }
+    // ReSharper restore InconsistentNaming
 }

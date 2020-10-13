@@ -20,17 +20,43 @@ namespace Jitex.Utils.NativeAPI.Windows
         [Flags]
         public enum MemoryProtection
         {
-            ExecuteReadWrite = 0x40,
-            ReadWrite = 0x04
+            NONE = 0x0,
+            EXECUTE = 0x10,
+            EXECUTE_READ = 0x20,
+            EXECUTE_READ_WRITE = 0x40,
+            EXECUTE_WRITE_COPY = 0x80,
+            NO_ACCESS = 0x01,
+            READ_ONLY = 0x02,
+            READ_WRITE = 0x04,
+            WRITE_COPY = 0x08,
+            GUARD_MODIFIERFLAG = 0x100,
+            NO_CACHE_MODIFIERFLAG = 0x200,
+            WRITE_COMBINE_MODIFIERFLAG = 0x400
         }
 
         [DllImport("kernel32", EntryPoint = "VirtualAlloc")]
-        public static extern IntPtr VirtualAlloc(IntPtr lpAddress, int dwSize, AllocationType flAllocationType, MemoryProtection flProtect);
+        private static extern IntPtr VirtualAlloc(IntPtr lpAddress, int dwSize, AllocationType flAllocationType, MemoryProtection flProtect);
 
         [DllImport("kernel32", EntryPoint = "VirtualFree")]
-        public static extern int VirtualFree(IntPtr lpAddress, IntPtr dwSize, FreeType freeType);
+        private static extern int VirtualFree(IntPtr lpAddress, IntPtr dwSize, FreeType freeType);
 
         [DllImport("kernel32", EntryPoint = "VirtualProtect")]
-        public static extern int VirtualProtect(IntPtr lpAddress, IntPtr dwSize, MemoryProtection flNewProtect, out MemoryProtection lpflOldProtect);
+        private static extern int VirtualProtect(IntPtr lpAddress, IntPtr dwSize, MemoryProtection flNewProtect, out MemoryProtection lpflOldProtect);
+
+        public static IntPtr VirtualAlloc(int size, AllocationType allocationType, MemoryProtection protection)
+        {
+            return VirtualAlloc(IntPtr.Zero, size, allocationType, protection);
+        }
+
+        public static int VirtualFree(IntPtr address, int size)
+        {
+            return VirtualFree(address, new IntPtr(size), FreeType.Release);
+        }
+
+        public static MemoryProtection VirtualProtect(IntPtr address, int size, MemoryProtection protection)
+        {
+            VirtualProtect(address, new IntPtr(size), protection, out MemoryProtection oldFlags);
+            return oldFlags;
+        }
     }
 }

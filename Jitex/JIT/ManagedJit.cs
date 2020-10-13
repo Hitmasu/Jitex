@@ -3,10 +3,10 @@ using Jitex.JIT.CorInfo;
 using Jitex.Utils;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using Jitex.Exceptions;
@@ -195,9 +195,6 @@ namespace Jitex.JIT
                             uint methodToken = CEEInfo.GetMethodDefFromMethod(info.ftn);
                             MethodBase methodFound = module.ResolveMethod((int)methodToken);
 
-                            if (methodFound == null)
-                                Debugger.Break();
-
                             _tokenTls = new TokenTls { Root = methodFound };
 
                             methodContext = new MethodContext(methodFound);
@@ -373,7 +370,8 @@ namespace Jitex.JIT
         /// </summary>
         /// <param name="ppValue">Pointer to OBJECTHANDLE.</param>
         /// <param name="content">Content to write.</param>
-        private void WriteString(IntPtr ppValue, string content)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void WriteString(IntPtr ppValue, string content)
         {
             IntPtr pEntry = Marshal.ReadIntPtr(ppValue);
 
@@ -400,6 +398,7 @@ namespace Jitex.JIT
         /// </remarks>
         /// <param name="nativeCode">Native code to read.</param>
         /// <returns>Address and size of IL.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static (IntPtr ilAddress, int ilLength) PrepareIL(byte[] nativeCode)
         {
             //Size of native code generated for AND

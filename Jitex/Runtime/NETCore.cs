@@ -1,13 +1,17 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Runtime.InteropServices;
-using System.Text;
 
 namespace Jitex.Runtime
 {
     internal sealed class NETCore : RuntimeFramework
     {
-        [DllImport("clrjit.dll", CallingConvention = CallingConvention.StdCall, SetLastError = true, EntryPoint = "getJit", BestFitMapping = true)]
+#if Windows
+        private const string jitLibraryName = "clrjit.dll";
+#else
+        private const string jitLibraryName = "libclrjit.so";
+#endif
+
+        [DllImport(jitLibraryName, CallingConvention = CallingConvention.StdCall, SetLastError = true, EntryPoint = "getJit", BestFitMapping = true)]
         private static extern IntPtr GetJit();
 
         protected override IntPtr GetJitAddress()

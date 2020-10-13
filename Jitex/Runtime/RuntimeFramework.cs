@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 using Jitex.JIT.CorInfo;
+using Jitex.Utils;
 
 namespace Jitex.Runtime
 {
@@ -38,7 +39,7 @@ namespace Jitex.Runtime
         /// <summary>
         /// Runtime running.
         /// </summary>
-        public static RuntimeFramework Framework { get; set; }
+        private static RuntimeFramework Framework { get; set; }
 
         /// <summary>
         /// Load info from JIT.
@@ -61,7 +62,7 @@ namespace Jitex.Runtime
 
             string frameworkRunning = RuntimeInformation.FrameworkDescription;
 
-            if(frameworkRunning.StartsWith(".NET Core"))
+            if (frameworkRunning.StartsWith(".NET Core"))
                 Framework = new NETCore();
             else if (frameworkRunning.StartsWith(".NET Framework"))
                 Framework = new NETFramework();

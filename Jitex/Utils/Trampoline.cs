@@ -1,8 +1,12 @@
 ﻿using System;
-using System.Reflection.Metadata;
+using System.IO;
 using System.Runtime.InteropServices;
-using Jitex.Utils.Extension;
+using System.Text;
+using Iced.Intel;
+using Jitex.Utils.NativeAPI;
+using Jitex.Utils.NativeAPI.POSIX;
 using Jitex.Utils.NativeAPI.Windows;
+using Mono.Unix.Native;
 
 namespace Jitex.Utils
 {
@@ -28,7 +32,13 @@ namespace Jitex.Utils
         /// <returns></returns>
         public static IntPtr AllocateTrampoline(IntPtr address)
         {
-            IntPtr jmpNative = Kernel32.VirtualAlloc(IntPtr.Zero, TrampolineInstruction.Length, Kernel32.AllocationType.Commit, Kernel32.MemoryProtection.ExecuteReadWrite);
+            IntPtr jmpNative;
+
+            if (OSPlatformHelper.IsPosix)
+                jmpNative = Mman.mmap(TrampolineInstruction.Length, MmapProts.PROT_EXEC | MmapProts.PROT_WRITE, MmapFlags.MAP_ANON | MmapFlags.MAP_SHARED);
+            else
+                jmpNative = Kernel32.VirtualAlloc(TrampolineInstruction.Length, Kernel32.AllocationType.Commit, Kernel32.MemoryProtection.EXECUTE_READ_WRITE);
+
             Marshal.Copy(TrampolineInstruction, 0, jmpNative, TrampolineInstruction.Length);
             Marshal.WriteIntPtr(jmpNative, 2, address);
             return jmpNative;
@@ -40,7 +50,10 @@ namespace Jitex.Utils
         /// <param name="address"></param>
         public static void FreeTrampoline(IntPtr address)
         {
-            Kernel32.VirtualFree(address, new IntPtr(TrampolineInstruction.Length), Kernel32.FreeType.Release);
+            if (OSPlatformHelper.IsPosix)
+                Mman.munmap(address, TrampolineInstruction.Length);
+            else
+                Kernel32.VirtualFree(address, TrampolineInstruction.Length);
         }
     }
 }

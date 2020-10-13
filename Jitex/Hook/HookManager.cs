@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using Jitex.Runtime;
+using Jitex.Utils;
 using static Jitex.Utils.NativeAPI.Windows.Kernel32;
 
 namespace Jitex.Hook
@@ -11,7 +14,7 @@ namespace Jitex.Hook
         private readonly IList<VTableHook> _hooks = new List<VTableHook>();
 
         /// <summary>
-        /// Inject a delegate in memory
+        /// Inject a delegate in VTable.
         /// </summary>
         /// <param name="pointerAddress">Pointer to address method.</param>
         /// <param name="delToInject">Delegate to be inject.</param>
@@ -24,6 +27,11 @@ namespace Jitex.Hook
             _hooks.Add(hook);
         }
 
+        /// <summary>
+        /// Remove hook from VTable.
+        /// </summary>
+        /// <param name="del">Delegate to remove.</param>
+        /// <returns></returns>
         public bool RemoveHook(Delegate del)
         {
             VTableHook hookFound = _hooks.FirstOrDefault(h => h.Delegate.Method.Equals(del.Method));
@@ -41,11 +49,27 @@ namespace Jitex.Hook
             return true;
         }
 
-        private void WritePointer(IntPtr address, IntPtr pointer)
+        /// <summary>
+        /// Write pointer on address.
+        /// </summary>
+        /// <param name="address">Address to write pointer.</param>
+        /// <param name="pointer">Pointer to write.</param>
+        private static void WritePointer(IntPtr address, IntPtr pointer)
         {
-            VirtualProtect(address, new IntPtr(IntPtr.Size), MemoryProtection.ReadWrite, out MemoryProtection oldFlags);
-            Marshal.WriteIntPtr(address, pointer);
-            VirtualProtect(address, new IntPtr(IntPtr.Size), oldFlags, out _);
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                MemoryProtection oldFlags = VirtualProtect(address, IntPtr.Size, MemoryProtection.READ_WRITE);
+                Marshal.WriteIntPtr(address, pointer);
+                VirtualProtect(address, IntPtr.Size, oldFlags);
+            }
+            else
+            {
+                byte[] newAddress = BitConverter.GetBytes(pointer.ToInt64());
+
+                using FileStream fs = File.Open($"/proc/{ProcessInfo.PID}/mem", FileMode.Open, FileAccess.ReadWrite);
+                fs.Seek(address.ToInt64(), SeekOrigin.Begin);
+                fs.Write(newAddress, 0, newAddress.Length);
+            }
         }
     }
 }
