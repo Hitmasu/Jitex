@@ -24,7 +24,7 @@ namespace Jitex.Tests.Resolvers
         {
             int n1 = 5;
             int n2 = 5;
-            int expected = n1 * n2+50;
+            int expected = n1 * n2;
             int number = SimpleSum(n1, n2);
             Assert.True(number == expected, $"Native code not injected! {number}");
         }
