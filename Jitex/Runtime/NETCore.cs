@@ -7,8 +7,10 @@ namespace Jitex.Runtime
     {
 #if Windows
         private const string jitLibraryName = "clrjit.dll";
-#else
+#elif Linux
         private const string jitLibraryName = "libclrjit.so";
+#else
+        private const string jitLibraryName = "libclrjit.dylib";
 #endif
 
         [DllImport(jitLibraryName, CallingConvention = CallingConvention.StdCall, SetLastError = true, EntryPoint = "getJit", BestFitMapping = true)]

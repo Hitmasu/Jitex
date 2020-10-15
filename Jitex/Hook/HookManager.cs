@@ -3,9 +3,10 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
-using Jitex.Runtime;
 using Jitex.Utils;
-using static Jitex.Utils.NativeAPI.Windows.Kernel32;
+using Jitex.Utils.NativeAPI.POSIX;
+using Jitex.Utils.NativeAPI.Windows;
+using Mono.Unix.Native;
 
 namespace Jitex.Hook
 {
@@ -58,11 +59,11 @@ namespace Jitex.Hook
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                MemoryProtection oldFlags = VirtualProtect(address, IntPtr.Size, MemoryProtection.READ_WRITE);
+                Kernel32.MemoryProtection oldFlags = Kernel32.VirtualProtect(address, IntPtr.Size, Kernel32.MemoryProtection.READ_WRITE);
                 Marshal.WriteIntPtr(address, pointer);
-                VirtualProtect(address, IntPtr.Size, oldFlags);
+                Kernel32.VirtualProtect(address, IntPtr.Size, oldFlags);
             }
-            else
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
                 byte[] newAddress = BitConverter.GetBytes(pointer.ToInt64());
 
@@ -70,6 +71,11 @@ namespace Jitex.Hook
                 using FileStream fs = File.Open($"/proc/{ProcessInfo.PID}/mem", FileMode.Open, FileAccess.ReadWrite);
                 fs.Seek(address.ToInt64(), SeekOrigin.Begin);
                 fs.Write(newAddress, 0, newAddress.Length);
+            }
+            else
+            {
+                Mman.mprotect(address, (ulong) IntPtr.Size, MmapProts.PROT_WRITE);
+                Marshal.WriteIntPtr(address, pointer);
             }
         }
     }

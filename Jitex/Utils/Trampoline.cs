@@ -1,9 +1,5 @@
 ﻿using System;
-using System.IO;
 using System.Runtime.InteropServices;
-using System.Text;
-using Iced.Intel;
-using Jitex.Utils.NativeAPI;
 using Jitex.Utils.NativeAPI.POSIX;
 using Jitex.Utils.NativeAPI.Windows;
 using Mono.Unix.Native;
