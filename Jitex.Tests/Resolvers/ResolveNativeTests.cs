@@ -24,7 +24,7 @@ namespace Jitex.Tests.Resolvers
         {
             int n1 = 5;
             int n2 = 5;
-            int expected = n1 * n2;
+            int expected = n1 * n2+50;
             int number = SimpleSum(n1, n2);
             Assert.True(number == expected, $"Native code not injected! {number}");
         }
@@ -98,16 +98,6 @@ namespace Jitex.Tests.Resolvers
                 assembler.Assemble(new StreamCodeWriter(stream), 0);
 
                 context.ResolveNative(stream.ToArray());
-
-                //Assembler assembler = new Assembler(64);
-
-                //assembler.lea(eax, __dword_ptr[rdx]);
-
-
-
-                //assembler.ret();
-
-                //context.ResolveNative(GetNativeCode(assembler));
             }
         }
 
@@ -115,21 +105,6 @@ namespace Jitex.Tests.Resolvers
         {
             using MemoryStream stream = new MemoryStream();
             assembler.Assemble(new StreamCodeWriter(stream), 0);
-
-            //byte[] nativeCode = stream.ToArray();
-
-            //if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            //{
-            //    return nativeCode;
-            //}
-            //else //Linux, MacOS
-            //{
-            //    IntPtr addr = Syscall.mmap(IntPtr.Zero, (ulong)nativeCode.Length,
-            //        MmapProts.PROT_EXEC | MmapProts.PROT_WRITE, MmapFlags.MAP_ANON | MmapFlags.MAP_SHARED, 0, 0);
-
-            //    Marshal.Copy(nativeCode, 0, addr, nativeCode.Length);
-
-            //}
             return stream.ToArray();
         }
     }

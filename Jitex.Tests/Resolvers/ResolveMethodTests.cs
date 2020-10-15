@@ -110,7 +110,7 @@ namespace Jitex.Tests.Resolvers
         [Fact]
         public void LocalVariableNativeTypeTest()
         {
-            string expected = "Boolean | Int32 | Double | Decimal | String";
+            string expected = "Boolean | Int32 | Double | Decimal | int";
             string actual = LocalVariableNativeType();
 
             Assert.True(expected == actual, "\nVariable not inserted.");
