@@ -1,10 +1,8 @@
 ﻿using System;
 using System.IO;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using Iced.Intel;
 using Jitex.JIT.Context;
-using Mono.Unix.Native;
 using Xunit;
 using static Jitex.Tests.Utils;
 using static Iced.Intel.AssemblerRegisters;
@@ -69,10 +67,12 @@ namespace Jitex.Tests.Resolvers
                 assembler.pop(rbp);
                 assembler.ret();
 
-                using MemoryStream stream = new MemoryStream();
-                assembler.Assemble(new StreamCodeWriter(stream), 0);
+                using (MemoryStream stream = new MemoryStream())
+                {
+                    assembler.Assemble(new StreamCodeWriter(stream), 0);
 
-                context.ResolveNative(stream.ToArray());
+                    context.ResolveNative(stream.ToArray());
+                }
             }
             else if (context.Method == GetMethod<ResolveNativeTests>(nameof(LargeSum)))
             {
@@ -94,18 +94,13 @@ namespace Jitex.Tests.Resolvers
                 assembler.pop(rbp);
                 assembler.ret();
 
-                using MemoryStream stream = new MemoryStream();
-                assembler.Assemble(new StreamCodeWriter(stream), 0);
+                using (MemoryStream stream = new MemoryStream())
+                {
+                    assembler.Assemble(new StreamCodeWriter(stream), 0);
 
-                context.ResolveNative(stream.ToArray());
+                    context.ResolveNative(stream.ToArray());
+                }
             }
-        }
-
-        private static byte[] GetNativeCode(Assembler assembler)
-        {
-            using MemoryStream stream = new MemoryStream();
-            assembler.Assemble(new StreamCodeWriter(stream), 0);
-            return stream.ToArray();
         }
     }
 }

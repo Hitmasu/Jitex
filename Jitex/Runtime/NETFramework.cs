@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Runtime.InteropServices;
-using System.Text;
 
 namespace Jitex.Runtime
 {
@@ -9,6 +7,10 @@ namespace Jitex.Runtime
     {
         [DllImport("mscorjit.dll", CallingConvention = CallingConvention.StdCall, SetLastError = true, EntryPoint = "getJit", BestFitMapping = true)]
         private static extern IntPtr GetJit();
+
+        internal override int ResolveTokenOffset { get; }
+        internal override int GetMethodDefFromMethodOffset { get; set; }
+        internal override int ConstructStringLiteralOffset { get; set; }
 
         protected override IntPtr GetJitAddress()
         {

@@ -13,8 +13,6 @@ using Jitex.Exceptions;
 using Jitex.JIT.Context;
 using Jitex.Runtime;
 using Jitex.Utils.Extension;
-using static Jitex.JIT.CorInfo.CEEInfo;
-using static Jitex.JIT.CorInfo.CorJitCompiler;
 using static Jitex.JIT.JitexHandler;
 
 using MethodBody = Jitex.Builder.Method.MethodBody;
@@ -62,24 +60,19 @@ namespace Jitex.JIT
         private static readonly object JitLock = new object();
 
         /// <summary>
-        /// Instance of CEEInfo.
-        /// </summary>
-        private static CEEInfo CEEInfo => Framework.CEEInfo;
-
-        /// <summary>
         /// Custom compíle method.
         /// </summary>
-        private CompileMethodDelegate _compileMethod;
+        private CorJitCompiler.CompileMethodDelegate _compileMethod;
 
         /// <summary>
         /// Custom resolve token.
         /// </summary>
-        private ResolveTokenDelegate _resolveToken;
+        private CEEInfo.ResolveTokenDelegate _resolveToken;
 
         /// <summary>
         /// Custom construct string literal.
         /// </summary>
-        private ConstructStringLiteralDelegate _constructStringLiteral;
+        private CEEInfo.ConstructStringLiteralDelegate _constructStringLiteral;
 
         private bool _isDisposed;
 
@@ -128,7 +121,7 @@ namespace Jitex.JIT
             RuntimeHelperExtension.PrepareDelegate(_resolveToken, IntPtr.Zero, corinfoResolvedToken);
             RuntimeHelperExtension.PrepareDelegate(_constructStringLiteral, IntPtr.Zero, IntPtr.Zero, 0, IntPtr.Zero);
 
-            _hookManager.InjectHook(Framework.JitVTable, _compileMethod);
+            _hookManager.InjectHook(Framework.ICorJitCompileVTable, _compileMethod);
         }
 
         /// <summary>
@@ -179,9 +172,9 @@ namespace Jitex.JIT
                     {
                         lock (JitLock)
                         {
-                            if (Framework.CorJitInfo == IntPtr.Zero)
+                            if (Framework.CEEInfoVTable == IntPtr.Zero)
                             {
-                                Framework.ReadJITInfo(comp);
+                                Framework.ReadICorJitInfoVTable(comp);
 
                                 _hookManager.InjectHook(CEEInfo.ResolveTokenIndex, _resolveToken);
                                 _hookManager.InjectHook(CEEInfo.ConstructStringLiteralIndex, _constructStringLiteral);

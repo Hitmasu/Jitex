@@ -1,9 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFramework>netcoreapp3.1</TargetFramework>
+		<TargetFramework>netcoreapp2.0</TargetFramework>
 		<IsPackable>false</IsPackable>
-		<LangVersion>8.0</LangVersion>
+		<LangVersion>7.1</LangVersion>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -16,23 +16,33 @@
 
 	<ItemGroup>
 		<PackageReference Include="Iced" Version="1.8.0" />
-		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.7.1" />
-		<PackageReference Include="Mono.Posix.NETStandard" Version="5.20.1-preview" />
+		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.2.0" />
+		<PackageReference Include="Microsoft.TestPlatform.TestHost" Version="16.2.0" />
+		<PackageReference Include="Mono.Posix.NETStandard" Version="1.0.0" />
+		<PackageReference Include="System.Memory" Version="4.5.4" />
 		<PackageReference Include="xunit" Version="2.4.1" />
+		<PackageReference Include="xunit.console" Version="2.4.1" />
 		<PackageReference Include="Xunit.Extensions.Ordering" Version="1.4.5" />
-		<PackageReference Include="xunit.runner.visualstudio" Version="2.4.3">
-			<PrivateAssets>all</PrivateAssets>
-			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		<PackageReference Include="xunit.runner.console" Version="2.4.1">
+		  <PrivateAssets>all</PrivateAssets>
+		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
-		<PackageReference Include="coverlet.collector" Version="1.3.0">
+		<PackageReference Include="xunit.runner.visualstudio" Version="2.4.1">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\Jitex.Builder\Jitex.Builder.csproj" />
 		<ProjectReference Include="..\Jitex.Tests.Context\Jitex.Tests.Context.csproj" />
-		<ProjectReference Include="..\Jitex\Jitex.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Reference Include="Jitex">
+	    <HintPath>..\Jitex\bin\Debug\netstandard2.0\Jitex.dll</HintPath>
+	  </Reference>
+	  <Reference Include="Jitex.Builder">
+	    <HintPath>..\Jitex\bin\Debug\netstandard2.0\Jitex.Builder.dll</HintPath>
+	  </Reference>
 	</ItemGroup>
 </Project>
