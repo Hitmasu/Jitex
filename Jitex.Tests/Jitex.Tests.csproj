@@ -20,6 +20,7 @@
 		<PackageReference Include="Microsoft.TestPlatform.TestHost" Version="16.2.0" />
 		<PackageReference Include="Mono.Posix.NETStandard" Version="1.0.0" />
 		<PackageReference Include="System.Memory" Version="4.5.4" />
+		<PackageReference Include="System.Reflection.Metadata" Version="1.8.1" />
 		<PackageReference Include="xunit" Version="2.4.1" />
 		<PackageReference Include="xunit.console" Version="2.4.1" />
 		<PackageReference Include="Xunit.Extensions.Ordering" Version="1.4.5" />
@@ -43,6 +44,9 @@
 	  </Reference>
 	  <Reference Include="Jitex.Builder">
 	    <HintPath>..\Jitex\bin\Debug\netstandard2.0\Jitex.Builder.dll</HintPath>
+	  </Reference>
+	  <Reference Include="System.Reflection.Metadata">
+	    <HintPath>..\..\..\..\.nuget\packages\system.reflection.metadata\1.8.1\lib\netstandard2.0\System.Reflection.Metadata.dll</HintPath>
 	  </Reference>
 	</ItemGroup>
 </Project>

@@ -16,6 +16,7 @@
 		<PackageTags>JIT Jitex</PackageTags>
 		<Version>1.0.2-alpha</Version>
 		<AssemblyName>Jitex.Builder</AssemblyName>
+		<Nullable>enable</Nullable>
 	</PropertyGroup>
 
 	<ItemGroup>

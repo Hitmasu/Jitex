@@ -1,0 +1,72 @@
+﻿using System;
+using System.Runtime.InteropServices;
+using Jitex.Runtime.Offsets;
+
+namespace Jitex.JIT.CorInfo
+{
+    internal class SigInfo
+    {
+        private readonly IntPtr _hInstance;
+
+        private ushort _numArgs;
+        private IntPtr _args;
+        private IntPtr _signature;
+
+        private IntPtr NumArgsAddr => _hInstance + SigInfoOffset.NumArgs;
+        private IntPtr ArgsAddr => _hInstance + SigInfoOffset.Args;
+        private IntPtr SignatureAddr => _hInstance + SigInfoOffset.Signature;
+
+        public ushort NumArgs
+        {
+            get
+            {
+                if (_numArgs == 0)
+                    _numArgs = (ushort)Marshal.ReadInt16(NumArgsAddr);
+
+                return _numArgs;
+            }
+            set
+            {
+                _numArgs = value;
+                Marshal.WriteInt16(NumArgsAddr, (short)_numArgs);
+            }
+        }
+
+        public IntPtr Args
+        {
+            get
+            {
+                if (_args == IntPtr.Zero)
+                    _args = Marshal.ReadIntPtr(ArgsAddr);
+
+                return _args;
+            }
+            set
+            {
+                _args = value;
+                Marshal.WriteIntPtr(ArgsAddr, _args);
+            }
+        }
+
+        public IntPtr Signature
+        {
+            get
+            {
+                if (_signature == IntPtr.Zero)
+                    _signature = Marshal.ReadIntPtr(SignatureAddr);
+
+                return _signature;
+            }
+            set
+            {
+                _signature = value;
+                Marshal.WriteIntPtr(SignatureAddr, _signature);
+            }
+        }
+
+        public SigInfo(IntPtr hInstance)
+        {
+            _hInstance = hInstance;
+        }
+    }
+}

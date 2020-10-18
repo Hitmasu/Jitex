@@ -11,6 +11,7 @@ namespace Jitex.Utils
         private static readonly IDictionary<IntPtr, Module> MapScopeToHandle = new Dictionary<IntPtr, Module>(IntPtrEqualityComparer.Instance);
 
         private static readonly FieldInfo m_pData;
+        private static object _lock = new object();
 
         static AppModules()
         {
@@ -27,7 +28,7 @@ namespace Jitex.Utils
         private static void AddAssembly(Assembly assembly)
         {
             Module module = assembly.Modules.First();
-            IntPtr scope = GetPointerFromModule(module);
+            IntPtr scope = GetAddressFromModule(module);
             MapScopeToHandle.Add(scope, module);
         }
 
@@ -36,14 +37,14 @@ namespace Jitex.Utils
             AddAssembly(args.LoadedAssembly);
         }
 
-        public static Module GetModuleByPointer(IntPtr scope)
+        public static Module GetModuleByAddress(IntPtr scope)
         {
             return MapScopeToHandle.TryGetValue(scope, out Module module) ? module : null;
         }
 
-        public static IntPtr GetPointerFromModule(Module module)
+        public static IntPtr GetAddressFromModule(Module module)
         {
-            return (IntPtr) m_pData.GetValue(module);
+            return (IntPtr)m_pData.GetValue(module);
         }
     }
 }

@@ -30,7 +30,7 @@ namespace Jitex.JIT.CorInfo
         public uint token;
     }
 
-    internal unsafe struct CORINFO_RESOLVED_TOKEN
+    internal struct CORINFO_RESOLVED_TOKEN
     {
         //
         // [In] arguments of resolveToken
@@ -50,14 +50,6 @@ namespace Jitex.JIT.CorInfo
         public IntPtr hClass;
         public IntPtr hMethod;
         public IntPtr hField;
-
-        //
-        // [Out] TypeSpec and MethodSpec signatures for generics. NULL otherwise.
-        //
-        public byte* pTypeSpec;
-        public uint cbTypeSpec;
-        public byte* pMethodSpec;
-        public uint cbMethodSpec;
     }
 
     internal struct CORINFO_CONSTRUCT_STRING

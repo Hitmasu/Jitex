@@ -23,7 +23,7 @@ namespace Jitex.JIT.Context
             /// <summary>
             /// Bytecode (pos-compile)
             /// </summary>
-            Native
+            NATIVE
         }
 
         /// <summary>
@@ -44,7 +44,7 @@ namespace Jitex.JIT.Context
         /// <summary>
         /// Byte-code from method (only to ASM mode)
         /// </summary>
-        internal byte[] NativeCode { get; private set; }
+        internal byte[]? NativeCode { get; private set; }
 
         /// <summary>
         /// Resolution mode.
@@ -53,7 +53,7 @@ namespace Jitex.JIT.Context
         /// IL to MSIL
         /// ASM to byte-code.
         /// </remarks>
-        internal ResolveMode Mode => NativeCode == null ? ResolveMode.IL : ResolveMode.Native;
+        internal ResolveMode Mode => NativeCode == null ? ResolveMode.IL : ResolveMode.NATIVE;
 
         internal MethodContext(MethodBase method)
         {

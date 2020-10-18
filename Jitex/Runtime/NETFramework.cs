@@ -8,9 +8,9 @@ namespace Jitex.Runtime
         [DllImport("mscorjit.dll", CallingConvention = CallingConvention.StdCall, SetLastError = true, EntryPoint = "getJit", BestFitMapping = true)]
         private static extern IntPtr GetJit();
 
-        internal override int ResolveTokenOffset { get; }
-        internal override int GetMethodDefFromMethodOffset { get; set; }
-        internal override int ConstructStringLiteralOffset { get; set; }
+        public NETFramework() : base(false)
+        {
+        }
 
         protected override IntPtr GetJitAddress()
         {

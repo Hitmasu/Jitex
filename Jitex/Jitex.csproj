@@ -4,6 +4,7 @@
 		<TargetFramework>netstandard2.0</TargetFramework>
 		<LangVersion>latest</LangVersion>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<Nullable>enable</Nullable>
 		<IsWindows Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' == 'true'">true</IsWindows>
 		<IsOSX Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::OSX)))' == 'true'">true</IsOSX>
 		<IsLinux Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux)))' == 'true'">true</IsLinux>
@@ -30,7 +31,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Iced" Version="1.8.0" />
+		<PackageReference Include="Iced" Version="1.9.0" />
 		<PackageReference Include="Mono.Posix.NETStandard" Version="5.20.1-preview" />
 		<PackageReference Include="System.Memory" Version="4.5.4" />
 	</ItemGroup>

@@ -14,7 +14,7 @@ namespace Jitex
         private static readonly object MethodResolverLock = new object();
         private static readonly object TokenResolverLock = new object();
 
-        private static ManagedJit _jit;
+        private static ManagedJit? _jit;
 
         private static ManagedJit Jit => _jit ??= ManagedJit.GetInstance();
 

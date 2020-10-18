@@ -16,7 +16,7 @@ namespace Jitex.JIT.CorInfo
         /// <param name="nativeSizeOfCode">(OUT) - Size of NativeEntry.</param>
         /// <returns></returns>
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        public delegate CorJitResult CompileMethodDelegate(IntPtr thisPtr, IntPtr comp, ref CORINFO_METHOD_INFO info, uint flags, out IntPtr nativeEntry, out int nativeSizeOfCode);
+        public delegate CorJitResult CompileMethodDelegate(IntPtr thisPtr, IntPtr comp, IntPtr info, uint flags, out IntPtr nativeEntry, out int nativeSizeOfCode);
 
         /// <summary>
         /// Compile method delegate.

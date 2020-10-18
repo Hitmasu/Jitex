@@ -16,6 +16,7 @@ using Jitex.Utils.Extension;
 using static Jitex.JIT.JitexHandler;
 
 using MethodBody = Jitex.Builder.Method.MethodBody;
+using MethodInfo = Jitex.JIT.CorInfo.MethodInfo;
 
 namespace Jitex.JIT
 {
@@ -76,15 +77,15 @@ namespace Jitex.JIT
 
         private bool _isDisposed;
 
-        [ThreadStatic] private static CompileTls _compileTls;
+        [ThreadStatic] private static CompileTls? _compileTls;
 
-        [ThreadStatic] private static TokenTls _tokenTls;
+        [ThreadStatic] private static TokenTls? _tokenTls;
 
-        private static ManagedJit _instance;
+        private static ManagedJit? _instance;
 
-        private MethodResolverHandler _methodResolvers;
+        private MethodResolverHandler? _methodResolvers;
 
-        private TokenResolverHandler _tokenResolvers;
+        private TokenResolverHandler? _tokenResolvers;
 
         public static bool IsLoaded => _instance != null;
 
@@ -114,11 +115,8 @@ namespace Jitex.JIT
             _resolveToken = ResolveToken;
             _constructStringLiteral = ConstructStringLiteral;
 
-            CORINFO_METHOD_INFO emptyInfo = default;
-            CORINFO_RESOLVED_TOKEN corinfoResolvedToken = default;
-
-            RuntimeHelperExtension.PrepareDelegate(_compileMethod, IntPtr.Zero, IntPtr.Zero, emptyInfo, (uint)0, IntPtr.Zero, 0);
-            RuntimeHelperExtension.PrepareDelegate(_resolveToken, IntPtr.Zero, corinfoResolvedToken);
+            RuntimeHelperExtension.PrepareDelegate(_compileMethod, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, (uint)0, IntPtr.Zero, 0);
+            RuntimeHelperExtension.PrepareDelegate(_resolveToken, IntPtr.Zero, IntPtr.Zero);
             RuntimeHelperExtension.PrepareDelegate(_constructStringLiteral, IntPtr.Zero, IntPtr.Zero, 0, IntPtr.Zero);
 
             _hookManager.InjectHook(Framework.ICorJitCompileVTable, _compileMethod);
@@ -146,30 +144,32 @@ namespace Jitex.JIT
         /// <param name="flags">(IN) - Pointer to CorJitFlag.</param>
         /// <param name="nativeEntry">(OUT) - Pointer to NativeEntry.</param>
         /// <param name="nativeSizeOfCode">(OUT) - Size of NativeEntry.</param>
-        private CorJitResult CompileMethod(IntPtr thisPtr, IntPtr comp, ref CORINFO_METHOD_INFO info, uint flags, out IntPtr nativeEntry, out int nativeSizeOfCode)
+        private CorJitResult CompileMethod(IntPtr thisPtr, IntPtr comp, IntPtr info, uint flags, out IntPtr nativeEntry, out int nativeSizeOfCode)
         {
+            if (thisPtr == default)
+            {
+                nativeEntry = IntPtr.Zero;
+                nativeSizeOfCode = 0;
+                return 0;
+            }
+
             CompileTls compileEntry = _compileTls ??= new CompileTls();
             compileEntry.EnterCount++;
 
             try
             {
-                if (thisPtr == default)
-                {
-                    nativeEntry = IntPtr.Zero;
-                    nativeSizeOfCode = 0;
-                    return 0;
-                }
-
-                MethodContext methodContext = null;
+                MethodContext? methodContext = null;
                 IntPtr sigAddress = IntPtr.Zero;
                 IntPtr ilAddress = IntPtr.Zero;
 
-                if (compileEntry.EnterCount == 1)
+                if (compileEntry.EnterCount == 1 && _methodResolvers != null)
                 {
-                    IEnumerable<Delegate> resolvers = _methodResolvers?.GetInvocationList();
+                    IEnumerable<Delegate> resolvers = _methodResolvers.GetInvocationList();
 
-                    if (resolvers != null && resolvers.Any())
+                    if (resolvers.Any())
                     {
+                        MethodInfo methodInfo = new MethodInfo(info);
+
                         lock (JitLock)
                         {
                             if (Framework.CEEInfoVTable == IntPtr.Zero)
@@ -177,16 +177,14 @@ namespace Jitex.JIT
                                 Framework.ReadICorJitInfoVTable(comp);
 
                                 _hookManager.InjectHook(CEEInfo.ResolveTokenIndex, _resolveToken);
-                                _hookManager.InjectHook(CEEInfo.ConstructStringLiteralIndex, _constructStringLiteral);
+                                //_hookManager.InjectHook(CEEInfo.ConstructStringLiteralIndex, _constructStringLiteral);
                             }
                         }
 
-                        Module module = AppModules.GetModuleByPointer(info.scope);
-
-                        if (module != null)
+                        if (methodInfo.Module != null)
                         {
-                            uint methodToken = CEEInfo.GetMethodDefFromMethod(info.ftn);
-                            MethodBase methodFound = module.ResolveMethod((int)methodToken);
+                            uint methodToken = CEEInfo.GetMethodDefFromMethod(methodInfo.MethodDesc);
+                            MethodBase methodFound = methodInfo.Module.ResolveMethod((int)methodToken);
 
                             _tokenTls = new TokenTls { Root = methodFound };
 
@@ -217,30 +215,30 @@ namespace Jitex.JIT
                                     byte[] signatureVariables = methodBody.GetSignatureVariables();
                                     sigAddress = signatureVariables.ToPointer();
 
-                                    info.locals.pSig = sigAddress + 1;
-                                    info.locals.args = sigAddress + 3;
-                                    info.locals.numArgs = (ushort)methodBody.LocalVariables.Count;
+                                    methodInfo.Locals.Signature = sigAddress + 1;
+                                    methodInfo.Locals.Args = sigAddress + 1;
+                                    methodInfo.Locals.NumArgs = (ushort)methodBody.LocalVariables.Count;
                                 }
 
-                                info.maxStack = methodBody.MaxStackSize;
+                                methodInfo.MaxStack = methodBody.MaxStackSize;
                             }
                             else
                             {
-                                (ilAddress, ilLength) = PrepareIL(methodContext.NativeCode);
+                                (ilAddress, ilLength) = PrepareIL(methodContext.NativeCode!);
 
-                                if (info.maxStack < 8)
+                                if (methodInfo.MaxStack < 8)
                                 {
-                                    info.maxStack = 8;
+                                    methodInfo.MaxStack = 8;
                                 }
                             }
 
-                            info.ILCode = ilAddress;
-                            info.ILCodeSize = ilLength;
+                            methodInfo.ILCode = ilAddress;
+                            methodInfo.ILCodeSize = (uint)ilLength;
                         }
                     }
                 }
 
-                CorJitResult result = Framework.CorJitCompiler.CompileMethod(thisPtr, comp, ref info, flags, out nativeEntry, out nativeSizeOfCode);
+                CorJitResult result = Framework.CorJitCompiler.CompileMethod(thisPtr, comp, info, flags, out nativeEntry, out nativeSizeOfCode);
 
                 if (ilAddress != IntPtr.Zero && methodContext!.Mode == MethodContext.ResolveMode.IL)
                     Marshal.FreeHGlobal(ilAddress);
@@ -248,9 +246,9 @@ namespace Jitex.JIT
                 if (sigAddress != IntPtr.Zero)
                     Marshal.FreeHGlobal(sigAddress);
 
-                if (methodContext?.Mode == MethodContext.ResolveMode.Native)
+                if (methodContext?.Mode == MethodContext.ResolveMode.NATIVE)
                 {
-                    Marshal.Copy(methodContext.NativeCode, 0, nativeEntry, methodContext.NativeCode.Length);
+                    Marshal.Copy(methodContext.NativeCode!, 0, nativeEntry, methodContext.NativeCode!.Length);
                 }
 
                 return result;
@@ -261,45 +259,41 @@ namespace Jitex.JIT
             }
         }
 
-        private void ResolveToken(IntPtr thisHandle, ref CORINFO_RESOLVED_TOKEN pResolvedToken)
+        private void ResolveToken(IntPtr thisHandle, IntPtr pResolvedToken)
         {
             _tokenTls ??= new TokenTls();
+            _tokenTls.EnterCount++;
 
             if (thisHandle == IntPtr.Zero)
+            {
                 return;
-
-            _tokenTls.EnterCount++;
+            }
 
             try
             {
-                if (_tokenTls.EnterCount == 1)
+                if (_tokenTls.EnterCount == 1 && _tokenResolvers != null)
                 {
-                    IEnumerable<Delegate> resolvers = _tokenResolvers?.GetInvocationList();
+                    IEnumerable<Delegate> resolvers = _tokenResolvers.GetInvocationList();
 
-                    if (resolvers == null || !resolvers.Any())
+                    if (!resolvers.Any())
                     {
-                        CEEInfo.ResolveToken(thisHandle, ref pResolvedToken);
+                        CEEInfo.ResolveToken(thisHandle, pResolvedToken);
                         return;
                     }
 
                     //Capture method who trying resolve that token.
                     _tokenTls.Source = _tokenTls.GetSource();
 
-                    TokenContext context = new TokenContext(ref pResolvedToken, _tokenTls.Source);
+                    ResolvedToken resolvedToken = new ResolvedToken(pResolvedToken);
+                    TokenContext context = new TokenContext(ref resolvedToken, _tokenTls.Source);
 
                     foreach (TokenResolverHandler resolver in resolvers)
                     {
                         resolver(context);
-
-                        if (context.IsResolved)
-                        {
-                            pResolvedToken = context.ResolvedToken;
-                            break;
-                        }
                     }
                 }
 
-                CEEInfo.ResolveToken(thisHandle, ref pResolvedToken);
+                CEEInfo.ResolveToken(thisHandle, pResolvedToken);
             }
             finally
             {
@@ -309,21 +303,20 @@ namespace Jitex.JIT
 
         private InfoAccessType ConstructStringLiteral(IntPtr thisHandle, IntPtr hModule, int metadataToken, IntPtr ppValue)
         {
-            _tokenTls ??= new TokenTls();
-
             if (thisHandle == IntPtr.Zero)
                 return default;
+
+            _tokenTls ??= new TokenTls();
 
             _tokenTls.EnterCount++;
 
             try
             {
-
-                if (_tokenTls.EnterCount == 1)
+                if (_tokenTls.EnterCount == 1 && _tokenResolvers != null)
                 {
-                    IEnumerable<Delegate> resolvers = _tokenResolvers?.GetInvocationList();
+                    IEnumerable<Delegate> resolvers = _tokenResolvers.GetInvocationList();
 
-                    if (resolvers == null || !resolvers.Any())
+                    if (!resolvers.Any())
                     {
                         return CEEInfo.ConstructStringLiteral(thisHandle, hModule, metadataToken, ppValue);
                     }
