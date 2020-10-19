@@ -22,7 +22,7 @@ namespace Jitex.Runtime
             Version version = RuntimeFramework.GetFramework().FrameworkVersion;
 
             if (version >= new Version(3, 0, 0))
-                Locals = 0x9C;
+                Locals = 0x98;
             else
                 Locals = 0x30;
         }
