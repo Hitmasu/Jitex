@@ -18,8 +18,20 @@ namespace Jitex.JIT.CorInfo
     {
         public CorInfoCallConv callConv;
         public IntPtr retTypeClass; // if the return type is a value class, this is its handle (enums are normalized)
+        
+        /// <summary>
+        /// 8 bytes
+        /// </summary>
         public IntPtr retTypeSigClass; // returns the value class as it is in the sig (enums are not converted to primitives)
+        
+        /// <summary>
+        /// 1 byte
+        /// </summary>
+        /// 
         public byte _retType;
+        /// <summary>
+        /// 1 byte
+        /// </summary>
         public CorInfoSigInfoFlags flags; // used by IL stubs code
         public ushort numArgs;
         public CORINFO_SIG_INST sigInst; // information about how type variables are being instantiated in generic code

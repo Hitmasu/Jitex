@@ -208,6 +208,9 @@ namespace Jitex.JIT
                                 MethodBody methodBody = methodContext.MethodBody;
 
                                 ilLength = methodBody.IL.Length;
+
+                                MethodInfo c = new MethodInfo(info);
+
                                 ilAddress = methodBody.IL.ToPointer();
 
                                 if (methodBody.HasLocalVariable)

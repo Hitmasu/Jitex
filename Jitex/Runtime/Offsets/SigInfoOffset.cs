@@ -8,9 +8,9 @@
 
         static SigInfoOffset()
         {
-            NumArgs = 25;
-            Args = 35;
-            Signature = 43;
+            NumArgs = 21;
+            Args = 32;
+            Signature = 39;
         }
     }
 }
