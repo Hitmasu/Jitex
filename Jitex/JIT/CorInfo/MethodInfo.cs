@@ -107,7 +107,8 @@ namespace Jitex.JIT.CorInfo
         public MethodInfo(IntPtr hInstance)
         {
             _hInstance = hInstance;
-            IntPtr sigIntance = _hInstance + MethodInfoOffset.Locals;
+            IntPtr index = _hInstance + MethodInfoOffset.Locals;
+            IntPtr sigIntance = Marshal.ReadIntPtr(index);
             Locals = new SigInfo(sigIntance);
         }
     }

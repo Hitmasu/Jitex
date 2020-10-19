@@ -1,4 +1,4 @@
-﻿using Jitex.Runtime.Offsets;
+﻿using System;
 
 namespace Jitex.Runtime
 {
@@ -18,7 +18,13 @@ namespace Jitex.Runtime
             ILCode = 0x10;
             ILCodeSize = 0x18;
             MaxStack = 0x1C;
-            Locals = 0x30;
+
+            Version version = RuntimeFramework.GetFramework().FrameworkVersion;
+
+            if (version >= new Version(3, 0, 0))
+                Locals = 0x48;
+            else
+                Locals = 0x30;
         }
     }
 }
