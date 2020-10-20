@@ -6,10 +6,8 @@ using Jitex.Utils;
 
 namespace Jitex.JIT.CorInfo
 {
-    internal class ResolvedToken
+    internal class ResolvedToken : CorType
     {
-        private readonly IntPtr _hInstance;
-
         private IntPtr _context;
         private Module? _module;
         private int _token;
@@ -18,13 +16,13 @@ namespace Jitex.JIT.CorInfo
         private IntPtr _hMethod;
         private IntPtr _hField;
 
-        private IntPtr ContextAddr => _hInstance + ResolvedTokenOffset.Context;
-        private IntPtr ModuleAddr => _hInstance + ResolvedTokenOffset.Module;
-        private IntPtr TokenAddr => _hInstance + ResolvedTokenOffset.Token;
-        private IntPtr TypeAddr => _hInstance + ResolvedTokenOffset.Type;
-        private IntPtr HClassAddr => _hInstance + ResolvedTokenOffset.HClass;
-        private IntPtr HMethodAddr => _hInstance + ResolvedTokenOffset.HMethod;
-        private IntPtr HFieldAddr => _hInstance + ResolvedTokenOffset.HField;
+        private IntPtr ContextAddr => HInstance + ResolvedTokenOffset.Context;
+        private IntPtr ModuleAddr => HInstance + ResolvedTokenOffset.Module;
+        private IntPtr TokenAddr => HInstance + ResolvedTokenOffset.Token;
+        private IntPtr TypeAddr => HInstance + ResolvedTokenOffset.Type;
+        private IntPtr HClassAddr => HInstance + ResolvedTokenOffset.HClass;
+        private IntPtr HMethodAddr => HInstance + ResolvedTokenOffset.HMethod;
+        private IntPtr HFieldAddr => HInstance + ResolvedTokenOffset.HField;
 
         public IntPtr Context
         {
@@ -127,9 +125,6 @@ namespace Jitex.JIT.CorInfo
             }
         }
 
-        public ResolvedToken(IntPtr hInstance)
-        {
-            _hInstance = hInstance;
-        }
+        public ResolvedToken(IntPtr hInstance) : base(hInstance){}
     }
 }

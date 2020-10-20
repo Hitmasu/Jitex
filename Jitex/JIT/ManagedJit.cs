@@ -177,7 +177,7 @@ namespace Jitex.JIT
                                 Framework.ReadICorJitInfoVTable(comp);
 
                                 _hookManager.InjectHook(CEEInfo.ResolveTokenIndex, _resolveToken);
-                                //_hookManager.InjectHook(CEEInfo.ConstructStringLiteralIndex, _constructStringLiteral);
+                                _hookManager.InjectHook(CEEInfo.ConstructStringLiteralIndex, _constructStringLiteral);
                             }
                         }
 
@@ -323,8 +323,8 @@ namespace Jitex.JIT
                     //Capture method who trying resolve that token.
                     _tokenTls.Source = _tokenTls.GetSource();
 
-                    CORINFO_CONSTRUCT_STRING constructString = new CORINFO_CONSTRUCT_STRING(hModule, metadataToken, ppValue);
-                    TokenContext context = new TokenContext(ref constructString, _tokenTls.Source);
+                    ConstructString constructString = new ConstructString(hModule, metadataToken, ppValue);
+                    TokenContext context = new TokenContext(constructString, _tokenTls.Source);
 
                     foreach (TokenResolverHandler resolver in resolvers)
                     {

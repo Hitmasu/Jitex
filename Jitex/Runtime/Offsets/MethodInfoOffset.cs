@@ -4,12 +4,12 @@ namespace Jitex.Runtime
 {
     internal static class MethodInfoOffset
     {
-        public static int MethodDesc { get; private set; }
-        public static int Module { get; private set; }
-        public static int ILCode { get; private set; }
-        public static int ILCodeSize { get; private set; }
-        public static int MaxStack { get; private set; }
-        public static int Locals { get; private set; }
+        public static int MethodDesc { get; }
+        public static int Module { get; }
+        public static int ILCode { get; }
+        public static int ILCodeSize { get; }
+        public static int MaxStack { get; }
+        public static int Locals { get; }
 
         static MethodInfoOffset()
         {
@@ -18,8 +18,6 @@ namespace Jitex.Runtime
             ILCode = 0x10;
             ILCodeSize = 0x18;
             MaxStack = 0x1C;
-
-            //Version version = RuntimeFramework.GetFramework().FrameworkVersion;
             Locals = 0x98;
         }
     }

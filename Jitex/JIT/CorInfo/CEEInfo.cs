@@ -46,10 +46,9 @@ namespace Jitex.JIT.CorInfo
             IntPtr getMethodDefFromMethodPtr = Marshal.ReadIntPtr(getMethodDefFromMethodIndex);
             IntPtr constructStringLiteralPtr = Marshal.ReadIntPtr(ConstructStringLiteralIndex);
 
-
             _getMethodDefFromMethod = Marshal.GetDelegateForFunctionPointer<GetMethodDefFromMethodDelegate>(getMethodDefFromMethodPtr);
             _resolveToken = Marshal.GetDelegateForFunctionPointer<ResolveTokenDelegate>(resolveTokenPtr);
-            //_constructStringLiteral = Marshal.GetDelegateForFunctionPointer<ConstructStringLiteralDelegate>(constructStringLiteralPtr);
+            _constructStringLiteral = Marshal.GetDelegateForFunctionPointer<ConstructStringLiteralDelegate>(constructStringLiteralPtr);
 
             //int sizeId = 10;
 
@@ -124,6 +123,10 @@ namespace Jitex.JIT.CorInfo
 
             //PrepareMethod in previous versions of .NET Core 3.0, will raise StackOverFlowException
             ResolveToken(default, default);
+
+
+            System.Reflection.MethodInfo constructString = typeof(CEEInfo).GetMethod(nameof(ConstructStringLiteral))!;
+            RuntimeHelpers.PrepareMethod(constructString.MethodHandle);
         }
 
         public static uint GetMethodDefFromMethod(IntPtr hMethod)

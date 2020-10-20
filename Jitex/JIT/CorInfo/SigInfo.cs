@@ -4,17 +4,15 @@ using Jitex.Runtime.Offsets;
 
 namespace Jitex.JIT.CorInfo
 {
-    internal class SigInfo
+    internal class SigInfo : CorType
     {
-        private readonly IntPtr _hInstance;
-
         private ushort _numArgs;
         private IntPtr _args;
         private IntPtr _signature;
 
-        private IntPtr NumArgsAddr => _hInstance + SigInfoOffset.NumArgs;
-        private IntPtr ArgsAddr => _hInstance + SigInfoOffset.Args;
-        private IntPtr SignatureAddr => _hInstance + SigInfoOffset.Signature;
+        private IntPtr NumArgsAddr => HInstance + SigInfoOffset.NumArgs;
+        private IntPtr ArgsAddr => HInstance + SigInfoOffset.Args;
+        private IntPtr SignatureAddr => HInstance + SigInfoOffset.Signature;
 
         public ushort NumArgs
         {
@@ -64,9 +62,6 @@ namespace Jitex.JIT.CorInfo
             }
         }
 
-        public SigInfo(IntPtr hInstance)
-        {
-            _hInstance = hInstance;
-        }
+        public SigInfo(IntPtr hInstance) : base(hInstance){}
     }
 }

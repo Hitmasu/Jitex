@@ -6,22 +6,19 @@ using Jitex.Utils;
 
 namespace Jitex.JIT.CorInfo
 {
-    internal class MethodInfo
+    internal class MethodInfo : CorType
     {
-        private readonly IntPtr _hInstance;
-
         private IntPtr _methodDesc;
-        private Module _module;
+        private Module _module = null!;
         private IntPtr _ilCode;
         private uint _ilCodeSize;
         private uint _maxStack;
-
-
-        private IntPtr MethodDescAddr => _hInstance + MethodInfoOffset.MethodDesc;
-        private IntPtr ModuleAddr => _hInstance + MethodInfoOffset.Module;
-        private IntPtr ILCodeAddr => _hInstance + MethodInfoOffset.ILCode;
-        private IntPtr ILCodeSizeAddr => _hInstance + MethodInfoOffset.ILCodeSize;
-        private IntPtr MaxStackAddr => _hInstance + MethodInfoOffset.MaxStack;
+        
+        private IntPtr MethodDescAddr => HInstance + MethodInfoOffset.MethodDesc;
+        private IntPtr ModuleAddr => HInstance + MethodInfoOffset.Module;
+        private IntPtr ILCodeAddr => HInstance + MethodInfoOffset.ILCode;
+        private IntPtr ILCodeSizeAddr => HInstance + MethodInfoOffset.ILCodeSize;
+        private IntPtr MaxStackAddr => HInstance + MethodInfoOffset.MaxStack;
 
         public SigInfo Locals { get; set; }
 
@@ -104,10 +101,9 @@ namespace Jitex.JIT.CorInfo
             }
         }
 
-        public MethodInfo(IntPtr hInstance)
+        public MethodInfo(IntPtr hInstance) : base(hInstance)
         {
-            _hInstance = hInstance;
-            IntPtr sigIntance = _hInstance + MethodInfoOffset.Locals;
+            IntPtr sigIntance = HInstance + MethodInfoOffset.Locals;
             Locals = new SigInfo(sigIntance);
         }
     }

@@ -89,13 +89,12 @@ namespace Jitex.JIT.Context
         /// </summary>
         /// <param name="constructString">Original string.</param>
         /// <param name="source">Source method from compile tree ("requester").</param>
-        internal TokenContext(ref CORINFO_CONSTRUCT_STRING constructString, MemberInfo source)
+        internal TokenContext(ConstructString constructString, MemberInfo source)
         {
             Module = AppModules.GetModuleByAddress(constructString.HandleModule);
             Source = source;
 
             TokenType = TokenKind.String;
-            //Scope = constructString.HandleModule;
             MetadataToken = constructString.MetadataToken;
 
             if (Module != null)
