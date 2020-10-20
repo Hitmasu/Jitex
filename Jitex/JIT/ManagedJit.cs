@@ -217,7 +217,7 @@ namespace Jitex.JIT
                                     sigAddress = signatureVariables.ToPointer();
 
                                     methodInfo.Locals.Signature = sigAddress + 1;
-                                    methodInfo.Locals.Args = sigAddress + 1;
+                                    methodInfo.Locals.Args = sigAddress + 3;
                                     methodInfo.Locals.NumArgs = (ushort)methodBody.LocalVariables.Count;
                                 }
 
