@@ -19,12 +19,8 @@ namespace Jitex.Runtime
             ILCodeSize = 0x18;
             MaxStack = 0x1C;
 
-            Version version = RuntimeFramework.GetFramework().FrameworkVersion;
-
-            if (version >= new Version(3, 0, 0))
-                Locals = 0x98;
-            else
-                Locals = 0x30;
+            //Version version = RuntimeFramework.GetFramework().FrameworkVersion;
+            Locals = 0x98;
         }
     }
 }

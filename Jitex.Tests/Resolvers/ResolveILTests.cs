@@ -36,7 +36,6 @@ namespace Jitex.Tests.Resolvers
         public void LocalVariable()
         {
             int number = short.MaxValue;
-            int abc = 123912 - 039 - 12039;
             Assert.True(number == ushort.MaxValue, "Variable not inserted!");
         }
 
