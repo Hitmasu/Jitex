@@ -228,9 +228,7 @@ namespace Jitex.JIT
                                 (ilAddress, ilLength) = PrepareIL(methodContext.NativeCode!);
 
                                 if (methodInfo.MaxStack < 8)
-                                {
                                     methodInfo.MaxStack = 8;
-                                }
                             }
 
                             methodInfo.ILCode = ilAddress;
