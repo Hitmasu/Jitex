@@ -31,10 +31,10 @@ namespace Jitex.Tests.Resolvers
         [Fact]
         public void LargeAssemblyTest()
         {
-            ulong n1 = 10;
-            ulong n2 = 1000;
-            ulong expected = n1 * n2;
-            ulong number = LargeSum(n1, n2);
+            int n1 = 10;
+            int n2 = 1000;
+            int expected = n1 * n2;
+            int number = LargeSum(n1, n2);
             Assert.True(number == expected, $"Native code not injected! {number}");
         }
 
@@ -45,7 +45,7 @@ namespace Jitex.Tests.Resolvers
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
-        public ulong LargeSum(ulong n1, ulong n2)
+        public int LargeSum(int n1, int n2)
         {
             return n1 + n2;
         }

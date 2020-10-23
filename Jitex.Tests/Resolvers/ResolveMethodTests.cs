@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.CompilerServices;
 using Jitex.Builder.Method;
 using Jitex.JIT.Context;
 using Jitex.Tests.Context;
@@ -72,26 +73,32 @@ namespace Jitex.Tests.Resolvers
             Assert.True(ob is Caller, $"Body not replaced. Return type {nameof(Object)}.");
         }
 
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
         public int ReturnSimpleInt()
         {
             return 1234;
         }
 
+        [MethodImpl(MethodImplOptions.NoInlining)]
         public int ReturnSimpleIntReplace()
         {
             return 4321;
         }
 
+        [MethodImpl(MethodImplOptions.NoInlining)]
         public double ReturnSimpleDouble()
         {
             return 0.5d;
         }
 
+        [MethodImpl(MethodImplOptions.NoInlining)]
         public double ReturnSimpleDoubleReplace()
         {
             return 0.5d + 1.0d;
         }
 
+        [MethodImpl(MethodImplOptions.NoInlining)]
         public object ReturnSimpleObj()
         {
             return new Caller();
@@ -113,7 +120,7 @@ namespace Jitex.Tests.Resolvers
             string expected = "Boolean | Int32 | Double | Decimal | String";
             string actual = LocalVariableNativeType();
 
-            Assert.True(expected == actual, "\nVariable not inserted.");
+            Assert.True(expected == actual, $"\nVariable not inserted. \n {expected} \n {actual}");
         }
 
         [Fact]
@@ -136,12 +143,13 @@ namespace Jitex.Tests.Resolvers
             return $"{type1.GetType().Name} | {type2.GetType().Name} | {type3.GetType().Name} | {type4.GetType().Name} | {type5.GetType().Name}";
         }
 
-
+        [MethodImpl(MethodImplOptions.NoInlining)]
         public string LocalVariableNativeType()
         {
             return nameof(Object);
         }
 
+        [MethodImpl(MethodImplOptions.NoInlining)]
 
         public string LocalVariableReferenceType()
         {

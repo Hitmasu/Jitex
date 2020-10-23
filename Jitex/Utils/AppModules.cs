@@ -37,7 +37,7 @@ namespace Jitex.Utils
             AddAssembly(args.LoadedAssembly);
         }
 
-        public static Module GetModuleByAddress(IntPtr scope)
+        public static Module? GetModuleByAddress(IntPtr scope)
         {
             return MapScopeToHandle.TryGetValue(scope, out Module module) ? module : null;
         }

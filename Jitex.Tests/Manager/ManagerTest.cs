@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -14,7 +15,12 @@ namespace Jitex.Tests.Manager
     public class ManagerTest
     {
         private static IList<MethodBase> MethodsCompiled { get; } = new List<MethodBase>();
-        private static IList<int> TokensCompiled { get; } = new List<int>();
+        private static IList<int> TokensCompiled { get; } 
+
+        static ManagerTest()
+        {
+            TokensCompiled = new List<int>();
+        }
 
         [Fact, Order(1)]
         public void LoadJitexTest()
@@ -96,9 +102,10 @@ namespace Jitex.Tests.Manager
                 MethodsCompiled.Add(context.Method);
         }
 
+        [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
         private void TokenResolver(TokenContext context)
         {
-            if (context.Module == GetType().Module)
+            if (context?.Module == GetType().Module)
                 TokensCompiled.Add(context.MetadataToken);
         }
 

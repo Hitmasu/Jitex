@@ -6,8 +6,14 @@ namespace Jitex.Tests.Modules
 {
     public class ModuleJitex : JitexModule
     {
-        public static IList<MethodBase> MethodsCompiled { get; set; } = new List<MethodBase>();
-        public static IList<int> TokensCompiled { get; set; } = new List<int>();
+        public static IList<MethodBase> MethodsCompiled { get; set; }
+        public static IList<int> TokensCompiled { get; set; }
+
+        static ModuleJitex()
+        {
+            TokensCompiled = new List<int>();
+            MethodsCompiled = new List<MethodBase>();
+        }
 
         protected override void MethodResolver(MethodContext context)
         {

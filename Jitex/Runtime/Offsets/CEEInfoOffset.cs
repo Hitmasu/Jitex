@@ -25,6 +25,12 @@ namespace Jitex.Runtime.Offsets
                 GetMethodDefFromMethod = 0x74;
                 ConstructStringLiteral = 0x97;
             }
+            else if (version >= new Version(2,1,0))
+            {
+                ResolveToken = 0x1C;
+                GetMethodDefFromMethod = 0x70;
+                ConstructStringLiteral = 0x92;
+            }
             else
             {
                 ResolveToken = 0x1A;

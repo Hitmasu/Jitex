@@ -3,6 +3,7 @@ using Jitex.JIT.CorInfo;
 using Jitex.Utils;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -239,6 +240,7 @@ namespace Jitex.JIT
 
                 CorJitResult result = Framework.CorJitCompiler.CompileMethod(thisPtr, comp, info, flags, out nativeEntry, out nativeSizeOfCode);
 
+
                 if (ilAddress != IntPtr.Zero && methodContext!.Mode == MethodContext.ResolveMode.IL)
                     Marshal.FreeHGlobal(ilAddress);
 
@@ -383,9 +385,45 @@ namespace Jitex.JIT
         /// </remarks>
         /// <param name="nativeCode">Native code to read.</param>
         /// <returns>Address and size of IL.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static (IntPtr ilAddress, int ilLength) PrepareIL(byte[] nativeCode)
+        public static (IntPtr ilAddress, int ilLength) PrepareIL(IReadOnlyCollection<byte> nativeCode)
         {
+            ////Size of native code generated for AND
+            //const int sizeBitwise = 3;
+
+            ////TODO: A better way to calculate size.
+            ////Calculate the size of IL to allocate native code
+            ////For each bitwise operation (ldc.i4 + And) is generated 3 byte-code
+            ////Example: 
+            ////IL with 1 bitwise = 21 bytes
+            ////IL with 2 bitwise = 24 bytes
+            ////IL with 3 bitwise = 27 bytes
+            ////...
+
+            //int nextMinLength = nativeCode.Count + sizeBitwise + nativeCode.Count % sizeBitwise;
+            //int ilLength = 2 * (int)Math.Ceiling((double)nextMinLength / sizeBitwise);
+
+            //if (ilLength % 2 != 0)
+            //    ilLength++;
+
+            //unsafe
+            //{
+            //    byte* ilAddress = (byte*)Marshal.AllocHGlobal(ilLength);
+
+            //    //populate IL with bitwise operations
+            //    ilAddress[0] = (byte)OpCodes.Ldc_I4_1.Value;
+            //    ilAddress[1] = (byte)OpCodes.Ldc_I4_1.Value;
+            //    ilAddress[2] = (byte)OpCodes.And.Value;
+            //    ilAddress[ilLength - 1] = (byte)OpCodes.Ret.Value;
+
+            //    for (int i = 3; i < ilLength - 2; i += 2)
+            //    {
+            //        ilAddress[i] = (byte)OpCodes.Ldc_I4_1.Value;
+            //        ilAddress[i + 1] = (byte)OpCodes.And.Value;
+            //    }
+
+            //    return (new IntPtr(ilAddress), ilLength);
+            //}
+
             //Size of native code generated for AND
             const int sizeBitwise = 3;
 
@@ -398,7 +436,7 @@ namespace Jitex.JIT
             //IL with 3 bitwise = 27 bytes
             //...
 
-            int nextMinLength = nativeCode.Length + sizeBitwise + nativeCode.Length % sizeBitwise;
+            int nextMinLength = nativeCode.Count + sizeBitwise + nativeCode.Count % sizeBitwise;
             int ilLength = 2 * (int)Math.Ceiling((double)nextMinLength / sizeBitwise);
 
             if (ilLength % 2 != 0)

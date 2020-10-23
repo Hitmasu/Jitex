@@ -3,7 +3,6 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using Jitex.JIT.CorInfo;
-using Jitex.Runtime.Offsets;
 
 namespace Jitex.Runtime
 {
