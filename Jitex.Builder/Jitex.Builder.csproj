@@ -19,6 +19,10 @@
 		<Nullable>enable</Nullable>
 	</PropertyGroup>
 
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+	  <GenerateSerializationAssemblies>Off</GenerateSerializationAssemblies>
+	</PropertyGroup>
+
 	<ItemGroup>
 		<PackageReference Include="Lokad.ILPack" Version="0.1.5" />
 	</ItemGroup>

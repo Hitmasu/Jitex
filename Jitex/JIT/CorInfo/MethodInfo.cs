@@ -40,10 +40,16 @@ namespace Jitex.JIT.CorInfo
                 if (_module == null)
                 {
                     IntPtr scope = Marshal.ReadIntPtr(ModuleAddr);
-                    _module = AppModules.GetModuleByAddress(scope);
+                    _module = AppModules.GetModuleByAddress(scope)!;
                 }
 
                 return _module;
+            }
+            set
+            {
+                _module = value;
+                IntPtr scope = AppModules.GetAddressFromModule(_module);
+                Marshal.WriteIntPtr(ModuleAddr, scope);
             }
         }
 
