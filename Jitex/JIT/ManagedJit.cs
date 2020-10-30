@@ -11,13 +11,11 @@ using System.Reflection.Metadata;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
-using Jitex.Builder.IL;
 using Jitex.Exceptions;
 using Jitex.JIT.Context;
 using Jitex.Runtime;
 using Jitex.Utils.Extension;
 using static Jitex.JIT.JitexHandler;
-using LocalVariableInfo = Jitex.Builder.Method.LocalVariableInfo;
 using MethodBody = Jitex.Builder.Method.MethodBody;
 using MethodInfo = Jitex.JIT.CorInfo.MethodInfo;
 
@@ -394,75 +392,69 @@ namespace Jitex.JIT
             if (methodContext.NativeCode == null)
                 throw new NullReferenceException(nameof(methodContext.NativeCode));
 
-            Assembly? entryAssembly = Assembly.GetEntryAssembly();
+            System.Reflection.MethodInfo method = (System.Reflection.MethodInfo)methodContext.Method;
 
-            if (entryAssembly == null)
-                entryAssembly = Assembly.GetCallingAssembly();
-
-            System.Reflection.MethodInfo main = entryAssembly.EntryPoint;
-            int mainToken = main.MetadataToken;
-
-            byte[] callIL =
-            {
-                (byte) OpCodes.Call.Value,
-                (byte) mainToken,
-                (byte) (mainToken >> 8),
-                (byte) (mainToken >> 16),
-                (byte) (mainToken >> 24)
-            };
-
-            byte[] retIL = PrepareReturn(methodContext.Method);
-
-            int bodyLength = (int)Math.Ceiling((double)methodContext.NativeCode.Length / callIL.Length) * callIL.Length;
-            int retLength = retIL.Length;
-            int ilSize = bodyLength + retLength;
-            IntPtr ilAddress = Marshal.AllocHGlobal(ilSize);
-
-            for (int i = 0; i < bodyLength; i += callIL.Length)
-            {
-                Marshal.Copy(callIL, 0, ilAddress + i, callIL.Length);
-            }
-
-            Marshal.Copy(retIL, 0, ilAddress + bodyLength, retIL.Length);
-
-            return (ilAddress, ilSize);
-        }
-
-        /// <summary>
-        /// Prepare return of IL.
-        /// </summary>
-        /// <param name="method">Method to prepare.</param>
-        /// <returns></returns>
-        private static byte[] PrepareReturn(MethodBase method)
-        {
             int methodToken = method.MetadataToken;
 
-            IList<byte> retIL = new List<byte>();
+            IList<byte> callBody = new List<byte>();
+
+            bool isVoid = method.ReturnType == typeof(void);
 
             int argIndex = 0;
 
             if (!method.IsStatic)
             {
                 argIndex++;
-                retIL.Add((byte)OpCodes.Ldarg_0.Value);
+                callBody.Add((byte)OpCodes.Ldarg_0.Value);
             }
 
             int totalArgs = method.GetParameters().Count(w => !w.IsOptional);
 
             for (int i = 0; i < totalArgs; i++)
             {
-                retIL.Add((byte)OpCodes.Ldarga_S.Value);
-                retIL.Add((byte)argIndex++);
+                callBody.Add((byte)OpCodes.Ldarga_S.Value);
+                callBody.Add((byte)argIndex++);
             }
 
-            retIL.Add((byte)OpCodes.Call.Value);
-            retIL.Add((byte)(methodToken));
-            retIL.Add((byte)(methodToken >> 8));
-            retIL.Add((byte)(methodToken >> 16));
-            retIL.Add((byte)(methodToken >> 24));
-            retIL.Add((byte)OpCodes.Ret.Value);
+            callBody.Add((byte)OpCodes.Call.Value);
+            callBody.Add((byte)(methodToken));
+            callBody.Add((byte)(methodToken >> 8));
+            callBody.Add((byte)(methodToken >> 16));
+            callBody.Add((byte)(methodToken >> 24));
 
-            return retIL.ToArray();
+            if (!isVoid)
+                callBody.Add((byte)OpCodes.Pop.Value);
+
+            byte[] callBytes = callBody.ToArray();
+
+            int bodyLength = (int)Math.Ceiling((double)methodContext.NativeCode.Length / callBytes.Length) * callBytes.Length;
+            int retLength = 0;
+
+            if (!isVoid)
+                retLength = callBytes.Length;
+
+            int ilSize = bodyLength + retLength;
+
+            IntPtr ilAddress = Marshal.AllocHGlobal(ilSize);
+
+            for (int i = 0; i < bodyLength; i += callBytes.Length)
+            {
+                Marshal.Copy(callBytes, 0, ilAddress + i, callBytes.Length);
+            }
+
+            if (!isVoid)
+                Marshal.Copy(callBytes, 0, ilAddress + bodyLength, callBytes.Length);
+
+            Marshal.WriteByte(ilAddress + ilSize - 1, (byte)OpCodes.Ret.Value);
+
+            unsafe
+            {
+                Span<byte> il = new Span<byte>(ilAddress.ToPointer(), ilSize);
+                byte[] newIl = il.ToArray();
+                Debugger.Break();
+            }
+
+            return (ilAddress, ilSize);
         }
 
         public void Dispose()
