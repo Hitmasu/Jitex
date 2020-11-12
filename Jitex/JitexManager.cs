@@ -26,7 +26,7 @@ namespace Jitex
         /// <summary>
         /// Returns if Jitex is loaded on application. 
         /// </summary>
-        public static bool IsLoaded => ManagedJit.IsLoaded;
+        public static bool IsLoaded => _jit != null && _jit.IsLoaded;
 
         /// <summary>
         /// Load module on Jitex.

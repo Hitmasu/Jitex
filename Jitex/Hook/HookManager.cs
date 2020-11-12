@@ -1,12 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
-using Jitex.Utils;
-using Jitex.Utils.NativeAPI.POSIX;
 using Jitex.Utils.NativeAPI.Windows;
-using Mono.Unix.Native;
+
+#if !Windows
+    using System.IO;
+    using Jitex.Utils;
+    using Jitex.Utils.NativeAPI.POSIX;
+    using Mono.Unix.Native;
+#endif
 
 namespace Jitex.Hook
 {
@@ -35,12 +38,9 @@ namespace Jitex.Hook
         /// <returns></returns>
         public bool RemoveHook(Delegate del)
         {
-            VTableHook hookFound = _hooks.FirstOrDefault(h => h.Delegate.Method.Equals(del.Method));
+            VTableHook? hookFound = _hooks.FirstOrDefault(h => h.Delegate.Method.Equals(del.Method));
 
-            if (hookFound == null)
-                return false;
-
-            return RemoveHook(hookFound);
+            return hookFound != null && RemoveHook(hookFound);
         }
 
         private bool RemoveHook(VTableHook hook)
@@ -57,26 +57,20 @@ namespace Jitex.Hook
         /// <param name="pointer">Pointer to write.</param>
         private static void WritePointer(IntPtr address, IntPtr pointer)
         {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                Kernel32.MemoryProtection oldFlags = Kernel32.VirtualProtect(address, IntPtr.Size, Kernel32.MemoryProtection.READ_WRITE);
-                Marshal.WriteIntPtr(address, pointer);
-                Kernel32.VirtualProtect(address, IntPtr.Size, oldFlags);
-            }
-            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-            {
+#if Windows
+            Kernel32.MemoryProtection oldFlags = Kernel32.VirtualProtect(address, IntPtr.Size, Kernel32.MemoryProtection.READ_WRITE);
+            Marshal.WriteIntPtr(address, pointer);
+            //Kernel32.VirtualProtect(address, IntPtr.Size, oldFlags);
+#elif Linux
                 byte[] newAddress = BitConverter.GetBytes(pointer.ToInt64());
 
                 //Prevent segmentation fault.
                 using FileStream fs = File.Open($"/proc/{ProcessInfo.PID}/mem", FileMode.Open, FileAccess.ReadWrite);
                 fs.Seek(address.ToInt64(), SeekOrigin.Begin);
-                fs.Write(newAddress, 0, newAddress.Length);
-            }
-            else
-            {
-                Mman.mprotect(address, (ulong) IntPtr.Size, MmapProts.PROT_WRITE);
+#else
+                Mman.mprotect(address, (ulong)IntPtr.Size, MmapProts.PROT_WRITE);
                 Marshal.WriteIntPtr(address, pointer);
-            }
+#endif
         }
     }
 }

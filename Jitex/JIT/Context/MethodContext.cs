@@ -27,14 +27,14 @@ namespace Jitex.JIT.Context
         }
 
         /// <summary>
-        /// Method who will compiled.
+        /// Method original which will compiled.
         /// </summary>
         public MethodBase Method { get; }
 
         /// <summary>
-        /// Body of method.
+        /// Body of method to compile.
         /// </summary>
-        internal MethodBody MethodBody { get; private set; }
+        public MethodBody MethodBody { get; private set; }
 
         /// <summary>
         /// If method is already resolved

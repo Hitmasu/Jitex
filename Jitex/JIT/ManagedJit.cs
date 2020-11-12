@@ -7,7 +7,6 @@ using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
-using System.Reflection.Metadata;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -49,7 +48,7 @@ namespace Jitex.JIT
         /// <summary>
         /// Running framework.
         /// </summary>
-        private static readonly RuntimeFramework Framework;
+        private readonly RuntimeFramework _framework;
 
         /// <summary>
         /// Lock to prevent multiple instance.
@@ -61,10 +60,14 @@ namespace Jitex.JIT
         /// </summary>
         private static readonly object JitLock = new object();
 
+        [ThreadStatic] private static CompileTls? _compileTls;
+
+        [ThreadStatic] private static TokenTls? _tokenTls;
+
         /// <summary>
         /// Custom compíle method.
         /// </summary>
-        private CorJitCompiler.CompileMethodDelegate _compileMethod;
+        private RuntimeFramework.CompileMethodDelegate _compileMethod;
 
         /// <summary>
         /// Custom resolve token.
@@ -78,49 +81,32 @@ namespace Jitex.JIT
 
         private bool _isDisposed;
 
-        [ThreadStatic] private static CompileTls? _compileTls;
-
-        [ThreadStatic] private static TokenTls? _tokenTls;
-
         private static ManagedJit? _instance;
 
         private MethodResolverHandler? _methodResolvers;
 
         private TokenResolverHandler? _tokenResolvers;
 
-        public static bool IsLoaded => _instance != null;
+        public bool IsLoaded => _instance != null;
 
-        static ManagedJit()
-        {
-            Framework = RuntimeFramework.GetFramework();
-        }
-
-        internal void AddMethodResolver(MethodResolverHandler methodResolver) => _methodResolvers += methodResolver;
-
-        internal void AddTokenResolver(TokenResolverHandler tokenResolver) => _tokenResolvers += tokenResolver;
-
-        internal void RemoveMethodResolver(MethodResolverHandler methodResolver) => _methodResolvers -= methodResolver;
-
-        internal void RemoveTokenResolver(TokenResolverHandler tokenResolver) => _tokenResolvers -= tokenResolver;
-
-        internal bool HasMethodResolver(MethodResolverHandler methodResolver) => _methodResolvers != null && _methodResolvers.GetInvocationList().Any(del => del.Method == methodResolver.Method);
-
-        internal bool HasTokenResolver(TokenResolverHandler tokenResolver) => _tokenResolvers != null && _tokenResolvers.GetInvocationList().Any(del => del.Method == tokenResolver.Method);
+        public bool IsEnabled { get; private set; }
 
         /// <summary>
         ///     Prepare custom JIT.
         /// </summary>
         private ManagedJit()
         {
+            _framework = RuntimeFramework.GetFramework();
+
             _compileMethod = CompileMethod;
             _resolveToken = ResolveToken;
             _constructStringLiteral = ConstructStringLiteral;
 
-            RuntimeHelperExtension.PrepareDelegate(_compileMethod, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, (uint)0, IntPtr.Zero, 0);
+            RuntimeHelperExtension.PrepareDelegate(_compileMethod, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, (uint)0, IntPtr.Zero, 0UL);
             RuntimeHelperExtension.PrepareDelegate(_resolveToken, IntPtr.Zero, IntPtr.Zero);
             RuntimeHelperExtension.PrepareDelegate(_constructStringLiteral, IntPtr.Zero, IntPtr.Zero, 0, IntPtr.Zero);
 
-            _hookManager.InjectHook(Framework.ICorJitCompileVTable, _compileMethod);
+            _hookManager.InjectHook(_framework.ICorJitCompileVTable, _compileMethod);
         }
 
         /// <summary>
@@ -136,16 +122,58 @@ namespace Jitex.JIT
             }
         }
 
+        internal void AddMethodResolver(MethodResolverHandler methodResolver) => _methodResolvers += methodResolver;
+
+        internal void AddTokenResolver(TokenResolverHandler tokenResolver) => _tokenResolvers += tokenResolver;
+
+        internal void RemoveMethodResolver(MethodResolverHandler methodResolver) => _methodResolvers -= methodResolver;
+
+        internal void RemoveTokenResolver(TokenResolverHandler tokenResolver) => _tokenResolvers -= tokenResolver;
+
+        internal bool HasMethodResolver(MethodResolverHandler methodResolver) => _methodResolvers != null && _methodResolvers.GetInvocationList().Any(del => del.Method == methodResolver.Method);
+
+        internal bool HasTokenResolver(TokenResolverHandler tokenResolver) => _tokenResolvers != null && _tokenResolvers.GetInvocationList().Any(del => del.Method == tokenResolver.Method);
+
+        /// <summary>
+        /// Enable Jitex hooks
+        /// </summary>
+        internal void Enable()
+        {
+            lock (JitLock)
+            {
+                _hookManager.InjectHook(_framework.ICorJitCompileVTable, _compileMethod);
+                _hookManager.InjectHook(CEEInfo.ResolveTokenIndex, _resolveToken);
+                _hookManager.InjectHook(CEEInfo.ConstructStringLiteralIndex, _constructStringLiteral);
+            }
+
+            IsEnabled = true;
+        }
+
+        /// <summary>
+        /// Disable Jitex hooks
+        /// </summary>
+        internal void Disable()
+        {
+            lock (JitLock)
+            {
+                _hookManager.RemoveHook(_resolveToken);
+                _hookManager.RemoveHook(_compileMethod);
+                _hookManager.RemoveHook(_constructStringLiteral);
+            }
+
+            IsEnabled = false;
+        }
+
         /// <summary>
         ///     Wrap delegate to compileMethod from ICorJitCompiler.
         /// </summary>
-        /// <param name="thisPtr">this parameter.</param>
+        /// <param name="thisPtr">this parameter (pointer to CILJIT).</param>
         /// <param name="comp">(IN) - Pointer to ICorJitInfo.</param>
         /// <param name="info">(IN) - Pointer to CORINFO_METHOD_INFO.</param>
         /// <param name="flags">(IN) - Pointer to CorJitFlag.</param>
         /// <param name="nativeEntry">(OUT) - Pointer to NativeEntry.</param>
         /// <param name="nativeSizeOfCode">(OUT) - Size of NativeEntry.</param>
-        private CorJitResult CompileMethod(IntPtr thisPtr, IntPtr comp, IntPtr info, uint flags, out IntPtr nativeEntry, out int nativeSizeOfCode)
+        private CorJitResult CompileMethod(IntPtr thisPtr, IntPtr comp, IntPtr info, uint flags, out IntPtr nativeEntry, out ulong nativeSizeOfCode)
         {
             if (thisPtr == default)
             {
@@ -173,9 +201,9 @@ namespace Jitex.JIT
 
                         lock (JitLock)
                         {
-                            if (Framework.CEEInfoVTable == IntPtr.Zero)
+                            if (_framework.CEEInfoVTable == IntPtr.Zero)
                             {
-                                Framework.ReadICorJitInfoVTable(comp);
+                                _framework.ReadICorJitInfoVTable(comp);
 
                                 _hookManager.InjectHook(CEEInfo.ResolveTokenIndex, _resolveToken);
                                 _hookManager.InjectHook(CEEInfo.ConstructStringLiteralIndex, _constructStringLiteral);
@@ -186,11 +214,9 @@ namespace Jitex.JIT
                         {
                             uint methodToken = CEEInfo.GetMethodDefFromMethod(methodInfo.MethodDesc);
                             MethodBase methodFound = methodInfo.Module.ResolveMethod((int)methodToken);
-
                             _tokenTls = new TokenTls { Root = methodFound };
 
                             methodContext = new MethodContext(methodFound);
-
                             foreach (MethodResolverHandler resolver in resolvers)
                             {
                                 resolver(methodContext);
@@ -238,7 +264,7 @@ namespace Jitex.JIT
                     }
                 }
 
-                CorJitResult result = Framework.CorJitCompiler.CompileMethod(thisPtr, comp, info, flags, out nativeEntry, out nativeSizeOfCode);
+                CorJitResult result = _framework.CompileMethod(thisPtr, comp, info, flags, out nativeEntry, out nativeSizeOfCode);
 
                 if (ilAddress != IntPtr.Zero && methodContext!.Mode == MethodContext.ResolveMode.IL)
                     Marshal.FreeHGlobal(ilAddress);
@@ -428,7 +454,7 @@ namespace Jitex.JIT
             byte[] callBytes = callBody.ToArray();
 
             int bodyLength = (int)Math.Ceiling((double)methodContext.NativeCode.Length / callBytes.Length) * callBytes.Length;
-            int retLength = 0;
+            int retLength = 1;
 
             if (!isVoid)
                 retLength = callBytes.Length;
@@ -451,7 +477,7 @@ namespace Jitex.JIT
             {
                 Span<byte> il = new Span<byte>(ilAddress.ToPointer(), ilSize);
                 byte[] newIl = il.ToArray();
-                Debugger.Break();
+                //Debugger.Break();
             }
 
             return (ilAddress, ilSize);
@@ -464,9 +490,12 @@ namespace Jitex.JIT
                 if (_isDisposed)
                     return;
 
-                _hookManager.RemoveHook(_resolveToken);
-                _hookManager.RemoveHook(_compileMethod);
-                _hookManager.RemoveHook(_constructStringLiteral);
+                if (IsEnabled)
+                {
+                    _hookManager.RemoveHook(_resolveToken);
+                    _hookManager.RemoveHook(_compileMethod);
+                    _hookManager.RemoveHook(_constructStringLiteral);
+                }
 
                 _methodResolvers = null;
                 _tokenResolvers = null;
@@ -478,6 +507,7 @@ namespace Jitex.JIT
 
                 _instance = null;
                 _isDisposed = true;
+                IsEnabled = false;
             }
 
             GC.SuppressFinalize(this);

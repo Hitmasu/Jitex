@@ -5,7 +5,7 @@ namespace Jitex.Runtime
 {
     internal sealed class NETFramework : RuntimeFramework
     {
-        [DllImport("mscorjit.dll", CallingConvention = CallingConvention.StdCall, SetLastError = true, EntryPoint = "getJit", BestFitMapping = true)]
+        [DllImport("clrjit.dll", CallingConvention = CallingConvention.StdCall, SetLastError = true, EntryPoint = "getJit", BestFitMapping = true)]
         private static extern IntPtr GetJit();
 
         public NETFramework() : base(false)

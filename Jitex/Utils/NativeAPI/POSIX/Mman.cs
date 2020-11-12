@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Runtime.InteropServices;
 using Mono.Unix.Native;
 
 namespace Jitex.Utils.NativeAPI.POSIX
