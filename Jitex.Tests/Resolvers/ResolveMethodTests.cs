@@ -101,7 +101,7 @@ namespace Jitex.Tests.Resolvers
         [MethodImpl(MethodImplOptions.NoInlining)]
         public object ReturnSimpleObj()
         {
-            return new Caller();
+            return new object();
         }
 
         public object ReturnSimpleObjReplace()

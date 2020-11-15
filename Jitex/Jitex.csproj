@@ -9,6 +9,18 @@
 		<IsOSX Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::OSX)))' == 'true'">true</IsOSX>
 		<IsLinux Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux)))' == 'true'">true</IsLinux>
 		<Platforms>AnyCPU;x64</Platforms>
+		<Authors>Hitmasu</Authors>
+		<Company />
+		<Description>A framework to modify MSIL/Bytecode at runtime.</Description>
+		<PackageProjectUrl>https://github.com/Hitmasu/Jitex</PackageProjectUrl>
+		<RepositoryUrl>https://github.com/Hitmasu/Jitex</RepositoryUrl>
+		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+		<PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+		<PackageLicenseFile></PackageLicenseFile>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<PackageTags>JIT</PackageTags>
+		<Version>4.0.0-alpha</Version>
+		<AssemblyName>Jitex</AssemblyName>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">

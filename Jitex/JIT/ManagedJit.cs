@@ -3,7 +3,6 @@ using Jitex.JIT.CorInfo;
 using Jitex.Utils;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -107,6 +106,7 @@ namespace Jitex.JIT
             RuntimeHelperExtension.PrepareDelegate(_constructStringLiteral, IntPtr.Zero, IntPtr.Zero, 0, IntPtr.Zero);
 
             _hookManager.InjectHook(_framework.ICorJitCompileVTable, _compileMethod);
+            IsEnabled = true;
         }
 
         /// <summary>
@@ -182,8 +182,8 @@ namespace Jitex.JIT
                 return 0;
             }
 
-            CompileTls compileEntry = _compileTls ??= new CompileTls();
-            compileEntry.EnterCount++;
+            _compileTls ??= new CompileTls();
+            _compileTls.EnterCount++;
 
             try
             {
@@ -191,7 +191,7 @@ namespace Jitex.JIT
                 IntPtr sigAddress = IntPtr.Zero;
                 IntPtr ilAddress = IntPtr.Zero;
 
-                if (compileEntry.EnterCount == 1 && _methodResolvers != null)
+                if (_compileTls.EnterCount == 1 && _methodResolvers != null)
                 {
                     IEnumerable<Delegate> resolvers = _methodResolvers.GetInvocationList();
 
@@ -281,7 +281,7 @@ namespace Jitex.JIT
             }
             finally
             {
-                compileEntry.EnterCount--;
+                _compileTls.EnterCount--;
             }
         }
 
@@ -473,13 +473,6 @@ namespace Jitex.JIT
 
             Marshal.WriteByte(ilAddress + ilSize - 1, (byte)OpCodes.Ret.Value);
 
-            unsafe
-            {
-                Span<byte> il = new Span<byte>(ilAddress.ToPointer(), ilSize);
-                byte[] newIl = il.ToArray();
-                //Debugger.Break();
-            }
-
             return (ilAddress, ilSize);
         }
 
@@ -493,8 +486,8 @@ namespace Jitex.JIT
                 if (IsEnabled)
                 {
                     _hookManager.RemoveHook(_resolveToken);
-                    _hookManager.RemoveHook(_compileMethod);
                     _hookManager.RemoveHook(_constructStringLiteral);
+                    _hookManager.RemoveHook(_compileMethod);
                 }
 
                 _methodResolvers = null;
@@ -510,7 +503,7 @@ namespace Jitex.JIT
                 IsEnabled = false;
             }
 
-            GC.SuppressFinalize(this);
+            //GC.SuppressFinalize(this);
         }
 
     }
