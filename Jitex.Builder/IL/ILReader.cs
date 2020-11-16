@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Reflection;
 using System.Reflection.Emit;
 using Jitex.Builder.Exceptions;
@@ -71,7 +72,7 @@ namespace Jitex.Builder.IL
             _genericTypeArguments = genericTypeArguments;
             _genericMethodArguments = genericMethodArguments;
 
-            if(module != null)
+            if (module != null)
                 _resolver = new ModuleTokenResolver(module);
         }
 
@@ -172,7 +173,7 @@ namespace Jitex.Builder.IL
                 short instruction = _il[_position++];
 
                 if (instruction == 0xFE)
-                    instruction = BitConverter.ToInt16(new[] { _il[_position++], (byte)instruction });
+                    instruction = BitConverter.ToInt16(new[] { _il[_position++], (byte)instruction }, 0);
 
                 OpCode opCode = Operation.Translate(instruction);
 
@@ -378,15 +379,15 @@ namespace Jitex.Builder.IL
             /// <returns></returns>
             private (MemberInfo Member, int Token) ReadMember()
             {
-                if(_resolver == null)
+                if (_resolver == null)
                     throw new ModuleNullException();
 
                 int token = ReadInt32();
 
                 MemberInfo member;
-                
-                if(_resolver is ModuleTokenResolver)
-                    member = _resolver.ResolveMember(token,_genericTypeArguments,_genericMethodArguments);
+
+                if (_resolver is ModuleTokenResolver)
+                    member = _resolver.ResolveMember(token, _genericTypeArguments, _genericMethodArguments);
                 else
                     member = _resolver.ResolveMember(token);
 
@@ -410,10 +411,7 @@ namespace Jitex.Builder.IL
             /// <returns><see cref="int" /> value.</returns>
             private int ReadInt32()
             {
-                int value = _il[_position]
-                            | (_il[_position + 1] << 8)
-                            | (_il[_position + 2] << 16)
-                            | (_il[_position + 3] << 24);
+                int value = BitConverter.ToInt32(_il,_position);
                 _position += 4;
                 return value;
             }

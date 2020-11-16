@@ -1,6 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+
 	<PropertyGroup>
-		<TargetFramework>netcoreapp3.1</TargetFramework>
+		<TargetFramework>netstandard2.0</TargetFramework>
+		<LangVersion>latest</LangVersion>
 		<Platforms>x64</Platforms>
 		<Authors>Hitmasu</Authors>
 		<Company />
@@ -8,20 +10,21 @@
 		<PackageProjectUrl>https://github.com/Hitmasu/Jitex</PackageProjectUrl>
 		<RepositoryUrl>https://github.com/Hitmasu/Jitex</RepositoryUrl>
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-		<PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+		<PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
 		<PackageLicenseFile></PackageLicenseFile>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<PackageTags>JIT Jitex</PackageTags>
 		<Version>1.0.2-alpha</Version>
 		<AssemblyName>Jitex.Builder</AssemblyName>
+		<Nullable>enable</Nullable>
 	</PropertyGroup>
 
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-		<DocumentationFile>C:\Users\Hitmasu\Documents\Jitex\Jitex\Jitex.Builder\Jitex.Builder.xml</DocumentationFile>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+	  <GenerateSerializationAssemblies>Off</GenerateSerializationAssemblies>
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Lokad.ILPack" Version="0.1.4" />
+		<PackageReference Include="Lokad.ILPack" Version="0.1.5" />
 	</ItemGroup>
 
 </Project>

@@ -1,50 +1,44 @@
 ﻿using System;
-using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using Jitex.Exceptions;
+using Jitex.Runtime;
+using Jitex.Runtime.Offsets;
 
 namespace Jitex.JIT.CorInfo
 {
-    internal class CEEInfo
+    internal static class CEEInfo
     {
-        private readonly IntPtr _corJitInfo;
+        private static IntPtr CEEInfoVTable => RuntimeFramework.GetFramework().CEEInfoVTable;
 
-        private readonly GetMethodDefFromMethodDelegate _getMethodDefFromMethod;
+        private static readonly GetMethodDefFromMethodDelegate _getMethodDefFromMethod;
 
-        private readonly ConstructStringLiteralDelegate _constructStringLiteral;
+        private static readonly ConstructStringLiteralDelegate _constructStringLiteral;
 
-        private readonly ResolveTokenDelegate _resolveToken;
+        private static readonly ResolveTokenDelegate _resolveToken;
 
-        public IntPtr ResolveTokenIndex { get; }
+        public static IntPtr ResolveTokenIndex { get; }
 
-        public IntPtr ConstructStringLiteralIndex { get; }
+        public static IntPtr ConstructStringLiteralIndex { get; }
 
         [UnmanagedFunctionPointer(default)]
         public delegate uint GetMethodDefFromMethodDelegate(IntPtr thisHandle, IntPtr hMethod);
 
         [UnmanagedFunctionPointer(default)]
-        public delegate IntPtr GetMethodModuleDelegate(IntPtr thisHandle, IntPtr hMethod);
-
-        [UnmanagedFunctionPointer(default)]
-        public delegate void ResolveTokenDelegate(IntPtr thisHandle, ref CORINFO_RESOLVED_TOKEN pResolvedToken);
+        public delegate void ResolveTokenDelegate(IntPtr thisHandle, IntPtr pResolvedToken);
 
         [UnmanagedFunctionPointer(default)]
         public delegate InfoAccessType ConstructStringLiteralDelegate(IntPtr thisHandle, IntPtr hModule, int metadataToken, IntPtr ptrString);
 
-        public CEEInfo(IntPtr corJitInfo)
+        static CEEInfo()
         {
-            _corJitInfo = corJitInfo;
+            if (CEEInfoVTable == IntPtr.Zero)
+                throw new VTableNotLoaded(nameof(CEEInfo));
 
-            Version version = new Version(3, 1, 1);
+            IntPtr getMethodDefFromMethodIndex = CEEInfoVTable + IntPtr.Size * CEEInfoOffset.GetMethodDefFromMethod;
 
-            IntPtr getMethodDefFromMethodIndex = IntPtr.Zero;
-
-            if (Environment.Version >= version)
-            {
-                ResolveTokenIndex = _corJitInfo + IntPtr.Size * 0x1C;
-                getMethodDefFromMethodIndex = _corJitInfo + IntPtr.Size * 0x74;
-                ConstructStringLiteralIndex = _corJitInfo + IntPtr.Size * 0x97;
-            }
+            ResolveTokenIndex = CEEInfoVTable + IntPtr.Size * CEEInfoOffset.ResolveToken;
+            ConstructStringLiteralIndex = CEEInfoVTable + IntPtr.Size * CEEInfoOffset.ConstructStringLiteral;
 
             IntPtr resolveTokenPtr = Marshal.ReadIntPtr(ResolveTokenIndex);
             IntPtr getMethodDefFromMethodPtr = Marshal.ReadIntPtr(getMethodDefFromMethodIndex);
@@ -54,22 +48,27 @@ namespace Jitex.JIT.CorInfo
             _resolveToken = Marshal.GetDelegateForFunctionPointer<ResolveTokenDelegate>(resolveTokenPtr);
             _constructStringLiteral = Marshal.GetDelegateForFunctionPointer<ConstructStringLiteralDelegate>(constructStringLiteralPtr);
 
+            //PrepareMethod in .NET Core 2.0, will raise StackOverFlowException
+            ResolveToken(default, default);
 
-            MethodInfo resolveTokenMethod = GetType().GetMethod(nameof(ResolveToken), BindingFlags.Instance | BindingFlags.Public);
-            RuntimeHelpers.PrepareMethod(resolveTokenMethod.MethodHandle);
+            System.Reflection.MethodInfo constructString = typeof(CEEInfo).GetMethod(nameof(ConstructStringLiteral))!;
+            RuntimeHelpers.PrepareMethod(constructString.MethodHandle);
         }
 
-        public uint GetMethodDefFromMethod(IntPtr hMethod)
+        public static uint GetMethodDefFromMethod(IntPtr hMethod)
         {
-            return _getMethodDefFromMethod(_corJitInfo, hMethod);
+            return _getMethodDefFromMethod(CEEInfoVTable, hMethod);
         }
 
-        public void ResolveToken(IntPtr thisHandle, ref CORINFO_RESOLVED_TOKEN pResolvedToken)
+        public static void ResolveToken(IntPtr thisHandle, IntPtr pResolvedToken)
         {
-            _resolveToken(thisHandle, ref pResolvedToken);
+            if (thisHandle == IntPtr.Zero)
+                return;
+
+            _resolveToken(thisHandle, pResolvedToken);
         }
 
-        public InfoAccessType ConstructStringLiteral(IntPtr thisHandle, IntPtr hModule, int metadataToken, IntPtr ptrString)
+        public static InfoAccessType ConstructStringLiteral(IntPtr thisHandle, IntPtr hModule, int metadataToken, IntPtr ptrString)
         {
             return _constructStringLiteral(thisHandle, hModule, metadataToken, ptrString);
         }

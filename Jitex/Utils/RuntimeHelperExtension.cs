@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Runtime.InteropServices;
-using static Jitex.Utils.Memory;
+using static Jitex.Utils.Trampoline;
 
 namespace Jitex.Utils
 {
@@ -12,9 +12,7 @@ namespace Jitex.Utils
 
             IntPtr trampolinePtr = AllocateTrampoline(delPtr);
             Delegate trampoline = Marshal.GetDelegateForFunctionPointer(trampolinePtr, del.GetType());
-
             trampoline.DynamicInvoke(parameters);
-
             FreeTrampoline(trampolinePtr);
         }
     }

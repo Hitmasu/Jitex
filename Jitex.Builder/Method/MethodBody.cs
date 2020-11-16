@@ -78,7 +78,7 @@ namespace Jitex.Builder.Method
 
             IL = methodBase.GetILBytes();
         }
-        
+
         /// <summary>
         /// Create a body from IL.
         /// </summary>
@@ -241,51 +241,60 @@ namespace Jitex.Builder.Method
         public byte[] GetSignatureVariables()
         {
             BlobBuilder blob = new BlobBuilder();
-
+            bool isGenericDefined = false;
             blob.WriteByte(0x07);
             blob.WriteCompressedInteger(LocalVariables.Count);
 
-            MetadataInfo metadataInfo = null;
+            MetadataInfo? metadataInfo = null;
 
-            foreach (LocalVariableInfo variable in LocalVariables)
+            //First should be normal types and after generic types.
+            IEnumerable<LocalVariableInfo> localVariables = LocalVariables.OrderBy(w => w.Type.IsGenericType);
+
+            foreach (LocalVariableInfo variable in localVariables)
             {
+                if (Module != null)
+                    metadataInfo ??= new MetadataInfo(Module.Assembly);
+                else
+                    metadataInfo = new MetadataInfo(variable.Type.Assembly);
+
+                if (variable.Type.IsGenericType && !isGenericDefined)
+                {
+                    blob.WriteByte((byte)CorElementType.ELEMENT_TYPE_GENERICINST);
+                    blob.WriteByte((byte)CorElementType.ELEMENT_TYPE_CLASS);
+
+                    int typeInfo = GetTypeInfo(variable.Type, metadataInfo);
+                    blob.WriteByte((byte)typeInfo);
+
+                    int countGenericVariables = LocalVariables.Count(w => w.Type.IsGenericType);
+                    blob.WriteByte((byte)countGenericVariables);
+
+                    isGenericDefined = true;
+                }
+
                 CorElementType elementType = variable.ElementType;
 
                 if (elementType == CorElementType.ELEMENT_TYPE_SZARRAY)
                 {
                     blob.WriteByte((byte)elementType);
-                    elementType = LocalVariableInfo.DetectCorElementType(variable.Type.GetElementType());
+                    elementType = LocalVariableInfo.DetectCorElementType(variable.Type.GetElementType()!);
                 }
 
                 if (elementType == CorElementType.ELEMENT_TYPE_CLASS || elementType == CorElementType.ELEMENT_TYPE_VALUETYPE)
                 {
-                    //TODO
-                    //Pinned variables
-
-                    if (Module != null)
+                    if (variable.Type.IsGenericType)
                     {
-                        metadataInfo ??= new MetadataInfo(Module.Assembly);
+                        foreach (Type genericType in variable.Type.GetGenericArguments())
+                        {
+                            blob.WriteByte((byte) LocalVariableInfo.DetectCorElementType(genericType));
+                        }
                     }
                     else
                     {
-                        metadataInfo = new MetadataInfo(variable.Type.Assembly);
+                        blob.WriteByte((byte) elementType);
+
+                        int typeInfo = GetTypeInfo(variable.Type, metadataInfo);
+                        blob.WriteCompressedInteger(typeInfo);
                     }
-
-                    EntityHandle typeHandle = metadataInfo.GetTypeHandle(variable.Type);
-
-                    //Check if type is referenced on assembly,
-                    //If not, we should get reference in assembly of type.
-                    //Ex.: String is not referenced directly on metadata assembly.
-                    if (typeHandle == default && metadataInfo.Assembly != variable.Type.Assembly)
-                    {
-                        MetadataInfo metadataAssembly = new MetadataInfo(variable.Type.Assembly);
-                        typeHandle = metadataAssembly.GetTypeHandle(variable.Type);
-                    }
-
-                    int typeInfo = CodedIndex.TypeDefOrRefOrSpec(typeHandle);
-
-                    blob.WriteByte((byte)elementType);
-                    blob.WriteCompressedInteger(typeInfo);
                 }
                 else
                 {
@@ -293,11 +302,29 @@ namespace Jitex.Builder.Method
                 }
             }
 
+            blob.WriteByte(0x00);
             BlobBuilder blobSize = new BlobBuilder();
             blobSize.WriteCompressedInteger(blob.Count);
             blob.LinkPrefix(blobSize);
 
             return blob.ToArray();
+        }
+
+        private static int GetTypeInfo(Type type, MetadataInfo metadataInfo)
+        {
+            Type variableType = type.IsGenericType ? type.GetGenericTypeDefinition() : type;
+            EntityHandle typeHandle = metadataInfo.GetTypeHandle(variableType);
+
+            //Check if type is referenced on assembly,
+            //If not, we should get reference in assembly of type.
+            //Ex.: String is not referenced directly on metadata assembly.
+            if (typeHandle == default && metadataInfo.Assembly != type.Assembly)
+            {
+                MetadataInfo metadataAssembly = new MetadataInfo(type.Assembly);
+                typeHandle = metadataAssembly.GetTypeHandle(type);
+            }
+
+            return CodedIndex.TypeDefOrRefOrSpec(typeHandle);
         }
     }
 }

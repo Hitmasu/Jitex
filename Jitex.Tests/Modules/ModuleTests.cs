@@ -1,5 +1,6 @@
 ﻿using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using Xunit;
 using Xunit.Extensions.Ordering;
 using static Jitex.Tests.Utils;
@@ -9,7 +10,6 @@ namespace Jitex.Tests.Modules
     [Collection("Manager")]
     public class ModuleTests
     {
-
         [Fact, Order(1)]
         public void ModuleLoadTest()
         {
@@ -39,6 +39,7 @@ namespace Jitex.Tests.Modules
         [Fact, Order(3)]
         public void RemoveModuleTest()
         {
+            ModuleLoadTest();
             JitexManager.RemoveModule<ModuleJitex>();
             bool moduleIsLoaded = JitexManager.ModuleIsLoaded<ModuleJitex>();
             Assert.False(moduleIsLoaded, "Module still loaded!");
@@ -71,6 +72,7 @@ namespace Jitex.Tests.Modules
         /// <summary>
         /// Method just to call resolver.
         /// </summary>
+        [MethodImpl(MethodImplOptions.NoInlining)]
         public void MethodToCompileOnLoad()
         {
         }
@@ -78,6 +80,7 @@ namespace Jitex.Tests.Modules
         /// <summary>
         /// Method just to call resolver.
         /// </summary>
+        [MethodImpl(MethodImplOptions.NoInlining)]
         public void MethodToCompileOnRemove()
         {
         }
@@ -85,6 +88,7 @@ namespace Jitex.Tests.Modules
         /// <summary>
         /// Method just to call resolver.
         /// </summary>
+        [MethodImpl(MethodImplOptions.NoInlining)]
         public void TokenToCompileOnLoad()
         {
         }
@@ -92,6 +96,7 @@ namespace Jitex.Tests.Modules
         /// <summary>
         /// Method just to call resolver.
         /// </summary>
+        [MethodImpl(MethodImplOptions.NoInlining)]
         public void TokenToCompileOnRemove()
         {
         }
@@ -99,6 +104,7 @@ namespace Jitex.Tests.Modules
         /// <summary>
         /// Method just to call token.
         /// </summary>
+        [MethodImpl(MethodImplOptions.NoInlining)]
         public void MethodToCallTokenOnLoad()
         {
             TokenToCompileOnLoad();
@@ -107,6 +113,7 @@ namespace Jitex.Tests.Modules
         /// <summary>
         /// Method just to call token.
         /// </summary>
+        [MethodImpl(MethodImplOptions.NoInlining)]
         public void MethodToCallTokenOnRemove()
         {
             TokenToCompileOnRemove();

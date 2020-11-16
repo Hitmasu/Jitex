@@ -11,25 +11,12 @@ namespace Jitex.JIT.Context
     /// </summary>
     public class TokenContext
     {
-        /// <summary>
-        /// Token to be resolved.
-        /// </summary>
-        private CORINFO_RESOLVED_TOKEN _resolvedToken;
-
-        /// <summary>
-        /// Token to be resolved. 
-        /// </summary>
-        internal CORINFO_RESOLVED_TOKEN ResolvedToken => _resolvedToken;
+        private ResolvedToken _resolvedToken;
 
         /// <summary>
         /// Token type.
         /// </summary>
         public TokenKind TokenType { get; }
-        
-        /// <summary>
-        /// Address module from token.
-        /// </summary>
-        public IntPtr Scope { get; }
 
         /// <summary>
         /// Address context from token (to generic types).
@@ -66,37 +53,33 @@ namespace Jitex.JIT.Context
         /// </summary>
         public string Content { get; private set; }
 
-        internal bool CanResolve { get; set; } = true;
-
         /// <summary>
         /// Constructor for token type. (non-string)
         /// </summary>
         /// <param name="resolvedToken">Original token.</param>
         /// <param name="source">Source method from compile tree ("requester").</param>
-        internal TokenContext(ref CORINFO_RESOLVED_TOKEN resolvedToken, MemberInfo source)
+        internal TokenContext(ref ResolvedToken resolvedToken, MemberInfo source)
         {
             _resolvedToken = resolvedToken;
-
-            Module = AppModules.GetModuleByPointer(resolvedToken.tokenScope);
+            Module = _resolvedToken.Module;
             Source = source;
 
-            TokenType = resolvedToken.tokenType;
-            Scope = resolvedToken.tokenScope;
-            Context = resolvedToken.tokenContext;
-            MetadataToken = resolvedToken.token;
+            TokenType = _resolvedToken.Type;
+            Context = _resolvedToken.Context;
+            MetadataToken = _resolvedToken.Token;
 
             switch (TokenType)
             {
                 case TokenKind.Method:
-                    Handle = resolvedToken.hMethod;
+                    Handle = _resolvedToken.HMethod;
                     break;
 
                 case TokenKind.Field:
-                    Handle = resolvedToken.hField;
+                    Handle = _resolvedToken.HField;
                     break;
 
                 case TokenKind.Class:
-                    Handle = resolvedToken.hClass;
+                    Handle = _resolvedToken.HClass;
                     break;
             }
         }
@@ -106,16 +89,15 @@ namespace Jitex.JIT.Context
         /// </summary>
         /// <param name="constructString">Original string.</param>
         /// <param name="source">Source method from compile tree ("requester").</param>
-        internal TokenContext(ref CORINFO_CONSTRUCT_STRING constructString, MemberInfo source)
+        internal TokenContext(ConstructString constructString, MemberInfo source)
         {
-            Module = AppModules.GetModuleByPointer(constructString.HandleModule);
+            Module = AppModules.GetModuleByAddress(constructString.HandleModule);
             Source = source;
 
             TokenType = TokenKind.String;
-            Scope = constructString.HandleModule;
             MetadataToken = constructString.MetadataToken;
 
-            if(Module != null)
+            if (Module != null)
                 Content = Module.ResolveString(MetadataToken);
         }
 
@@ -152,8 +134,8 @@ namespace Jitex.JIT.Context
             if (method is DynamicMethod)
                 throw new NotImplementedException();
 
-            _resolvedToken.tokenScope = AppModules.GetPointerFromModule(method.Module);
-            _resolvedToken.token = method.MetadataToken;
+            _resolvedToken.Module = method.Module;
+            _resolvedToken.Token = method.MetadataToken;
         }
 
         /// <summary>

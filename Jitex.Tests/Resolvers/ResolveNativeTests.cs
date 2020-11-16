@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Runtime.CompilerServices;
 using Iced.Intel;
 using Jitex.JIT.Context;
@@ -17,18 +18,18 @@ namespace Jitex.Tests.Resolvers
         }
 
         [Fact]
-        public void SmallAssembly()
+        public void SmallAssemblyTest()
         {
             int n1 = 5;
             int n2 = 5;
             int expected = n1 * n2;
             int number = SimpleSum(n1, n2);
-            Assert.True(number == expected, "Native code not injected!");
+            Assert.True(number == expected, $"Native code not injected! {number}");
         }
 
 
         [Fact]
-        public void LargeAssembly()
+        public void LargeAssemblyTest()
         {
             int n1 = 10;
             int n2 = 1000;
@@ -40,7 +41,7 @@ namespace Jitex.Tests.Resolvers
         [MethodImpl(MethodImplOptions.NoInlining)]
         public int SimpleSum(int n1, int n2)
         {
-            return n1 + n2;
+            return n1 / n2;
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
@@ -55,35 +56,51 @@ namespace Jitex.Tests.Resolvers
             {
                 Assembler assembler = new Assembler(64);
 
-                assembler.mov(eax, edx);
-                assembler.imul(eax, r8d);
+                int stackSize = 4;
+                assembler.push(rbp);
+                assembler.sub(rsp, stackSize);
+                assembler.lea(rbp, __[rsp + stackSize]);
+                assembler.mov(__dword_ptr[rbp - stackSize], 5);
+                assembler.mov(rax, 5);
+                assembler.imul(rax, __dword_ptr[rbp - stackSize]);
+                assembler.lea(rsp, __[rbp]);
+                assembler.pop(rbp);
                 assembler.ret();
 
-                context.ResolveNative(GetNativeCode(assembler));
+                using (MemoryStream stream = new MemoryStream())
+                {
+                    assembler.Assemble(new StreamCodeWriter(stream), 0);
+
+                    context.ResolveNative(stream.ToArray());
+                }
             }
             else if (context.Method == GetMethod<ResolveNativeTests>(nameof(LargeSum)))
             {
                 Assembler assembler = new Assembler(64);
 
-                assembler.lea(eax,__dword_ptr[rdx]);
+                int stackSize = 4;
+                assembler.push(rbp);
+                assembler.sub(rsp, stackSize);
+                assembler.lea(rbp, __[rsp + stackSize]);
+                assembler.mov(rdx, 10);
+                assembler.mov(rax, 10);
 
                 for (int i = 0; i < 999; i++)
                 {
-                    assembler.add(eax, edx);
+                    assembler.add(rax, rdx);
                 }
 
+                assembler.lea(rsp, __[rbp]);
+                assembler.pop(rbp);
                 assembler.ret();
 
-                context.ResolveNative(GetNativeCode(assembler));
+                using (MemoryStream stream = new MemoryStream())
+                {
+                    assembler.Assemble(new StreamCodeWriter(stream), 0);
+
+                    context.ResolveNative(stream.ToArray());
+                }
             }
-        }
-
-        private static byte[] GetNativeCode(Assembler assembler)
-        {
-            using MemoryStream stream = new MemoryStream();
-            assembler.Assemble(new StreamCodeWriter(stream), 0);
-
-            return stream.ToArray();
         }
     }
 }

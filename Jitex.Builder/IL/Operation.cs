@@ -111,7 +111,10 @@ namespace Jitex.Builder.IL
         /// <returns>Operation code of instruction.</returns>
         public static OpCode Translate(short identifier)
         {
-            return OpCodes[identifier];
+            if (OpCodes.TryGetValue(identifier, out OpCode opcode))
+                return opcode;
+
+            throw new KeyNotFoundException($"OpCode {identifier} not found");
         }
     }
 }

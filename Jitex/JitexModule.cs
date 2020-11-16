@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using Jitex.JIT.Context;
 
 namespace Jitex
@@ -18,7 +17,6 @@ namespace Jitex
         /// <summary>
         /// Instance a new module.
         /// </summary>
-        /// <param name="load">If module should be loaded on instance.</param>WWW
         protected JitexModule()
         {
         }
