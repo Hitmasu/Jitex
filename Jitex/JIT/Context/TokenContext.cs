@@ -123,6 +123,12 @@ namespace Jitex.JIT.Context
             }
         }
 
+        public void ResolveModule(Module module)
+        {
+            IsResolved = true;
+            _resolvedToken.Module = module;
+        }
+
         /// <summary>
         /// Resolve token by method.
         /// </summary>
