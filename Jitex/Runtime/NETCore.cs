@@ -1,28 +1,42 @@
 ﻿using System;
 using System.Runtime.InteropServices;
+using NativeLibraryLoader;
 
 namespace Jitex.Runtime
 {
     internal sealed class NETCore : RuntimeFramework
     {
-#if Windows
-        private const string jitLibraryName = "clrjit.dll";
-#elif Linux
-        private const string jitLibraryName = "libclrjit.so";
-#else
-        private const string jitLibraryName = "libclrjit.dylib";
-#endif
-        [DllImport(jitLibraryName, CallingConvention = CallingConvention.StdCall, SetLastError = true, EntryPoint = "getJit", BestFitMapping = true)]
-        private static extern IntPtr GetJit();
+        private delegate IntPtr GetJitDelegate();
 
         public NETCore() : base(true)
         {
-
         }
 
         protected override IntPtr GetJitAddress()
         {
-            return GetJit();
+            string jitLibraryName = string.Empty;
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                jitLibraryName = "clrjit.dll";
+            }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            {
+                jitLibraryName = "libclrjit.so";
+            }
+            else
+            {
+                jitLibraryName = "libclrjit.dylib";
+            }
+
+            LibraryLoader? defaultLoader = LibraryLoader.GetPlatformDefaultLoader();
+
+            IntPtr libAddress = defaultLoader.LoadNativeLibrary(jitLibraryName);
+            IntPtr getJitAddress = defaultLoader.LoadFunctionPointer(libAddress, "getJit");
+
+            GetJitDelegate getJit = Marshal.GetDelegateForFunctionPointer<GetJitDelegate>(getJitAddress);
+            IntPtr jitAddress = getJit();
+            return jitAddress;
         }
     }
 }

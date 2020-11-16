@@ -19,7 +19,7 @@
 		<PackageLicenseFile></PackageLicenseFile>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<PackageTags>JIT</PackageTags>
-		<Version>4.0.0-alpha</Version>
+		<Version>4.0.1-alpha</Version>
 		<AssemblyName>Jitex</AssemblyName>
 	</PropertyGroup>
 
@@ -45,18 +45,9 @@
 	  <PlatformTarget>x64</PlatformTarget>
 	</PropertyGroup>
 
-	<PropertyGroup Condition="'$(IsWindows)'=='true'">
-		<DefineConstants>TRACE;DEBUG;Windows</DefineConstants>
-	</PropertyGroup>
-	<PropertyGroup Condition="'$(IsOSX)'=='true'">
-		<DefineConstants>OSX</DefineConstants>
-	</PropertyGroup>
-	<PropertyGroup Condition="'$(IsLinux)'=='true'">
-		<DefineConstants>Linux</DefineConstants>
-	</PropertyGroup>
-
 	<ItemGroup>
 		<PackageReference Include="Iced" Version="1.9.0" />
+		<PackageReference Include="NativeLibraryLoader" Version="1.0.12" />
 		<PackageReference Include="System.Memory" Version="4.5.4" />
 		<PackageReference Include="Mono.Posix.NETStandard" Version="1.0.0" />
 	</ItemGroup>

@@ -1,11 +1,8 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 using Jitex.Utils.NativeAPI.Windows;
-
-#if !Windows
-    using Mono.Unix.Native;
-    using Jitex.Utils.NativeAPI.POSIX;
-#endif
+using Mono.Unix.Native;
+using Jitex.Utils.NativeAPI.POSIX;
 
 namespace Jitex.Utils
 {
@@ -31,12 +28,16 @@ namespace Jitex.Utils
         /// <returns></returns>
         public static IntPtr AllocateTrampoline(IntPtr address)
         {
+            IntPtr jmpNative;
 
-#if Windows
-            IntPtr jmpNative = Kernel32.VirtualAlloc(TrampolineInstruction.Length, Kernel32.AllocationType.Commit, Kernel32.MemoryProtection.EXECUTE_READ_WRITE);
-#else
-            IntPtr jmpNative = Mman.mmap(TrampolineInstruction.Length, MmapProts.PROT_EXEC | MmapProts.PROT_WRITE, MmapFlags.MAP_ANON | MmapFlags.MAP_SHARED);
-#endif
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                jmpNative = Kernel32.VirtualAlloc(TrampolineInstruction.Length, Kernel32.AllocationType.Commit, Kernel32.MemoryProtection.EXECUTE_READ_WRITE);
+            }
+            else
+            {
+                jmpNative = Mman.mmap(TrampolineInstruction.Length, MmapProts.PROT_EXEC | MmapProts.PROT_WRITE, MmapFlags.MAP_ANON | MmapFlags.MAP_SHARED);
+            }
 
             Marshal.Copy(TrampolineInstruction, 0, jmpNative, TrampolineInstruction.Length);
             Marshal.WriteIntPtr(jmpNative, 2, address);
@@ -49,12 +50,10 @@ namespace Jitex.Utils
         /// <param name="address"></param>
         public static void FreeTrampoline(IntPtr address)
         {
-#if Windows
-            Kernel32.VirtualFree(address, TrampolineInstruction.Length);
-#else
-            Mman.munmap(address, TrampolineInstruction.Length);
-#endif
-
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                Kernel32.VirtualFree(address, TrampolineInstruction.Length);
+            else
+                Mman.munmap(address, TrampolineInstruction.Length);
         }
     }
 }
