@@ -16,13 +16,13 @@ namespace Jitex.Runtime.Offsets
 
         private static void ReadOffset(bool isCore, Version version)
         {
-            if (isCore && version >= new Version(3, 1, 1)) //.NET Core 3.1 or higher
+            if (isCore && version >= new Version(3, 0, 0)) //.NET Core 3.0 or higher
             {
                 ResolveToken = 0x1C;
                 GetMethodDefFromMethod = 0x74;
                 ConstructStringLiteral = 0x97;
             }
-            else if ((isCore && version >= new Version(2, 1, 0)) || (!isCore && version >= new Version(4, 0, 30319))) //.NET Core 2.1 ~ .NET Core 3.0 | .NET Framework 4.6.1
+            else if ((isCore && version >= new Version(2, 1, 0)) || (!isCore && version >= new Version(4, 0, 30319))) //.NET Core 2.1 | .NET Framework 4.6.1
             {
                 ResolveToken = 0x1C;
                 GetMethodDefFromMethod = 0x70;
