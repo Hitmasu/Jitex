@@ -39,6 +39,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\Jitex.Builder\Jitex.Builder.csproj" />
       <ProjectReference Include="..\Jitex\Jitex.csproj" />
     </ItemGroup>
 

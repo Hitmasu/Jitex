@@ -1,6 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using MethodBody = Jitex.Builder.Method.MethodBody;
 
 namespace Jitex.JIT.Context
@@ -109,6 +111,20 @@ namespace Jitex.JIT.Context
         public void ResolveMethod(MethodInfo method)
         {
             MethodBody = new MethodBody(method);
+            IsResolved = true;
+        }
+
+        /// <summary>
+        /// Detour current method.
+        /// </summary>
+        /// <param name="method"></param>
+        public void ResolveDetour(MethodInfo method)
+        {
+            RuntimeMethodHandle methodHandle = method.MethodHandle;
+            RuntimeHelpers.PrepareMethod(methodHandle);
+
+            IntPtr methodAddress = methodHandle.GetFunctionPointer();
+
             IsResolved = true;
         }
     }

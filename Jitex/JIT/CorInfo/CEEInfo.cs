@@ -17,6 +17,8 @@ namespace Jitex.JIT.CorInfo
 
         private static readonly ResolveTokenDelegate _resolveToken;
 
+        private static readonly GetFunctionEntryPointDelegate _getFunctionEntryPoint;
+
         public static IntPtr ResolveTokenIndex { get; }
 
         public static IntPtr ConstructStringLiteralIndex { get; }
@@ -30,12 +32,16 @@ namespace Jitex.JIT.CorInfo
         [UnmanagedFunctionPointer(default)]
         public delegate InfoAccessType ConstructStringLiteralDelegate(IntPtr thisHandle, IntPtr hModule, int metadataToken, IntPtr ptrString);
 
+        [UnmanagedFunctionPointer(default)]
+        public delegate InfoAccessType GetFunctionEntryPointDelegate(IntPtr thisHandle, IntPtr hMethod, out IntPtr pResult);
+
         static CEEInfo()
         {
             if (CEEInfoVTable == IntPtr.Zero)
                 throw new VTableNotLoaded(nameof(CEEInfo));
 
             IntPtr getMethodDefFromMethodIndex = CEEInfoVTable + IntPtr.Size * CEEInfoOffset.GetMethodDefFromMethod;
+            IntPtr getFunctionEntryPointPtr = CEEInfoVTable + IntPtr.Size * CEEInfoOffset.GetFunctionEntryPoint;
 
             ResolveTokenIndex = CEEInfoVTable + IntPtr.Size * CEEInfoOffset.ResolveToken;
             ConstructStringLiteralIndex = CEEInfoVTable + IntPtr.Size * CEEInfoOffset.ConstructStringLiteral;
@@ -43,10 +49,12 @@ namespace Jitex.JIT.CorInfo
             IntPtr resolveTokenPtr = Marshal.ReadIntPtr(ResolveTokenIndex);
             IntPtr getMethodDefFromMethodPtr = Marshal.ReadIntPtr(getMethodDefFromMethodIndex);
             IntPtr constructStringLiteralPtr = Marshal.ReadIntPtr(ConstructStringLiteralIndex);
+            IntPtr getFuncitonEntryPointPtr = Marshal.ReadIntPtr(getFunctionEntryPointPtr);
 
             _getMethodDefFromMethod = Marshal.GetDelegateForFunctionPointer<GetMethodDefFromMethodDelegate>(getMethodDefFromMethodPtr);
             _resolveToken = Marshal.GetDelegateForFunctionPointer<ResolveTokenDelegate>(resolveTokenPtr);
             _constructStringLiteral = Marshal.GetDelegateForFunctionPointer<ConstructStringLiteralDelegate>(constructStringLiteralPtr);
+            _getFunctionEntryPoint = Marshal.GetDelegateForFunctionPointer<GetFunctionEntryPointDelegate>(getFuncitonEntryPointPtr);
 
             //PrepareMethod in .NET Core 2.0, will raise StackOverFlowException
             ResolveToken(default, default);
@@ -71,6 +79,12 @@ namespace Jitex.JIT.CorInfo
         public static InfoAccessType ConstructStringLiteral(IntPtr thisHandle, IntPtr hModule, int metadataToken, IntPtr ptrString)
         {
             return _constructStringLiteral(thisHandle, hModule, metadataToken, ptrString);
+        }
+
+        public static IntPtr GetFunctionEntryPoint(IntPtr hMethod)
+        {
+            _getFunctionEntryPoint(CEEInfoVTable, hMethod, out IntPtr result);
+            return result;
         }
     }
 }

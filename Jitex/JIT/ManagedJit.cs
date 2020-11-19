@@ -266,6 +266,12 @@ namespace Jitex.JIT
 
                 CorJitResult result = _framework.CompileMethod(thisPtr, comp, info, flags, out nativeEntry, out nativeSizeOfCode);
 
+                if (methodContext != null)
+                {
+                    Console.WriteLine(CEEInfo.GetFunctionEntryPoint(comp));
+                    Console.WriteLine(methodContext.Method.Name);
+                }
+
                 if (ilAddress != IntPtr.Zero && methodContext!.Mode == MethodContext.ResolveMode.IL)
                     Marshal.FreeHGlobal(ilAddress);
 
@@ -503,7 +509,7 @@ namespace Jitex.JIT
                 IsEnabled = false;
             }
 
-            //GC.SuppressFinalize(this);
+            GC.SuppressFinalize(this);
         }
 
     }

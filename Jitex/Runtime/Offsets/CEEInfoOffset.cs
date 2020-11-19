@@ -7,6 +7,7 @@ namespace Jitex.Runtime.Offsets
         internal static int ResolveToken { get; private set; }
         internal static int GetMethodDefFromMethod { get; private set; }
         internal static int ConstructStringLiteral { get; private set; }
+        internal static int GetFunctionEntryPoint { get; private set; }
 
         static CEEInfoOffset()
         {
@@ -21,6 +22,7 @@ namespace Jitex.Runtime.Offsets
                 ResolveToken = 0x1C;
                 GetMethodDefFromMethod = 0x74;
                 ConstructStringLiteral = 0x97;
+                GetFunctionEntryPoint = 0x7F;
             }
             else if ((isCore && version >= new Version(2, 1, 0)) || (!isCore && version >= new Version(4, 0, 30319))) //.NET Core 2.1 | .NET Framework 4.6.1
             {

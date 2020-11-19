@@ -53,7 +53,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\Jitex.Builder\Jitex.Builder.csproj" />
+	  <ProjectReference Include="..\Jitex.Builder\Jitex.Builder.csproj" />
 	</ItemGroup>
 
 </Project>
