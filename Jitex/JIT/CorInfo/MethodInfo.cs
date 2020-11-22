@@ -22,7 +22,7 @@ namespace Jitex.JIT.CorInfo
 
         public SigInfo Locals { get; set; }
 
-        public IntPtr MethodDesc
+        public IntPtr MethodHandle
         {
             get
             {

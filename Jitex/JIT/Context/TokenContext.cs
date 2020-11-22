@@ -41,7 +41,7 @@ namespace Jitex.JIT.Context
         /// <summary>
         /// Source from compile tree ("requester compile").
         /// </summary>
-        public MemberInfo Source { get; set; }
+        public MemberInfo? Source { get; set; }
 
         /// <summary>
         /// If context is already resolved.

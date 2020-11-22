@@ -1,8 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.CompilerServices;
+using Jitex.Helpers;
 using MethodBody = Jitex.Builder.Method.MethodBody;
 
 namespace Jitex.JIT.Context
@@ -27,6 +26,11 @@ namespace Jitex.JIT.Context
             /// </summary>
             NATIVE
         }
+
+        /// <summary>
+        /// Source from call
+        /// </summary>
+        public MethodBase Source { get; }
 
         /// <summary>
         /// Method original which will compiled.
@@ -57,10 +61,11 @@ namespace Jitex.JIT.Context
         /// </remarks>
         internal ResolveMode Mode => NativeCode == null ? ResolveMode.IL : ResolveMode.NATIVE;
 
-        internal MethodContext(MethodBase method)
+        internal MethodContext(MethodBase method, MethodBase source)
         {
             MethodBody = new MethodBody(method);
             Method = method;
+            Source = source;
         }
 
         /// <summary>
@@ -118,13 +123,9 @@ namespace Jitex.JIT.Context
         /// Detour current method.
         /// </summary>
         /// <param name="method"></param>
-        public void ResolveDetour(MethodInfo method)
+        public void DetourMethod(MethodInfo method)
         {
-            RuntimeMethodHandle methodHandle = method.MethodHandle;
-            RuntimeHelpers.PrepareMethod(methodHandle);
-
-            IntPtr methodAddress = methodHandle.GetFunctionPointer();
-
+            NativeCode = Detour.CreateDetour(method);
             IsResolved = true;
         }
     }

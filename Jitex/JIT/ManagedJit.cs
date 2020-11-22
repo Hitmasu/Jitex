@@ -3,6 +3,7 @@ using Jitex.JIT.CorInfo;
 using Jitex.Utils;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -212,11 +213,10 @@ namespace Jitex.JIT
 
                         if (methodInfo.Module != null)
                         {
-                            uint methodToken = CEEInfo.GetMethodDefFromMethod(methodInfo.MethodDesc);
-                            MethodBase methodFound = methodInfo.Module.ResolveMethod((int)methodToken);
-                            _tokenTls = new TokenTls { Root = methodFound };
+                            MethodBase memberFound = MethodHelper.GetMethodFromHandle(methodInfo.MethodHandle);
+                            MethodBase source = _compileTls.GetSource();
+                            methodContext = new MethodContext(memberFound, source);
 
-                            methodContext = new MethodContext(methodFound);
                             foreach (MethodResolverHandler resolver in resolvers)
                             {
                                 resolver(methodContext);
@@ -224,6 +224,8 @@ namespace Jitex.JIT
                                 if (methodContext.IsResolved)
                                     break;
                             }
+
+                            _tokenTls = new TokenTls();
                         }
 
                         if (methodContext != null && methodContext.IsResolved)
@@ -253,24 +255,19 @@ namespace Jitex.JIT
                             else
                             {
                                 (ilAddress, ilLength) = PrepareIL(methodContext);
-
+                                
                                 if (methodInfo.MaxStack < 8)
                                     methodInfo.MaxStack = 8;
                             }
 
                             methodInfo.ILCode = ilAddress;
                             methodInfo.ILCodeSize = (uint)ilLength;
+
                         }
                     }
                 }
 
                 CorJitResult result = _framework.CompileMethod(thisPtr, comp, info, flags, out nativeEntry, out nativeSizeOfCode);
-
-                if (methodContext != null)
-                {
-                    Console.WriteLine(CEEInfo.GetFunctionEntryPoint(comp));
-                    Console.WriteLine(methodContext.Method.Name);
-                }
 
                 if (ilAddress != IntPtr.Zero && methodContext!.Mode == MethodContext.ResolveMode.IL)
                     Marshal.FreeHGlobal(ilAddress);
@@ -314,10 +311,10 @@ namespace Jitex.JIT
                     }
 
                     //Capture method who trying resolve that token.
-                    _tokenTls.Source = _tokenTls.GetSource();
+                    MethodBase source = _tokenTls.GetSource();
 
                     ResolvedToken resolvedToken = new ResolvedToken(pResolvedToken);
-                    TokenContext context = new TokenContext(ref resolvedToken, _tokenTls.Source);
+                    TokenContext context = new TokenContext(ref resolvedToken, source);
 
                     foreach (TokenResolverHandler resolver in resolvers)
                     {
@@ -354,10 +351,10 @@ namespace Jitex.JIT
                     }
 
                     //Capture method who trying resolve that token.
-                    _tokenTls.Source = _tokenTls.GetSource();
+                    MethodBase source = _tokenTls.GetSource();
 
                     ConstructString constructString = new ConstructString(hModule, metadataToken, ppValue);
-                    TokenContext context = new TokenContext(constructString, _tokenTls.Source);
+                    TokenContext context = new TokenContext(constructString, source);
 
                     foreach (TokenResolverHandler resolver in resolvers)
                     {
@@ -452,7 +449,11 @@ namespace Jitex.JIT
             callBody.Add((byte)(methodToken));
             callBody.Add((byte)(methodToken >> 8));
             callBody.Add((byte)(methodToken >> 16));
-            callBody.Add((byte)(methodToken >> 24));
+
+            if (!method.IsGenericMethod)
+                callBody.Add((byte)(methodToken >> 24));
+            else
+                callBody.Add(0x2b);
 
             if (!isVoid)
                 callBody.Add((byte)OpCodes.Pop.Value);

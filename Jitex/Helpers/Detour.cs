@@ -3,17 +3,19 @@ using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using Jitex.Utils;
 
 namespace Jitex.Helpers
 {
     internal static class Detour
     {
-        public static void CreateDetour(MethodInfo methodOriginal, MethodInfo methodDetour)
+        public static byte[] CreateDetour(MethodInfo methodDetour)
         {
-            // IntPtr method = 
+            IntPtr detourAddress = GetMethodAddress(methodDetour);
+            return Trampoline.GetTrampoline(detourAddress);
         }
 
-        public static IntPtr GetMethodAddress(MethodInfo method)
+        private static IntPtr GetMethodAddress(MethodInfo method)
         {
             RuntimeMethodHandle handle = GetMethodHandle(method);
             RuntimeHelpers.PrepareMethod(handle);
@@ -31,7 +33,7 @@ namespace Jitex.Helpers
             return methodPointer;
         }
 
-        public static RuntimeMethodHandle GetMethodHandle(MethodInfo method)
+        private static RuntimeMethodHandle GetMethodHandle(MethodInfo method)
         {
             if (method is DynamicMethod dynamicMethod)
             {
