@@ -32,14 +32,21 @@ namespace Jitex
         /// Load module on Jitex.
         /// </summary>
         /// <param name="typeModule">Module to load.</param>
-        public static void LoadModule(Type typeModule)
+        public static void LoadModule(Type typeModule, object? instance)
         {
             lock (LockModules)
             {
                 if (!ModuleIsLoaded(typeModule))
                 {
-                    JitexModule module = (JitexModule)Activator.CreateInstance(typeModule);
+                    JitexModule module;
+
+                    if (instance != null)
+                        module = (JitexModule)instance;
+                    else
+                        module = (JitexModule)Activator.CreateInstance(typeModule);
+
                     module.LoadResolvers();
+
                     ModulesLoaded.Add(typeModule, module);
                 }
             }
@@ -51,7 +58,16 @@ namespace Jitex
         /// <typeparam name="TModule">Module to load.</typeparam>
         public static void LoadModule<TModule>() where TModule : JitexModule, new()
         {
-            LoadModule(typeof(TModule));
+            LoadModule(typeof(TModule), null);
+        }
+
+        /// <summary>
+        /// Load module on Jitex.
+        /// </summary>
+        /// <typeparam name="TModule">Module to load.</typeparam>
+        public static void LoadModule<TModule>(TModule instance) where TModule : JitexModule
+        {
+            LoadModule(typeof(TModule), instance);
         }
 
         /// <summary>
@@ -95,12 +111,7 @@ namespace Jitex
         /// <returns></returns>
         public static bool ModuleIsLoaded(Type typeModule)
         {
-            if (ModulesLoaded.TryGetValue(typeModule, out JitexModule module))
-            {
-                return module.IsLoaded;
-            }
-
-            return false;
+            return ModulesLoaded.TryGetValue(typeModule, out JitexModule module) && module.IsLoaded;
         }
 
         /// <summary>
@@ -144,14 +155,14 @@ namespace Jitex
         }
 
         /// <summary>
-        /// If a method resolver is already loaded.
+        /// Returns if a method resolver is already loaded.
         /// </summary>
         /// <param name="methodResolver">Method resolver.</param>
         /// <returns>True to already loaded. False to not loaded.</returns>
         public static bool HasMethodResolver(JitexHandler.MethodResolverHandler methodResolver) => Jit.HasMethodResolver(methodResolver);
 
         /// <summary>
-        /// If a token resolver is already loaded.
+        /// Returns If a token resolver is already loaded.
         /// </summary>
         /// <param name="tokenResolver">Token resolver.</param>
         /// <returns>True to already loaded. False to not loaded.</returns>
@@ -164,6 +175,8 @@ namespace Jitex
         {
             if (_jit != null)
             {
+                ModulesLoaded.Clear();
+
                 _jit.Dispose();
                 _jit = null;
             }

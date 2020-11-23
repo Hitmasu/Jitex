@@ -32,10 +32,10 @@ namespace Jitex.Utils
                 throw new MethodAccessException("Method GetMethodBase from RuntimeType was not found!");
         }
 
-        public static MethodBase GetMethodFromHandle(IntPtr methodHandle)
+        public static MethodBase? GetMethodFromHandle(IntPtr methodHandle)
         {
             object? handle = CtorHandle!.Invoke(new object?[] { methodHandle });
-            return (MethodBase)GetMethodBase!.Invoke(null, new[] { null, handle });
+            return GetMethodBase!.Invoke(null, new[] { null, handle }) as MethodBase;
         }
     }
 }

@@ -5,6 +5,7 @@ namespace Jitex.Runtime.Offsets
     internal static class CEEInfoOffset
     {
         internal static int ResolveToken { get; private set; }
+
         internal static int ConstructStringLiteral { get; private set; }
 
         static CEEInfoOffset()

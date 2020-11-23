@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Diagnostics;
-using System.Reflection;
 using Jitex;
 using Jitex.JIT.Context;
 
@@ -16,10 +14,9 @@ namespace ConsoleApp1
             Console.ReadKey();
         }
 
-
         public static void ShowTeste()
         {
-            ShowMe<int>();
+            ShowMe<Program>();
         }
 
         private static void MethodResolver(MethodContext context)
@@ -33,8 +30,10 @@ namespace ConsoleApp1
 
         private static void TokenResolver(TokenContext context)
         {
-            //if (context.Source?.Name == "ShowTeste")
-                //Debugger.Break();
+            if (context.Source?.Name == "ShowMe")
+            {
+                int a = 10;
+            }
         }
 
         public static A ShowMe<A>()

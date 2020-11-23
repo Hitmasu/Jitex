@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Reflection;
 using System.Reflection.Emit;
 using Jitex.JIT.CorInfo;
@@ -11,7 +12,7 @@ namespace Jitex.JIT.Context
     /// </summary>
     public class TokenContext
     {
-        private ResolvedToken _resolvedToken;
+        private ResolvedToken? _resolvedToken;
 
         /// <summary>
         /// Token type.
@@ -36,12 +37,12 @@ namespace Jitex.JIT.Context
         /// <summary>
         /// Source module from token.
         /// </summary>
-        public Module Module { get; }
+        public Module? Module { get; }
 
         /// <summary>
         /// Source from compile tree ("requester compile").
         /// </summary>
-        public MemberInfo? Source { get; set; }
+        public MethodBase? Source { get; set; }
 
         /// <summary>
         /// If context is already resolved.
@@ -51,14 +52,14 @@ namespace Jitex.JIT.Context
         /// <summary>
         /// Content from string (only to string).
         /// </summary>
-        public string Content { get; private set; }
+        public string? Content { get; private set; }
 
         /// <summary>
         /// Constructor for token type. (non-string)
         /// </summary>
         /// <param name="resolvedToken">Original token.</param>
         /// <param name="source">Source method from compile tree ("requester").</param>
-        internal TokenContext(ref ResolvedToken resolvedToken, MemberInfo source)
+        internal TokenContext(ref ResolvedToken resolvedToken, MethodBase? source)
         {
             _resolvedToken = resolvedToken;
             Module = _resolvedToken.Module;
@@ -89,7 +90,7 @@ namespace Jitex.JIT.Context
         /// </summary>
         /// <param name="constructString">Original string.</param>
         /// <param name="source">Source method from compile tree ("requester").</param>
-        internal TokenContext(ConstructString constructString, MemberInfo source)
+        internal TokenContext(ConstructString constructString, MethodBase? source)
         {
             Module = AppModules.GetModuleByAddress(constructString.HandleModule);
             Source = source;
@@ -99,6 +100,13 @@ namespace Jitex.JIT.Context
 
             if (Module != null)
                 Content = Module.ResolveString(MetadataToken);
+        }
+
+        internal TokenContext(MethodBase source, int token)
+        {
+            Source = source;
+            MetadataToken = token;
+            Module = source.Module;
         }
 
         /// <summary>
@@ -126,7 +134,7 @@ namespace Jitex.JIT.Context
         public void ResolveModule(Module module)
         {
             IsResolved = true;
-            _resolvedToken.Module = module;
+            _resolvedToken!.Module = module;
         }
 
         /// <summary>
