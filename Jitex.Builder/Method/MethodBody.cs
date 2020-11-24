@@ -42,7 +42,7 @@ namespace Jitex.Builder.Method
             set
             {
                 _il = value;
-                CalculateMaxStack();
+                CalculateIL();
             }
         }
 
@@ -60,6 +60,11 @@ namespace Jitex.Builder.Method
         /// Stack size from body.
         /// </summary>
         public uint MaxStackSize { get; set; }
+
+        /// <summary>
+        /// Exceptions handle count.
+        /// </summary>
+        public uint EHCount { get; set; }
 
         /// <summary>
         /// Create a body from method.
@@ -160,78 +165,90 @@ namespace Jitex.Builder.Method
         }
 
         /// <summary>
-        ///     Calculate .maxstack from body.
+        ///     Calculate .maxstack and EHCount from body.
         /// </summary>
-        private void CalculateMaxStack()
+        private void CalculateIL()
         {
             int maxStackSize = 0;
+
             foreach (Operation operation in ReadIL())
             {
-                switch (operation.OpCode.StackBehaviourPush)
-                {
-                    case StackBehaviour.Push0:
-                        break;
-
-                    case StackBehaviour.Push1:
-                    case StackBehaviour.Pushi:
-                    case StackBehaviour.Pushi8:
-                    case StackBehaviour.Pushr4:
-                    case StackBehaviour.Pushr8:
-                    case StackBehaviour.Pushref:
-                    case StackBehaviour.Varpush:
-                        maxStackSize++;
-                        break;
-
-                    case StackBehaviour.Push1_push1:
-                        maxStackSize += 2;
-                        break;
-
-                    default:
-                        throw new NotImplementedException($"Stack operation not implemented: {operation.OpCode.Name}");
-                }
-
-                switch (operation.OpCode.StackBehaviourPop)
-                {
-                    case StackBehaviour.Pop0:
-                    case StackBehaviour.Varpop:
-                        break;
-
-                    case StackBehaviour.Popref:
-                    case StackBehaviour.Popi:
-                    case StackBehaviour.Pop1:
-                        maxStackSize--;
-                        break;
-
-                    case StackBehaviour.Popi_popr4:
-                    case StackBehaviour.Popi_popr8:
-                    case StackBehaviour.Popref_pop1:
-                    case StackBehaviour.Popref_popi:
-                    case StackBehaviour.Pop1_pop1:
-                    case StackBehaviour.Popi_popi:
-                    case StackBehaviour.Popi_pop1:
-                    case StackBehaviour.Popi_popi8:
-                        maxStackSize -= 2;
-                        break;
-
-                    case StackBehaviour.Popi_popi_popi:
-                    case StackBehaviour.Popref_popi_pop1:
-                    case StackBehaviour.Popref_popi_popi:
-                    case StackBehaviour.Popref_popi_popi8:
-                    case StackBehaviour.Popref_popi_popr4:
-                    case StackBehaviour.Popref_popi_popr8:
-                    case StackBehaviour.Popref_popi_popref:
-                        maxStackSize -= 3;
-                        break;
-
-                    default:
-                        throw new NotImplementedException($"Stack operation not implemented: {operation.OpCode.Name}");
-                }
+                maxStackSize += CalculateMaxStack(operation.OpCode);
 
                 if (maxStackSize > MaxStackSize)
                 {
                     MaxStackSize = (uint)maxStackSize;
                 }
+
+                if (operation.OpCode == OpCodes.Leave || operation.OpCode == OpCodes.Leave_S)
+                    EHCount++;
             }
+        }
+
+        private int CalculateMaxStack(OpCode opcode)
+        {
+            int maxStackSize = 0;
+            switch (opcode.StackBehaviourPush)
+            {
+                case StackBehaviour.Push0:
+                    break;
+
+                case StackBehaviour.Push1:
+                case StackBehaviour.Pushi:
+                case StackBehaviour.Pushi8:
+                case StackBehaviour.Pushr4:
+                case StackBehaviour.Pushr8:
+                case StackBehaviour.Pushref:
+                case StackBehaviour.Varpush:
+                    maxStackSize++;
+                    break;
+
+                case StackBehaviour.Push1_push1:
+                    maxStackSize += 2;
+                    break;
+
+                default:
+                    throw new NotImplementedException($"Stack operation not implemented: {opcode.Name}");
+            }
+
+            switch (opcode.StackBehaviourPop)
+            {
+                case StackBehaviour.Pop0:
+                case StackBehaviour.Varpop:
+                    break;
+
+                case StackBehaviour.Popref:
+                case StackBehaviour.Popi:
+                case StackBehaviour.Pop1:
+                    maxStackSize--;
+                    break;
+
+                case StackBehaviour.Popi_popr4:
+                case StackBehaviour.Popi_popr8:
+                case StackBehaviour.Popref_pop1:
+                case StackBehaviour.Popref_popi:
+                case StackBehaviour.Pop1_pop1:
+                case StackBehaviour.Popi_popi:
+                case StackBehaviour.Popi_pop1:
+                case StackBehaviour.Popi_popi8:
+                    maxStackSize -= 2;
+                    break;
+
+                case StackBehaviour.Popi_popi_popi:
+                case StackBehaviour.Popref_popi_pop1:
+                case StackBehaviour.Popref_popi_popi:
+                case StackBehaviour.Popref_popi_popi8:
+                case StackBehaviour.Popref_popi_popr4:
+                case StackBehaviour.Popref_popi_popr8:
+                case StackBehaviour.Popref_popi_popref:
+                    maxStackSize -= 3;
+                    break;
+
+                default:
+                    throw new NotImplementedException($"Stack operation not implemented: {opcode.Name}");
+            }
+
+            return maxStackSize;
         }
 
         /// <summary>
@@ -247,10 +264,7 @@ namespace Jitex.Builder.Method
 
             MetadataInfo? metadataInfo = null;
 
-            //First should be normal types and after generic types.
-            IEnumerable<LocalVariableInfo> localVariables = LocalVariables.OrderBy(w => w.Type.IsGenericType);
-
-            foreach (LocalVariableInfo variable in localVariables)
+            foreach (LocalVariableInfo variable in LocalVariables)
             {
                 if (Module != null)
                     metadataInfo ??= new MetadataInfo(Module.Assembly);
@@ -260,7 +274,7 @@ namespace Jitex.Builder.Method
                 if (variable.Type.IsGenericType && !isGenericDefined)
                 {
                     blob.WriteByte((byte)CorElementType.ELEMENT_TYPE_GENERICINST);
-                    blob.WriteByte((byte)CorElementType.ELEMENT_TYPE_CLASS);
+                    blob.WriteByte((byte)LocalVariableInfo.DetectCorElementType(variable.Type));
 
                     int typeInfo = GetTypeInfo(variable.Type, metadataInfo);
                     blob.WriteByte((byte)typeInfo);
@@ -285,12 +299,12 @@ namespace Jitex.Builder.Method
                     {
                         foreach (Type genericType in variable.Type.GetGenericArguments())
                         {
-                            blob.WriteByte((byte) LocalVariableInfo.DetectCorElementType(genericType));
+                            blob.WriteByte((byte)LocalVariableInfo.DetectCorElementType(genericType));
                         }
                     }
                     else
                     {
-                        blob.WriteByte((byte) elementType);
+                        blob.WriteByte((byte)elementType);
 
                         int typeInfo = GetTypeInfo(variable.Type, metadataInfo);
                         blob.WriteCompressedInteger(typeInfo);
@@ -302,7 +316,7 @@ namespace Jitex.Builder.Method
                 }
             }
 
-            blob.WriteByte(0x00);
+            //blob.WriteByte(0x00);
             BlobBuilder blobSize = new BlobBuilder();
             blobSize.WriteCompressedInteger(blob.Count);
             blob.LinkPrefix(blobSize);

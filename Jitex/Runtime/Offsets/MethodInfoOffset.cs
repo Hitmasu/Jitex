@@ -9,6 +9,7 @@ namespace Jitex.Runtime
         public static int ILCode { get; }
         public static int ILCodeSize { get; }
         public static int MaxStack { get; }
+        public static int EHCount { get; }
         public static int Locals { get; }
 
         static MethodInfoOffset()
@@ -18,6 +19,7 @@ namespace Jitex.Runtime
             ILCode = 0x10;
             ILCodeSize = 0x18;
             MaxStack = 0x1C;
+            EHCount = 0x20;
             Locals = 0x98;
         }
     }

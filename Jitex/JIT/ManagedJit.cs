@@ -258,6 +258,7 @@ namespace Jitex.JIT
                                     methodInfo.MaxStack = 8;
                             }
 
+                            methodInfo.EHCount = methodContext.MethodBody.EHCount;
                             methodInfo.ILCode = ilAddress;
                             methodInfo.ILCodeSize = (uint)ilLength;
                         }
