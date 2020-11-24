@@ -316,7 +316,7 @@ namespace Jitex.Builder.Method
                 }
             }
 
-            //blob.WriteByte(0x00);
+            blob.WriteByte(0x00);
             BlobBuilder blobSize = new BlobBuilder();
             blobSize.WriteCompressedInteger(blob.Count);
             blob.LinkPrefix(blobSize);
