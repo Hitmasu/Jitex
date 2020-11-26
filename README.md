@@ -6,7 +6,7 @@
 
 A library to modify MSIL/Native code at runtime.
 
-It's a library build in .NET Standard 2.0, works on in all version >=.NET Core 2.0. 
+It's a library built in .NET Standard 2.0, works on all version >=.NET Core 2.0. 
 
 |             | .NET Core (2.0 ~ 3.1) | .NET Framework (4.6.1 ~ 4.8)           | .NET 5                                 | Mono              |
 | ----------- | --------------------- | -------------------------------------- | -------------------------------------- | ----------------- |
