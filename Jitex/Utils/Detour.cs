@@ -3,9 +3,8 @@ using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using Jitex.Utils;
 
-namespace Jitex.Helpers
+namespace Jitex.Utils
 {
     internal static class Detour
     {

@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Reflection.Emit;
 using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
+using System.Runtime.CompilerServices;
 using Jitex.Builder.IL;
 using Jitex.Builder.PE;
 using Jitex.Builder.Utils.Extensions;
@@ -60,7 +61,7 @@ namespace Jitex.Builder.Method
         /// Stack size from body.
         /// </summary>
         public uint MaxStackSize { get; set; }
-
+        
         /// <summary>
         /// Create a body from method.
         /// </summary>
@@ -68,15 +69,23 @@ namespace Jitex.Builder.Method
         public MethodBody(MethodBase methodBase)
         {
             Module = methodBase.Module;
-            LocalVariables = methodBase.GetMethodBody().LocalVariables.Select(s => new LocalVariableInfo(s.LocalType)).ToList();
 
-            if (methodBase.IsGenericMethod)
-                GenericMethodArguments = methodBase.GetGenericArguments();
+            if (!(methodBase is DynamicMethod))
+            {
+                LocalVariables = methodBase.GetMethodBody().LocalVariables.Select(s => new LocalVariableInfo(s.LocalType)).ToList();
 
-            if (methodBase.DeclaringType.IsGenericType)
-                GenericTypeArguments = methodBase.DeclaringType.GetGenericArguments();
+                if (methodBase.IsGenericMethod)
+                    GenericMethodArguments = methodBase.GetGenericArguments();
 
-            IL = methodBase.GetILBytes();
+                if (methodBase.DeclaringType.IsGenericType)
+                    GenericTypeArguments = methodBase.DeclaringType.GetGenericArguments();
+
+                IL = methodBase.GetILBytes();
+            }
+            else
+            {
+                _il = methodBase.GetILBytes();
+            }
         }
 
         /// <summary>

@@ -11,13 +11,14 @@ namespace Jitex.JIT.CorInfo
         private IntPtr _context;
         private Module? _module;
         private int _token;
+        private IntPtr _scope = IntPtr.Zero;
         private TokenKind? _type;
         private IntPtr _hClass;
         private IntPtr _hMethod;
         private IntPtr _hField;
 
         private IntPtr ContextAddr => HInstance + ResolvedTokenOffset.Context;
-        private IntPtr ModuleAddr => HInstance + ResolvedTokenOffset.Module;
+        private IntPtr ScopeAddr => HInstance + ResolvedTokenOffset.Scope;
         private IntPtr TokenAddr => HInstance + ResolvedTokenOffset.Token;
         private IntPtr TypeAddr => HInstance + ResolvedTokenOffset.Type;
         private IntPtr HClassAddr => HInstance + ResolvedTokenOffset.HClass;
@@ -33,25 +34,40 @@ namespace Jitex.JIT.CorInfo
 
                 return _context;
             }
+            set
+            {
+                _context = value;
+                Marshal.WriteIntPtr(ContextAddr, _context);
+            }
         }
 
-        public Module Module
+        public IntPtr Scope
         {
             get
             {
-                if (_module == null)
-                {
-                    IntPtr scope = Marshal.ReadIntPtr(ModuleAddr);
-                    _module = AppModules.GetModuleByAddress(scope);
-                }
+                if (_scope == default)
+                    _scope = Marshal.ReadIntPtr(ScopeAddr);
 
-                return _module;
+                return _scope;
             }
             set
             {
-                _module = value;
-                IntPtr scope = AppModules.GetAddressFromModule(_module);
-                Marshal.WriteIntPtr(ModuleAddr, scope);
+                _scope = value;
+                Marshal.WriteIntPtr(ScopeAddr, _scope);
+            }
+        }
+
+        public Module? Module
+        {
+            get => AppModules.GetModuleByAddress(Scope);
+
+            set
+            {
+                if(value == null)
+                    throw new ArgumentNullException();
+
+                IntPtr scope = AppModules.GetAddressFromModule(value);
+                Scope = scope;
             }
         }
 
@@ -75,7 +91,7 @@ namespace Jitex.JIT.CorInfo
         {
             get
             {
-                _type ??= (TokenKind)Marshal.ReadInt32(TypeAddr);
+                _type ??= (TokenKind) Marshal.ReadInt32(TypeAddr);
                 return _type.Value;
             }
         }
@@ -125,6 +141,11 @@ namespace Jitex.JIT.CorInfo
             }
         }
 
-        public ResolvedToken(IntPtr hInstance) : base(hInstance){}
+        public ResolvedToken(IntPtr hInstance) : base(hInstance)
+        {
+            IntPtr scope = Marshal.ReadIntPtr(ScopeAddr);
+            var l = AppModules.GetModuleByAddress(scope);
+            int a = 10;
+        }
     }
 }

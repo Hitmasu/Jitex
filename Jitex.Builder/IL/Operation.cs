@@ -42,14 +42,14 @@ namespace Jitex.Builder.IL
         /// <summary>
         /// Value from instruction.
         /// </summary>
-        public dynamic Instance { get; set; }
+        public dynamic? Instance { get; set; }
 
         /// <summary>
         /// Create a new operation.
         /// </summary>
         /// <param name="opCode">Operation Code IL.</param>
         /// <param name="instance">Value from instruction.</param>
-        internal Operation(OpCode opCode, dynamic instance)
+        internal Operation(OpCode opCode, dynamic? instance)
         {
             OpCode = opCode;
             Instance = instance;
@@ -66,7 +66,7 @@ namespace Jitex.Builder.IL
         /// <param name="opCode">Operation Code IL.</param>
         /// <param name="instance">Value from instruction.</param>
         /// <param name="metadataToken">MetadataToken from instruction.</param>
-        internal Operation(OpCode opCode, dynamic instance, int metadataToken)
+        internal Operation(OpCode opCode, dynamic? instance, int metadataToken)
         {
             OpCode = opCode;
             Instance = instance;

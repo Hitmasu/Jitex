@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using Jitex.Runtime;
+using Jitex.Runtime.Offsets;
 using Jitex.Utils;
 
 namespace Jitex.JIT.CorInfo
@@ -9,13 +9,13 @@ namespace Jitex.JIT.CorInfo
     internal class MethodInfo : CorType
     {
         private IntPtr _methodDesc;
-        private Module _module = null!;
+        private IntPtr _scope = IntPtr.Zero;
         private IntPtr _ilCode;
         private uint _ilCodeSize;
         private uint _maxStack;
-        
+
         private IntPtr MethodDescAddr => HInstance + MethodInfoOffset.MethodDesc;
-        private IntPtr ModuleAddr => HInstance + MethodInfoOffset.Module;
+        private IntPtr ScopeAddr => HInstance + MethodInfoOffset.Scope;
         private IntPtr ILCodeAddr => HInstance + MethodInfoOffset.ILCode;
         private IntPtr ILCodeSizeAddr => HInstance + MethodInfoOffset.ILCodeSize;
         private IntPtr MaxStackAddr => HInstance + MethodInfoOffset.MaxStack;
@@ -33,23 +33,33 @@ namespace Jitex.JIT.CorInfo
             }
         }
 
-        public Module Module
+        public IntPtr Scope
         {
             get
             {
-                if (_module == null)
-                {
-                    IntPtr scope = Marshal.ReadIntPtr(ModuleAddr);
-                    _module = AppModules.GetModuleByAddress(scope)!;
-                }
+                if (_scope == default)
+                    _scope = Marshal.ReadIntPtr(ScopeAddr);
 
-                return _module;
+                return _scope;
             }
             set
             {
-                _module = value;
-                IntPtr scope = AppModules.GetAddressFromModule(_module);
-                Marshal.WriteIntPtr(ModuleAddr, scope);
+                _scope = value;
+                Marshal.WriteIntPtr(ScopeAddr, _scope);
+            }
+        }
+
+        public Module? Module
+        {
+            get => AppModules.GetModuleByAddress(_scope);
+
+            set
+            {
+                if(value == null)
+                    throw new ArgumentNullException();
+
+                IntPtr scope = AppModules.GetAddressFromModule(value);
+                Scope = scope;
             }
         }
 

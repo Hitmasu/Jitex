@@ -32,18 +32,32 @@ namespace Jitex
         /// Load module on Jitex.
         /// </summary>
         /// <param name="typeModule">Module to load.</param>
+        public static void LoadModule(Type typeModule)
+        {
+            lock (LockModules)
+            {
+                if (!ModuleIsLoaded(typeModule))
+                {
+                    JitexModule module = (JitexModule) Activator.CreateInstance(typeModule);
+                    
+                    module.LoadResolvers();
+
+                    ModulesLoaded.Add(typeModule, module);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Load module on Jitex.
+        /// </summary>
+        /// <param name="typeModule">Module to load.</param>
         public static void LoadModule(Type typeModule, object? instance)
         {
             lock (LockModules)
             {
                 if (!ModuleIsLoaded(typeModule))
                 {
-                    JitexModule module;
-
-                    if (instance != null)
-                        module = (JitexModule)instance;
-                    else
-                        module = (JitexModule)Activator.CreateInstance(typeModule);
+                    JitexModule module = (JitexModule) instance;
 
                     module.LoadResolvers();
 

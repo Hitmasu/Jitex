@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using Jitex.Helpers;
+using Jitex.Utils;
 using MethodBody = Jitex.Builder.Method.MethodBody;
 
 namespace Jitex.JIT.Context
@@ -40,7 +40,7 @@ namespace Jitex.JIT.Context
         /// <summary>
         /// Body of method to compile.
         /// </summary>
-        public MethodBody MethodBody { get; private set; }
+        public MethodBody ResolvedMethod { get; private set; }
 
         /// <summary>
         /// If method is already resolved
@@ -63,7 +63,7 @@ namespace Jitex.JIT.Context
 
         internal MethodContext(MethodBase method, MethodBase source)
         {
-            MethodBody = new MethodBody(method);
+            ResolvedMethod = new MethodBody(method);
             Method = method;
             Source = source;
         }
@@ -84,7 +84,7 @@ namespace Jitex.JIT.Context
         /// <param name="il">IL instructions.</param>
         public void ResolveIL(IEnumerable<byte> il)
         {
-            MethodBody = new MethodBody(il.ToArray());
+            ResolvedMethod = new MethodBody(il.ToArray());
             IsResolved = true;
         }
 
@@ -95,7 +95,7 @@ namespace Jitex.JIT.Context
         /// <param name="maxStack">Stack size to instrucitons.</param>
         public void ResolveIL(IEnumerable<byte> il, uint maxStack)
         {
-            MethodBody = new MethodBody(il.ToArray(), maxStack);
+            ResolvedMethod = new MethodBody(il.ToArray(), maxStack);
             IsResolved = true;
         }
 
@@ -105,7 +105,7 @@ namespace Jitex.JIT.Context
         /// <param name="methodBody">Body of new method.</param>
         public void ResolveBody(MethodBody methodBody)
         {
-            MethodBody = methodBody;
+            ResolvedMethod = methodBody;
             IsResolved = true;
         }
 
@@ -115,7 +115,7 @@ namespace Jitex.JIT.Context
         /// <param name="method">Body of new method.</param>
         public void ResolveMethod(MethodInfo method)
         {
-            MethodBody = new MethodBody(method);
+            ResolvedMethod = new MethodBody(method);
             IsResolved = true;
         }
 

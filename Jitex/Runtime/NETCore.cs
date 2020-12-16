@@ -14,26 +14,20 @@ namespace Jitex.Runtime
 
         protected override IntPtr GetJitAddress()
         {
-            string jitLibraryName = string.Empty;
+            string jitLibraryName;
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
                 jitLibraryName = "clrjit.dll";
-            }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-            {
                 jitLibraryName = "libclrjit.so";
-            }
             else
-            {
                 jitLibraryName = "libclrjit.dylib";
-            }
 
             LibraryLoader? defaultLoader = LibraryLoader.GetPlatformDefaultLoader();
-
+            
             IntPtr libAddress = defaultLoader.LoadNativeLibrary(jitLibraryName);
             IntPtr getJitAddress = defaultLoader.LoadFunctionPointer(libAddress, "getJit");
-
+            
             GetJitDelegate getJit = Marshal.GetDelegateForFunctionPointer<GetJitDelegate>(getJitAddress);
             IntPtr jitAddress = getJit();
             return jitAddress;

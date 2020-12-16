@@ -1,4 +1,5 @@
-﻿using System.Collections.Concurrent;
+﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -15,7 +16,7 @@ namespace Jitex.Internal
             
         }
 
-        private readonly ConcurrentDictionary<MethodBase, IList<int>> _internalTokens = new ConcurrentDictionary<MethodBase, IList<int>>();
+        private readonly ConcurrentDictionary<MethodBase, IList<TokenScope>> _internalTokens = new ConcurrentDictionary<MethodBase, IList<TokenScope>>();
 
         public static InternalModule GetInstance()
         {
@@ -31,24 +32,21 @@ namespace Jitex.Internal
             if (context.Source == null)
                 return;
 
-            if (_internalTokens.TryGetValue(context.Source, out IList<int> tokens))
+            if (_internalTokens.TryGetValue(context.Source, out IList<TokenScope> scopes))
             {
-                if (!tokens.Contains(context.MetadataToken))
+                TokenScope? scope = scopes.FirstOrDefault(w => w.MetadataToken == context.MetadataToken);
+
+                if (scope == null)
                     return;
-
-                tokens.Remove(context.MetadataToken);
-
-                if (!tokens.Any())
-                    _internalTokens.TryRemove(context.Source, out _);
             }
         }
 
-        public void AddTokenContext(int token, MethodBase source)
+        public void AddTokenScope(MethodBase source, TokenScope scope)
         {
             //TODO: Find a better way
-            _internalTokens.AddOrUpdate(source, new List<int> { token }, (key, tokens) =>
+            _internalTokens.AddOrUpdate(source, new List<TokenScope> { scope }, (key, tokens) =>
             {
-                tokens.Add(token);
+                tokens.Add(scope);
                 return tokens;
             });
         }
