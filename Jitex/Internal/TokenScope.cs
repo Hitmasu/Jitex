@@ -10,12 +10,15 @@ namespace Jitex.Internal
         /// </summary>
         public int MetadataToken { get; }
 
-        public IntPtr Scope  { get; }
+        public Module Module { get; set; }
 
-        public TokenScope(int metadataToken, IntPtr scope)
+        public int TokenReplace { get; set; }
+
+        public TokenScope(int metadataToken, Module module, int tokenReplace)
         {
             MetadataToken = metadataToken;
-            Scope = scope;  
+            Module = module;
+            TokenReplace = tokenReplace;
         }
     }
 }

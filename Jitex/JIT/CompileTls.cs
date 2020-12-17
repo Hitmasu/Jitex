@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 
@@ -12,12 +13,13 @@ namespace Jitex.JIT
         /// Get source from call
         /// </summary>
         /// <returns></returns>
-        public virtual MethodBase GetSource()
+        public virtual MethodBase? GetSource()
         {
             StackTrace stack = new StackTrace();
-            
-            MethodBase source = stack.GetFrames().Select(m => m.GetMethod()).Last();
-            return source;
+
+            MethodBase[] trace = stack.GetFrames().Select(m => m.GetMethod()).Where(w => w.Module != GetType().Module).ToArray();
+
+            return trace.Length >= 2 ? trace.ElementAt(1) : trace.LastOrDefault();
         }
     }
 }

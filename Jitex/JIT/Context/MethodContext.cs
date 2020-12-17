@@ -52,6 +52,8 @@ namespace Jitex.JIT.Context
         /// </summary>
         internal byte[]? NativeCode { get; private set; }
 
+        internal bool IsDetour { get; set; }
+
         /// <summary>
         /// Resolution mode.
         /// </summary>
@@ -127,6 +129,7 @@ namespace Jitex.JIT.Context
         {
             NativeCode = Detour.CreateDetour(method);
             IsResolved = true;
+            //IsDetour = true;
         }
     }
 }

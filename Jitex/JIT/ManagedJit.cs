@@ -10,12 +10,14 @@ using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
+using Jitex.Builder.IL;
 using Jitex.Exceptions;
 using Jitex.Internal;
 using Jitex.JIT.Context;
 using Jitex.Runtime;
 using Jitex.Utils.Extension;
 using static Jitex.JIT.JitexHandler;
+using Exception = System.Exception;
 using MethodBody = Jitex.Builder.Method.MethodBody;
 using MethodInfo = Jitex.JIT.CorInfo.MethodInfo;
 
@@ -231,7 +233,6 @@ namespace Jitex.JIT
                         {
                             if (DynamicHelpers.IsDynamicScope(methodInfo.Scope))
                             {
-                                // var l = Marshal.PtrToStructure<CORINFO_METHOD_INFO>(info);
                                 methodFound = DynamicHelpers.GetOwner(methodFound);
                             }
 
@@ -252,7 +253,7 @@ namespace Jitex.JIT
 
                         if (methodContext != null && methodContext.IsResolved)
                         {
-                            int ilLength;
+                            int ilLength = 0;
 
                             if (methodContext.Mode == MethodContext.ResolveMode.IL)
                             {
@@ -269,22 +270,27 @@ namespace Jitex.JIT
 
                                     methodInfo.Locals.Signature = sigAddress + 1;
                                     methodInfo.Locals.Args = sigAddress + 3;
-                                    methodInfo.Locals.NumArgs = (ushort)methodBody.LocalVariables.Count;
+                                    methodInfo.Locals.NumArgs = (ushort) methodBody.LocalVariables.Count;
                                 }
 
                                 methodInfo.MaxStack = methodBody.MaxStackSize;
                             }
                             else
                             {
-                                (ilAddress, ilLength) = PrepareIL(methodContext, methodInfo.Scope);
+                                if (!methodContext.IsDetour)
+                                {
+                                    (ilAddress, ilLength) = PrepareIL(methodContext);
 
-                                if (methodInfo.MaxStack < 8)
-                                    methodInfo.MaxStack = 8;
+                                    if (methodInfo.MaxStack < 8)
+                                        methodInfo.MaxStack = 8;
+                                }
                             }
 
-                            methodInfo.ILCode = ilAddress;
-                            methodInfo.ILCodeSize = (uint)ilLength;
-                            Debugger.Break();
+                            if (!methodContext.IsDetour)
+                            {
+                                methodInfo.ILCode = ilAddress;
+                                methodInfo.ILCodeSize = (uint) ilLength;
+                            }
                         }
                     }
                 }
@@ -331,11 +337,6 @@ namespace Jitex.JIT
                     }
 
                     ResolvedToken resolvedToken = new ResolvedToken(pResolvedToken);
-
-                    //if (resolvedToken.Token == 0x0a000002)
-                    //{
-                    //    int a = 10;
-                    //}
 
                     //Capture method who trying resolve that token.
                     MethodBase? source = MethodHelper.GetMethodFromHandle(resolvedToken.Context);
@@ -439,7 +440,7 @@ namespace Jitex.JIT
         /// </remarks>
         /// <param name="methodContext">Context to prepare IL.</param>
         /// <returns>Address and size of IL.</returns>
-        private (IntPtr ilAddress, int ilLength) PrepareIL(MethodContext methodContext, IntPtr scope)
+        private (IntPtr ilAddress, int ilLength) PrepareIL(MethodContext methodContext)
         {
             if (methodContext == null)
                 throw new ArgumentNullException(nameof(methodContext));
@@ -449,15 +450,25 @@ namespace Jitex.JIT
 
             System.Reflection.MethodInfo method = (System.Reflection.MethodInfo)methodContext.Method;
 
-            //int metadataToken = method.MetadataToken;
             int metadataToken;
 
             if (method.IsGenericMethod)
             {
-                TokenGenerator tokenGenerator = new TokenGenerator(method);
-                metadataToken = tokenGenerator.GenerateToken(method);
+                StubBuilder stub = new StubBuilder();
+                (Module module, int token) = stub.GenerateStubToken(method);
 
-                TokenScope tokenScope = new TokenScope(metadataToken, scope); 
+                MethodBody bodyMethod = new MethodBody(method);
+                IEnumerable<Operation> operations = bodyMethod.ReadIL();
+
+                int maxToken = operations
+                    .Where(w => w.MetadataToken.HasValue && w.MetadataToken >> 24 == 0x2B)
+                    .Select(w => w.MetadataToken!.Value)
+                    .DefaultIfEmpty(0x2B000001)
+                    .Max();
+
+                metadataToken = maxToken;
+
+                TokenScope tokenScope = new TokenScope(metadataToken, module, token);
                 _internalModule.AddTokenScope(method, tokenScope);
             }
             else

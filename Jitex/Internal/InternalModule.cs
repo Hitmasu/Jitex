@@ -13,7 +13,7 @@ namespace Jitex.Internal
 
         private InternalModule()
         {
-            
+
         }
 
         private readonly ConcurrentDictionary<MethodBase, IList<TokenScope>> _internalTokens = new ConcurrentDictionary<MethodBase, IList<TokenScope>>();
@@ -38,6 +38,15 @@ namespace Jitex.Internal
 
                 if (scope == null)
                     return;
+
+                //context.ResolveToken(scope.Module,scope.TokenReplace);
+
+                scopes.Remove(scope);
+
+                if (scopes.Count == 0)
+                {
+                    _internalTokens.TryRemove(context.Source, out _);
+                }
             }
         }
 

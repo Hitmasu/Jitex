@@ -216,6 +216,19 @@ namespace Jitex.JIT.Context
         }
 
         /// <summary>
+        /// Resolve token by method.
+        /// </summary>
+        /// <param name="method">Method to replace.</param>
+        public void ResolveToken(Module module, int token)
+        {
+            // if (method is DynamicMethod)
+            //     throw new NotImplementedException();
+
+            _resolvedToken!.Module = module;
+            _resolvedToken.Token = token;
+        }
+
+        /// <summary>
         /// Resolve token by constructor.
         /// </summary>
         /// <param name="constructor">Constructor to replace.</param>
