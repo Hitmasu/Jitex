@@ -28,9 +28,9 @@ namespace ConsoleApp1
             }
         }
 
-        public static A ShowMe<A>()
+        public static void ShowMe<A>()
         {
-            return default;
+            return;
         }
 
         public static P Hook<P>()

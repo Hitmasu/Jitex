@@ -12,7 +12,6 @@ using System.Runtime.InteropServices;
 using System.Text;
 using Jitex.Builder.IL;
 using Jitex.Exceptions;
-using Jitex.Internal;
 using Jitex.JIT.Context;
 using Jitex.Runtime;
 using Jitex.Utils.Extension;
@@ -67,8 +66,6 @@ namespace Jitex.JIT
 
         private readonly HookManager _hookManager = new HookManager();
 
-        private readonly InternalModule _internalModule;
-
         /// <summary>
         /// Running framework.
         /// </summary>
@@ -116,8 +113,6 @@ namespace Jitex.JIT
 
             _hookManager.InjectHook(_framework.ICorJitCompileVTable, _compileMethod);
             IsEnabled = true;
-
-            _internalModule = InternalModule.GetInstance();
         }
 
         /// <summary>
@@ -128,13 +123,7 @@ namespace Jitex.JIT
         {
             lock (InstanceLock)
             {
-                if (_instance == null)
-                {
-                    _instance = new ManagedJit();
-                    JitexManager.LoadModule(InternalModule.GetInstance());
-                }
-
-                return _instance;
+                return _instance ??= new ManagedJit();
             }
         }
 
@@ -270,7 +259,7 @@ namespace Jitex.JIT
 
                                     methodInfo.Locals.Signature = sigAddress + 1;
                                     methodInfo.Locals.Args = sigAddress + 3;
-                                    methodInfo.Locals.NumArgs = (ushort) methodBody.LocalVariables.Count;
+                                    methodInfo.Locals.NumArgs = (ushort)methodBody.LocalVariables.Count;
                                 }
 
                                 methodInfo.MaxStack = methodBody.MaxStackSize;
@@ -289,7 +278,7 @@ namespace Jitex.JIT
                             if (!methodContext.IsDetour)
                             {
                                 methodInfo.ILCode = ilAddress;
-                                methodInfo.ILCodeSize = (uint) ilLength;
+                                methodInfo.ILCodeSize = (uint)ilLength;
                             }
                         }
                     }
@@ -454,22 +443,7 @@ namespace Jitex.JIT
 
             if (method.IsGenericMethod)
             {
-                StubBuilder stub = new StubBuilder();
-                (Module module, int token) = stub.GenerateStubToken(method);
-
-                MethodBody bodyMethod = new MethodBody(method);
-                IEnumerable<Operation> operations = bodyMethod.ReadIL();
-
-                int maxToken = operations
-                    .Where(w => w.MetadataToken.HasValue && w.MetadataToken >> 24 == 0x2B)
-                    .Select(w => w.MetadataToken!.Value)
-                    .DefaultIfEmpty(0x2B000001)
-                    .Max();
-
-                metadataToken = maxToken;
-
-                TokenScope tokenScope = new TokenScope(metadataToken, module, token);
-                _internalModule.AddTokenScope(method, tokenScope);
+                metadataToken = 0x2B000001;
             }
             else
             {
@@ -562,7 +536,6 @@ namespace Jitex.JIT
 
                 _instance = null;
                 _isDisposed = true;
-                _internalModule.Dispose();
                 IsEnabled = false;
 
             }
