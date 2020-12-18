@@ -1,6 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using Jitex.Utils;
 using MethodBody = Jitex.Builder.Method.MethodBody;
 
@@ -125,11 +127,32 @@ namespace Jitex.JIT.Context
         /// Detour current method.
         /// </summary>
         /// <param name="method"></param>
-        public void DetourMethod(MethodInfo method)
+        public void Detour(MethodInfo method)
         {
-            NativeCode = Detour.CreateDetour(method);
+            NativeCode = DetourHelper.CreateDetour(method);
             IsResolved = true;
-            //IsDetour = true;
+            IsDetour = true;
+        }
+
+        public void Detour(IntPtr address)
+        {
+            NativeCode = DetourHelper.CreateDetour(address);
+            IsResolved = true;
+            IsDetour = true;
+        }
+
+        public void Detour(Delegate del)
+        {
+            NativeCode = DetourHelper.CreateDetour(del);
+            IsResolved = true;
+            IsDetour = true;
+        }
+
+        public void Detour<T>(T del) where T : Delegate
+        {
+            NativeCode = DetourHelper.CreateDetour(del);
+            IsResolved = true;
+            IsDetour = true;
         }
     }
 }

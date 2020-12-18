@@ -1,15 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
 using System.Reflection;
+using System.Reflection.Emit;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace Jitex.Utils
 {
     internal static class MethodHelper
     {
-        private static readonly ConstructorInfo? CtorHandle;
-        private static readonly MethodInfo? GetMethodBase;
+        private static readonly ConstructorInfo CtorHandle;
+        private static readonly MethodInfo GetMethodBase;
+        private static readonly MethodInfo GetMethodDescriptorInfo;
 
         private static readonly IDictionary<IntPtr, MethodBase?> Cache = new Dictionary<IntPtr, MethodBase?>();
 
@@ -25,16 +27,15 @@ namespace Jitex.Utils
             if (runtimeType == null)
                 throw new TypeLoadException("Type System.RuntimeType was not found!");
 
-            CtorHandle = runtimeMethodHandleInternalType.GetConstructor(BindingFlags.NonPublic | BindingFlags.Instance, null, new[] { typeof(IntPtr) }, null);
-
-            if (CtorHandle == null)
-                throw new MethodAccessException("Constructor from RuntimeMethodHandleInternal was not found!");
+            CtorHandle = runtimeMethodHandleInternalType.GetConstructor(BindingFlags.NonPublic | BindingFlags.Instance, null, new[] { typeof(IntPtr) }, null)
+                         ?? throw new MethodAccessException("Constructor from RuntimeMethodHandleInternal was not found!");
 
             GetMethodBase = runtimeType
-                .GetMethod("GetMethodBase", BindingFlags.NonPublic | BindingFlags.Static, null, CallingConventions.Any, new[] { runtimeType, runtimeMethodHandleInternalType }, null);
+                .GetMethod("GetMethodBase", BindingFlags.NonPublic | BindingFlags.Static, null, CallingConventions.Any, new[] { runtimeType, runtimeMethodHandleInternalType }, null)
+                ?? throw new MethodAccessException("Method GetMethodBase from RuntimeType was not found!");
+                
 
-            if (GetMethodBase == null)
-                throw new MethodAccessException("Method GetMethodBase from RuntimeType was not found!");
+            GetMethodDescriptorInfo = typeof(DynamicMethod).GetMethod("GetMethodDescriptor", BindingFlags.NonPublic | BindingFlags.Instance);
         }
 
         public static MethodBase? GetMethodFromHandle(IntPtr methodHandle)
@@ -59,6 +60,36 @@ namespace Jitex.Utils
         private static object? GetMethodHandleFromPointer(IntPtr methodHandle)
         {
             return CtorHandle!.Invoke(new object?[] { methodHandle });
+        }
+
+        public static IntPtr GetMethodAddress(MethodBase method)
+        {
+            RuntimeMethodHandle handle = GetMethodHandle(method);
+            RuntimeHelpers.PrepareMethod(handle);
+
+            IntPtr methodPointer = handle.GetFunctionPointer();
+
+            byte jmp = Marshal.ReadByte(methodPointer);
+
+            if (jmp == 0xE9)
+            {
+                int jmpSize = Marshal.ReadInt32(methodPointer + 1);
+                methodPointer = new IntPtr(methodPointer.ToInt64() + jmpSize + 5);
+            }
+
+            return methodPointer;
+        }
+
+        public static RuntimeMethodHandle GetMethodHandle(MethodBase method)
+        {
+            if (method is DynamicMethod)
+            {
+                return (RuntimeMethodHandle)GetMethodDescriptorInfo.Invoke(method, null);
+            }
+            else
+            {
+                return method.MethodHandle;
+            }
         }
     }
 }

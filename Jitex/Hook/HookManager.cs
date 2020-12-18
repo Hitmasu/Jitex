@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 using Jitex.Utils.NativeAPI.Windows;
@@ -65,7 +66,7 @@ namespace Jitex.Hook
                 byte[] newAddress = BitConverter.GetBytes(pointer.ToInt64());
 
                 //Prevent segmentation fault.
-                using FileStream fs = File.Open($"/proc/{ProcessInfo.PID}/mem", FileMode.Open, FileAccess.ReadWrite);
+                using FileStream fs = File.Open($"/proc/{Process.GetCurrentProcess().Id}/mem", FileMode.Open, FileAccess.ReadWrite);
                 fs.Seek(address.ToInt64(), SeekOrigin.Begin);
                 fs.Write(newAddress, 0, newAddress.Length);
             }

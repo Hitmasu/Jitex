@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Diagnostics;
+using System.Linq.Expressions;
 using Jitex;
 using Jitex.JIT.Context;
 
@@ -10,33 +12,23 @@ namespace ConsoleApp1
         {
             JitexManager.AddMethodResolver(MethodResolver);
             ShowTeste();
-            ShowMe<int>();
             Console.ReadKey();
         }
 
         public static void ShowTeste()
         {
-            ShowMe<Program>();
+            Console.WriteLine("ABC");
         }
 
         private static void MethodResolver(MethodContext context)
         {
-            if (context.Method.Name == "ShowMe")
+            if (context.Method.Name == "ShowTeste")
             {
-                var methodToDetour = typeof(Program).GetMethod("Hook").MakeGenericMethod(typeof(int));
-                context.DetourMethod(methodToDetour);
+                context.Detour<Action>(() =>
+                {
+                    Console.WriteLine("aspodk");
+                });
             }
-        }
-
-        public static void ShowMe<A>()
-        {
-            return;
-        }
-
-        public static P Hook<P>()
-        {
-            Console.WriteLine("Hooked");
-            return default;
         }
     }
 }

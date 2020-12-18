@@ -24,24 +24,6 @@ namespace Jitex.Utils
             return trampoline;
         }
 
-        /// <summary>
-        /// Create a trampoline 64 bits.
-        /// </summary>
-        /// <param name="methodAddress"></param>
-        /// <returns></returns>
-        // public static IntPtr AllocateTrampoline(IntPtr methodAddress)
-        // {
-        //     IntPtr jmpNative;
-        //
-        //     if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-        //         jmpNative = Kernel32.VirtualAlloc(TrampolineInstruction.Length, Kernel32.AllocationType.Commit, Kernel32.MemoryProtection.EXECUTE_READ_WRITE);
-        //     else
-        //         jmpNative = Mman.mmap(TrampolineInstruction.Length, MmapProts.PROT_EXEC | MmapProts.PROT_WRITE, MmapFlags.MAP_ANON | MmapFlags.MAP_SHARED);
-        //
-        //     byte[] trampoline = GetTrampoline(methodAddress);
-        //     Marshal.Copy(jmpNative, trampoline, 0, trampoline.Length);
-        //     return jmpNative;
-        // }
         public static IntPtr AllocateTrampoline(IntPtr address)
         {
             IntPtr jmpNative;
