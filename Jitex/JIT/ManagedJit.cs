@@ -4,6 +4,7 @@ using Jitex.Utils;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -327,14 +328,19 @@ namespace Jitex.JIT
 
                     ResolvedToken resolvedToken = new ResolvedToken(pResolvedToken);
 
-                    //Capture method who trying resolve that token.
-                    MethodBase? source = MethodHelper.GetMethodFromHandle(resolvedToken.Context);
-
-                    TokenContext context = new TokenContext(ref resolvedToken, source);
-
-                    foreach (TokenResolverHandler resolver in resolvers)
+                    if (resolvedToken.Module != null)
                     {
-                        resolver(context);
+                        MethodBase? source = MethodHelper.GetFromCache(resolvedToken.Context);
+
+                        if (source == null)
+                            source = _tokenTls.GetSource();
+
+                        TokenContext context = new TokenContext(ref resolvedToken, source);
+
+                        foreach (TokenResolverHandler resolver in resolvers)
+                        {
+                            resolver(context);
+                        }
                     }
                 }
 

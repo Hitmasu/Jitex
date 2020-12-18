@@ -1,4 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
 using System.Reflection;
 
 namespace Jitex.Utils
@@ -7,6 +10,8 @@ namespace Jitex.Utils
     {
         private static readonly ConstructorInfo? CtorHandle;
         private static readonly MethodInfo? GetMethodBase;
+
+        private static readonly IDictionary<IntPtr, MethodBase?> Cache = new Dictionary<IntPtr, MethodBase?>();
 
         static MethodHelper()
         {
@@ -34,8 +39,26 @@ namespace Jitex.Utils
 
         public static MethodBase? GetMethodFromHandle(IntPtr methodHandle)
         {
-            object? handle = CtorHandle!.Invoke(new object?[] { methodHandle });
-            return GetMethodBase!.Invoke(null, new[] { null, handle }) as MethodBase;
+            MethodBase? method = GetFromCache(methodHandle);
+
+            if (method == null)
+            {
+                object? handle = GetMethodHandleFromPointer(methodHandle);
+                method = GetMethodBase.Invoke(null, new[] { null, handle }) as MethodBase;
+                Cache.Add(methodHandle, method);
+            }
+
+            return method;
+        }
+
+        public static MethodBase? GetFromCache(IntPtr methodHandle)
+        {
+            return Cache.TryGetValue(methodHandle, out MethodBase? method) ? method : null;
+        }
+
+        private static object? GetMethodHandleFromPointer(IntPtr methodHandle)
+        {
+            return CtorHandle!.Invoke(new object?[] { methodHandle });
         }
     }
 }

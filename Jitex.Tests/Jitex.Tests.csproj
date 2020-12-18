@@ -1,12 +1,13 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFrameworks>
+		<TargetFramework>netcoreapp3.1</TargetFramework>
+		<!--<TargetFrameworks>
 			netcoreapp2.1;
 			netcoreapp2.2;
 			netcoreapp3.0;
 			netcoreapp3.1
-		</TargetFrameworks>
+		</TargetFrameworks>-->
 		<IsPackable>false</IsPackable>
 		<LangVersion>7.1</LangVersion>
 		<Platforms>AnyCPU;x64</Platforms>
