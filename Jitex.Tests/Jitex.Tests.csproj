@@ -49,4 +49,8 @@
 		<ProjectReference Include="..\Jitex.Tests.Context\Jitex.Tests.Context.csproj" />
 		<ProjectReference Include="..\Jitex\Jitex.csproj" />
 	</ItemGroup>
+
+	<ItemGroup>
+	  <Compile Remove="Test\Test.cs" />
+	</ItemGroup>
 </Project>

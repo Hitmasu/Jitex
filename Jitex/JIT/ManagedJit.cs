@@ -226,7 +226,7 @@ namespace Jitex.JIT
                                 methodFound = DynamicHelpers.GetOwner(methodFound);
                             }
 
-                            MethodBase source = _compileTls.GetSource();
+                            MethodBase? source = _compileTls.GetSource();
 
                             methodContext = new MethodContext(methodFound, source);
 
@@ -247,7 +247,7 @@ namespace Jitex.JIT
 
                             if (methodContext.Mode == MethodContext.ResolveMode.IL)
                             {
-                                MethodBody methodBody = methodContext.ResolvedMethod;
+                                MethodBody methodBody = methodContext.Body;
 
                                 ilLength = methodBody.IL.Length;
 
