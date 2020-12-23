@@ -7,6 +7,7 @@ using Xunit;
 
 namespace Jitex.Tests.Detour
 {
+    [Collection("Manager")]
     public class DetourMethodTest
     {
         private static readonly IList<string> Trace = new List<string>();
@@ -79,6 +80,7 @@ namespace Jitex.Tests.Detour
         [MethodImpl(MethodImplOptions.NoInlining)]
         public T GenericMethodDetour<T>(T obj) => obj;
 
+        [MethodImpl(MethodImplOptions.NoInlining)]
         public static int SumStatic(int n1, int n2) => n1 + n2;
 
         [MethodImpl(MethodImplOptions.NoInlining)]

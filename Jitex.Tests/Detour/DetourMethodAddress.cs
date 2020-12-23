@@ -7,6 +7,7 @@ using Xunit;
 
 namespace Jitex.Tests.Detour
 {
+    [Collection("Manager")]
     public class DetourMethodAddress
     {
         static DetourMethodAddress()

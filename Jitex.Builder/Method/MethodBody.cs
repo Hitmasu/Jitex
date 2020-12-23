@@ -66,6 +66,7 @@ namespace Jitex.Builder.Method
         /// Create a body from method.
         /// </summary>
         /// <param name="methodBase">Method to read.</param>
+        /// <param name="readIl">Read il on constructor.</param>
         public MethodBody(MethodBase methodBase)
         {
             Module = methodBase.Module;
@@ -79,9 +80,11 @@ namespace Jitex.Builder.Method
 
                 if (methodBase.DeclaringType.IsGenericType)
                     GenericTypeArguments = methodBase.DeclaringType.GetGenericArguments();
-            }
 
-            _il = methodBase.GetILBytes();
+                IL = methodBase.GetILBytes();
+            }
+            else
+                _il = methodBase.GetILBytes();
         }
 
         /// <summary>

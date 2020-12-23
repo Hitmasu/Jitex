@@ -6,6 +6,7 @@ using Xunit;
 
 namespace Jitex.Tests.Detour
 {
+    [Collection("Manager")]
     public class DetourMethodDelegateTest
     {
         private static readonly IList<string> Trace = new List<string>();
@@ -47,6 +48,7 @@ namespace Jitex.Tests.Detour
         {
         }
 
+        [MethodImpl(MethodImplOptions.NoInlining)]
         public int Sum(int n1, int n2) => n1 + n2;
 
         private static void AddMethodCalled(string detourMethod = "")

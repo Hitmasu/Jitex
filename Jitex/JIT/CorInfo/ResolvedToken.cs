@@ -9,7 +9,6 @@ namespace Jitex.JIT.CorInfo
     internal class ResolvedToken : CorType
     {
         private IntPtr _context;
-        private Module? _module;
         private int _token;
         private IntPtr _scope = IntPtr.Zero;
         private TokenKind? _type;
@@ -143,9 +142,6 @@ namespace Jitex.JIT.CorInfo
 
         public ResolvedToken(IntPtr hInstance) : base(hInstance)
         {
-            IntPtr scope = Marshal.ReadIntPtr(ScopeAddr);
-            var l = AppModules.GetModuleByAddress(scope);
-            int a = 10;
         }
     }
 }

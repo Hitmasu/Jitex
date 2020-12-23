@@ -73,6 +73,7 @@ namespace Jitex.Tests.Resolvers
             if (context.Method == GetMethod<ResolveTokenTests>(nameof(ResolveTokenReplace)))
             {
                 MethodInfo methodToReplace = GetMethod<Caller>(nameof(Caller.GetIdade));
+                var il = new Jitex.Builder.Method.MethodBody(methodToReplace).ReadIL();
                 context.ResolveMethod(methodToReplace);
             }
             else if (context.Method == GetMethod<ResolveTokenTests>(nameof(ResolveWithModuleReplace)))
