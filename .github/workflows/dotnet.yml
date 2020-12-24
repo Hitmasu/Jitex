@@ -7,101 +7,27 @@ on:
       types: [assigned, opened, synchronize, reopened]
 
 jobs:
-  windows_build:
-    runs-on: windows-latest
-
+  build:
+    runs-on: ${{matrix.os}}
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+        dotnet: ["2.1.x", "2.2.x", "3.0.x", "3.1.x"]
+      fail-fast: true
     steps:
     - uses: actions/checkout@v2
-    - name: Installing .NET Core 2.1
+    - name: Installing .NET Core ${{matrix.dotnet}}
       uses: actions/setup-dotnet@v1
       with:
-        dotnet-version: 2.1.x
-    - name: Installing .NET Core 2.2
-      uses: actions/setup-dotnet@v1
-      with:
-        dotnet-version: 2.2.x
-    - name: Installing .NET Core 3.0
-      uses: actions/setup-dotnet@v1
-      with:
-        dotnet-version: 3.0.x    
-    - name: Installing .NET Core 3.1
-      uses: actions/setup-dotnet@v1
-      with:
-        dotnet-version: 3.1.x
-    - name: Restore dependencies
-      run: |
+        dotnet-version: ${{matrix.dotnet}}
+    - run: |
         dotnet clean && dotnet nuget locals all --clear
         dotnet restore
-    - name: Build
+    - name: Building
       run: dotnet build --no-restore
-    - name: Test
-      run: |
-        cd Jitex.Tests
-        dotnet test -c Debug
-        dotnet test -c Release
-        
-  ubuntu_build:
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v2
-    - name: Installing .NET Core 2.1
-      uses: actions/setup-dotnet@v1
-      with:
-        dotnet-version: 2.1.x
-    - name: Installing .NET Core 2.2
-      uses: actions/setup-dotnet@v1
-      with:
-        dotnet-version: 2.2.x
-    - name: Installing .NET Core 3.0
-      uses: actions/setup-dotnet@v1
-      with:
-        dotnet-version: 3.0.x    
-    - name: Installing .NET Core 3.1
-      uses: actions/setup-dotnet@v1
-      with:
-        dotnet-version: 3.1.x
-    - name: Restore dependencies
-      run: |
-        dotnet clean && dotnet nuget locals all --clear
-        dotnet restore
-    - name: Build
-      run: dotnet build --no-restore
-    - name: Test
-      run: |
-        cd Jitex.Tests
-        dotnet test -c Debug
-        dotnet test -c Release
-        
-  macos_build:
-    runs-on: macos-latest
-
-    steps:
-    - uses: actions/checkout@v2
-    - name: Installing .NET Core 2.1
-      uses: actions/setup-dotnet@v1
-      with:
-        dotnet-version: 2.1.x
-    - name: Installing .NET Core 2.2
-      uses: actions/setup-dotnet@v1
-      with:
-        dotnet-version: 2.2.x
-    - name: Installing .NET Core 3.0
-      uses: actions/setup-dotnet@v1
-      with:
-        dotnet-version: 3.0.x    
-    - name: Installing .NET Core 3.1
-      uses: actions/setup-dotnet@v1
-      with:
-        dotnet-version: 3.1.x
-    - name: Restore dependencies
-      run: |
-        dotnet clean && dotnet nuget locals all --clear
-        dotnet restore
-    - name: Build
-      run: dotnet build --no-restore
-    - name: Test
-      run: |
-        cd Jitex.Tests
-        dotnet test -c Debug
-        dotnet test -c Release
+    - name: Testing
+      run: cd Jitex.Tests
+    - name: Testing Debug
+      run: dotnet test -c Debug
+    - name: Testing Release
+      run: dotnet test -c Release
