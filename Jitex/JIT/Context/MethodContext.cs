@@ -126,18 +126,31 @@ namespace Jitex.JIT.Context
             Body = new MethodBody(method);
             IsResolved = true;
         }
-
+        
         /// <summary>
-        /// Detour current method.
+        /// Detour method to another method.
         /// </summary>
         /// <param name="method"></param>
         public void ResolveDetour(MethodInfo method)
+        {
+            ResolveDetour(method as MethodBase);
+        }
+
+        /// <summary>
+        /// Detour method to another method.
+        /// </summary>
+        /// <param name="method"></param>
+        public void ResolveDetour(MethodBase method)
         {
             NativeCode = DetourHelper.CreateDetour(method);
             IsResolved = true;
             IsDetour = true;
         }
 
+        /// <summary>
+        /// Detour method to a address
+        /// </summary>
+        /// <param name="address"></param>
         public void ResolveDetour(IntPtr address)
         {
             NativeCode = DetourHelper.CreateDetour(address);
@@ -145,6 +158,10 @@ namespace Jitex.JIT.Context
             IsDetour = true;
         }
 
+        /// <summary>
+        /// Detour method to a Delegate
+        /// </summary>
+        /// <param name="del"></param>
         public void ResolveDetour(Delegate del)
         {
             NativeCode = DetourHelper.CreateDetour(del);
@@ -152,6 +169,11 @@ namespace Jitex.JIT.Context
             IsDetour = true;
         }
 
+        /// <summary>
+        /// Detour method to a Delegate (Func|Action).
+        /// </summary>
+        /// <param name="del"></param>
+        /// <typeparam name="T"></typeparam>
         public void ResolveDetour<T>(T del) where T : Delegate
         {
             NativeCode = DetourHelper.CreateDetour(del);

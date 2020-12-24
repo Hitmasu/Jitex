@@ -5,7 +5,7 @@ namespace Jitex.Utils
 {
     internal static class DetourHelper
     {
-        public static byte[] CreateDetour(MethodInfo methodDetour)
+        public static byte[] CreateDetour(MethodBase methodDetour)
         {
             IntPtr detourAddress = MethodHelper.GetMethodAddress(methodDetour);
             return Trampoline.GetTrampoline(detourAddress);

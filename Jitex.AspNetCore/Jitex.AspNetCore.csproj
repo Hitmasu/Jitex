@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>netcoreapp2.0</TargetFramework>
+        <TargetFramework>netstandard2.0</TargetFramework>
         <SignAssembly>false</SignAssembly>
 		<Authors>Hitmasu</Authors>
 	    <Company />
@@ -15,6 +15,7 @@
 	    <PackageTags>JIT</PackageTags>
 	    <Version>1.0.1-alpha</Version>
 	    <Platforms>AnyCPU;x64</Platforms>
+	    <PackageVersion>1.0.2-alpha</PackageVersion>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
