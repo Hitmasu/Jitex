@@ -34,29 +34,48 @@ namespace Jitex.Utils.NativeAPI.Windows
             WRITE_COMBINE_MODIFIERFLAG = 0x400
         }
 
-        [DllImport("kernel32", EntryPoint = "VirtualAlloc")]
-        private static extern IntPtr VirtualAlloc(IntPtr lpAddress, int dwSize, AllocationType flAllocationType, MemoryProtection flProtect);
-
-        [DllImport("kernel32", EntryPoint = "VirtualFree")]
-        private static extern int VirtualFree(IntPtr lpAddress, IntPtr dwSize, FreeType freeType);
-
-        [DllImport("kernel32", EntryPoint = "VirtualProtect")]
-        private static extern int VirtualProtect(IntPtr lpAddress, IntPtr dwSize, MemoryProtection flNewProtect, out MemoryProtection lpflOldProtect);
-
         public static IntPtr VirtualAlloc(int size, AllocationType allocationType, MemoryProtection protection)
         {
-            return VirtualAlloc(IntPtr.Zero, size, allocationType, protection);
+            return Imports.VirtualAlloc(IntPtr.Zero, size, allocationType, protection);
         }
 
         public static int VirtualFree(IntPtr address, int size)
         {
-            return VirtualFree(address, new IntPtr(size), FreeType.Release);
+            return Imports.VirtualFree(address, new IntPtr(size), FreeType.Release);
         }
 
         public static MemoryProtection VirtualProtect(IntPtr address, int size, MemoryProtection protection)
         {
-            VirtualProtect(address, new IntPtr(size), protection, out MemoryProtection oldFlags);
+            Imports.VirtualProtect(address, new IntPtr(size), protection, out MemoryProtection oldFlags);
             return oldFlags;
+        }
+
+        public static IntPtr GetModuleHandle(string moduleName)
+        {
+            return Imports.GetModuleHandle(moduleName);
+        }
+
+        public static IntPtr GetProcAddress(IntPtr hModule, string procName)
+        {
+            return Imports.GetProcAddress(hModule, procName);
+        }
+
+        private static class Imports
+        {
+            [DllImport("kernel32", EntryPoint = "VirtualAlloc")]
+            internal static extern IntPtr VirtualAlloc(IntPtr lpAddress, int dwSize, AllocationType flAllocationType, MemoryProtection flProtect);
+
+            [DllImport("kernel32", EntryPoint = "VirtualFree")]
+            internal static extern int VirtualFree(IntPtr lpAddress, IntPtr dwSize, FreeType freeType);
+
+            [DllImport("kernel32", EntryPoint = "VirtualProtect")]
+            internal static extern int VirtualProtect(IntPtr lpAddress, IntPtr dwSize, MemoryProtection flNewProtect, out MemoryProtection lpflOldProtect);
+
+            [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+            internal static extern IntPtr GetModuleHandle(string moduleName);
+            
+            [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+            internal static extern IntPtr GetProcAddress(IntPtr hModule, string procName);
         }
     }
 }

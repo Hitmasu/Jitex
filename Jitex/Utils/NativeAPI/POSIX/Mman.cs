@@ -39,7 +39,6 @@ namespace Jitex.Utils.NativeAPI.POSIX
         /// <returns></returns>
         public static bool mprotect(IntPtr address, ulong length, MmapProts flags)
         {
-            Console.WriteLine(Syscall.mprotect(address, length, flags));
             return Syscall.mprotect(address, length, flags) == 0;
         }
     }

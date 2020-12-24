@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using NativeLibraryLoader;
+using System.Linq;
 
 namespace Jitex.Runtime
 {
@@ -22,12 +24,20 @@ namespace Jitex.Runtime
                 jitLibraryName = "libclrjit.so";
             else
                 jitLibraryName = "libclrjit.dylib";
-
-            LibraryLoader? defaultLoader = LibraryLoader.GetPlatformDefaultLoader();
             
+            foreach (ProcessModule module in Process.GetCurrentProcess().Modules)
+            {
+                if (module.ModuleName.Contains("clr") || module.ModuleName.Contains("jit"))
+                {
+                    Console.WriteLine(module.ModuleName);
+                }
+            }
+            
+            LibraryLoader? defaultLoader = LibraryLoader.GetPlatformDefaultLoader();
+
             IntPtr libAddress = defaultLoader.LoadNativeLibrary(jitLibraryName);
             IntPtr getJitAddress = defaultLoader.LoadFunctionPointer(libAddress, "getJit");
-            
+
             GetJitDelegate getJit = Marshal.GetDelegateForFunctionPointer<GetJitDelegate>(getJitAddress);
             IntPtr jitAddress = getJit();
             return jitAddress;
