@@ -41,7 +41,7 @@ jobs:
         dotnet test -c Release
         
   ubuntu_build:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v2
@@ -74,7 +74,7 @@ jobs:
         dotnet test -c Release
         
   macos_build:
-    runs-on: windows-latest
+    runs-on: macos-latest
 
     steps:
     - uses: actions/checkout@v2
