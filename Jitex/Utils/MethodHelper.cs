@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -13,7 +14,7 @@ namespace Jitex.Utils
         private static readonly MethodInfo GetMethodBase;
         private static readonly MethodInfo GetMethodDescriptorInfo;
 
-        private static readonly IDictionary<IntPtr, MethodBase?> Cache = new Dictionary<IntPtr, MethodBase?>();
+        private static readonly ConcurrentDictionary<IntPtr, MethodBase?> Cache = new ConcurrentDictionary<IntPtr, MethodBase?>();
 
         static MethodHelper()
         {
@@ -46,7 +47,7 @@ namespace Jitex.Utils
             {
                 object? handle = GetMethodHandleFromPointer(methodHandle);
                 method = GetMethodBase.Invoke(null, new[] { null, handle }) as MethodBase;
-                Cache.Add(methodHandle, method);
+                Cache.TryAdd(methodHandle, method);
             }
 
             return method;

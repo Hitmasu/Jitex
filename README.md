@@ -2,7 +2,21 @@
 
 [![Build status](https://ci.appveyor.com/api/projects/status/2h0y08mk82iwmyfr/branch/master?svg=true)](https://ci.appveyor.com/project/Hitmasu/jitex/branch/master) [![Nuget](https://img.shields.io/nuget/vpre/Jitex)](https://www.nuget.org/packages/Jitex/)
 
+------
+
 A library to modify MSIL/Native code at runtime.
+
+It's a library built in .NET Standard 2.0, works on all version >=.NET Core 2.0. 
+
+|             | .NET Core (2.0 ~ 3.1) | .NET Framework (4.6.1 ~ 4.8)           | .NET 5                                 | Mono              |
+| ----------- | --------------------- | -------------------------------------- | -------------------------------------- | ----------------- |
+| **Windows** | :heavy_check_mark:    | :building_construction: In development | :building_construction: In development | :x: Not supported |
+| **Linux**   | :heavy_check_mark:    | :x: Not supported                      | :building_construction: In development | :x: Not supported |
+| **MacOS**   | :heavy_check_mark:    | :x: Not supported​                      | :building_construction: In development | :x: Not supported |
+
+:green_heart:  *.NET 5 and .NET Framework as soon.*
+
+------
 
 Jitex can help you inject code at runtime easily.
 

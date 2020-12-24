@@ -4,6 +4,7 @@ namespace Jitex.Tests.Context
 {
     public class Caller
     {
+        [MethodImpl(MethodImplOptions.NoInlining)]
         public int GetWrong()
         {
             return -1;

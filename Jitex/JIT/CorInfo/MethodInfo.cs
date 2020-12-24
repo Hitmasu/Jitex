@@ -13,12 +13,14 @@ namespace Jitex.JIT.CorInfo
         private IntPtr _ilCode;
         private uint _ilCodeSize;
         private uint _maxStack;
+        private uint _ehCount;
 
         private IntPtr MethodDescAddr => HInstance + MethodInfoOffset.MethodDesc;
         private IntPtr ScopeAddr => HInstance + MethodInfoOffset.Scope;
         private IntPtr ILCodeAddr => HInstance + MethodInfoOffset.ILCode;
         private IntPtr ILCodeSizeAddr => HInstance + MethodInfoOffset.ILCodeSize;
         private IntPtr MaxStackAddr => HInstance + MethodInfoOffset.MaxStack;
+        private IntPtr EHCountAddr => HInstance + MethodInfoOffset.EHCount;
 
         public SigInfo Locals { get; set; }
 
@@ -114,6 +116,24 @@ namespace Jitex.JIT.CorInfo
             {
                 _maxStack = value;
                 Marshal.WriteInt32(MaxStackAddr, (int)_maxStack);
+            }
+        }
+
+        public uint EHCount
+        {
+            get
+            {
+                if (_ehCount == 0)
+                {
+                    _ehCount = (uint)Marshal.ReadInt32(EHCountAddr);
+                }
+
+                return _ehCount;
+            }
+            set
+            {
+                _ehCount = value;
+                Marshal.WriteInt32(EHCountAddr, (int)_ehCount);
             }
         }
 

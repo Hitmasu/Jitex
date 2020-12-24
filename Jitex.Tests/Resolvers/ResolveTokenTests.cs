@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using Jitex.Builder.Method;
 using Jitex.JIT.Context;
 using Jitex.Tests.Context;
 using Xunit;
@@ -62,7 +64,8 @@ namespace Jitex.Tests.Resolvers
                         break;
                 }
             }
-            else if (context.Source == GetMethod<ResolveTokenTests>(nameof(ResolveWithModuleReplace)))
+            else if (context.Source == GetMethod<ResolveTokenTests>(nameof(ResolveWithModuleReplace)) && context.MetadataToken == 0x06000006 
+                     || context.MetadataToken == 0x06000004)
             {
                 context.ResolveFromModule(typeof(Caller).Module);
             }
@@ -73,7 +76,6 @@ namespace Jitex.Tests.Resolvers
             if (context.Method == GetMethod<ResolveTokenTests>(nameof(ResolveTokenReplace)))
             {
                 MethodInfo methodToReplace = GetMethod<Caller>(nameof(Caller.GetIdade));
-                var il = new Jitex.Builder.Method.MethodBody(methodToReplace).ReadIL();
                 context.ResolveMethod(methodToReplace);
             }
             else if (context.Method == GetMethod<ResolveTokenTests>(nameof(ResolveWithModuleReplace)))

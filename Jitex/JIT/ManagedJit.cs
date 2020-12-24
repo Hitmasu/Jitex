@@ -194,7 +194,6 @@ namespace Jitex.JIT
             try
             {
                 MethodContext? methodContext = null;
-
                 IntPtr sigAddress = IntPtr.Zero;
                 IntPtr ilAddress = IntPtr.Zero;
 
@@ -278,6 +277,7 @@ namespace Jitex.JIT
 
                             if (!methodContext.IsDetour)
                             {
+                                methodInfo.EHCount = methodContext.Body.EHCount;
                                 methodInfo.ILCode = ilAddress;
                                 methodInfo.ILCodeSize = (uint)ilLength;
                             }
