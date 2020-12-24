@@ -42,8 +42,6 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Iced" Version="1.9.0" />
-		<PackageReference Include="NativeLibraryLoader" Version="1.0.12" />
 		<PackageReference Include="System.Memory" Version="4.5.4" />
 		<PackageReference Include="Mono.Posix.NETStandard" Version="1.0.0" />
 	</ItemGroup>
