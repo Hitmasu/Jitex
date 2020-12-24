@@ -8,24 +8,22 @@ namespace Jitex.Utils
 {
     internal static class Trampoline
     {
-        private static readonly byte[] TrampolineInstruction;
-
-        static Trampoline()
+        private static readonly byte[] TrampolineInstruction =
         {
-            TrampolineInstruction = new byte[]
-            {
-                    // mov rax, 0000000000000000h ;Pointer to delegate
-                    0x48, 0xB8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                    // jmp rax
-                    0xFF, 0xE0
-            };
+            // mov rax, 0000000000000000h ;Pointer to delegate
+            0x48, 0xB8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            // jmp rax
+            0xFF, 0xE0
+        };
+
+        public static byte[] GetTrampoline(IntPtr methodAddress)
+        {
+            byte[] trampoline = TrampolineInstruction;
+            byte[] address = BitConverter.GetBytes(methodAddress.ToInt64());
+            address.CopyTo(trampoline, 2);
+            return trampoline;
         }
 
-        /// <summary>
-        /// Create a trampoline 64 bits.
-        /// </summary>
-        /// <param name="address"></param>
-        /// <returns></returns>
         public static IntPtr AllocateTrampoline(IntPtr address)
         {
             IntPtr jmpNative;

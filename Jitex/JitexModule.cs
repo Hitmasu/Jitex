@@ -51,7 +51,7 @@ namespace Jitex
         /// <summary>
         /// Unload module from Jitex.
         /// </summary>
-        public void Dispose()
+        public virtual void Dispose()
         {
             JitexManager.RemoveMethodResolver(MethodResolver);
             JitexManager.RemoveTokenResolver(TokenResolver);

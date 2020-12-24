@@ -1,42 +1,42 @@
 ﻿using System;
 using System.Runtime.InteropServices;
-using NativeLibraryLoader;
 
 namespace Jitex.Runtime
 {
     internal sealed class NETCore : RuntimeFramework
     {
-        private delegate IntPtr GetJitDelegate();
-
         public NETCore() : base(true)
         {
         }
 
         protected override IntPtr GetJitAddress()
         {
-            string jitLibraryName = string.Empty;
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                return OSXLibrary.GetJit();
 
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                jitLibraryName = "clrjit.dll";
-            }
-            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-            {
-                jitLibraryName = "libclrjit.so";
-            }
-            else
-            {
-                jitLibraryName = "libclrjit.dylib";
-            }
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                return LinuxLibrary.GetJit();
+            
+            return WindowsLibrary.GetJit();
+        }
 
-            LibraryLoader? defaultLoader = LibraryLoader.GetPlatformDefaultLoader();
 
-            IntPtr libAddress = defaultLoader.LoadNativeLibrary(jitLibraryName);
-            IntPtr getJitAddress = defaultLoader.LoadFunctionPointer(libAddress, "getJit");
+        private static class OSXLibrary
+        {
+            [DllImport("libclrjit.dylib", CallingConvention = CallingConvention.StdCall, SetLastError = true, EntryPoint = "getJit", BestFitMapping = true)]
+            public static extern IntPtr GetJit();
+        }
 
-            GetJitDelegate getJit = Marshal.GetDelegateForFunctionPointer<GetJitDelegate>(getJitAddress);
-            IntPtr jitAddress = getJit();
-            return jitAddress;
+        private static class LinuxLibrary
+        {
+            [DllImport("libclrjit.so", CallingConvention = CallingConvention.StdCall, SetLastError = true, EntryPoint = "getJit", BestFitMapping = true)]
+            public static extern IntPtr GetJit();
+        }
+
+        private static class WindowsLibrary
+        {
+            [DllImport("clrjit.dll", CallingConvention = CallingConvention.StdCall, SetLastError = true, EntryPoint = "getJit", BestFitMapping = true)]
+            public static extern IntPtr GetJit();
         }
     }
 }

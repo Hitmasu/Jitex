@@ -40,7 +40,7 @@ namespace Jitex.Tests.Resolvers
             double b = 999999;
             double max = Math.Max(a, b);
 
-            Assert.True(max == a, "Body not replaced.");
+            Assert.True(max == 1, "Body not replaced.");
         }
 
         public void BodyImpReplace()

@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Reflection.Emit;
 using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
+using System.Runtime.CompilerServices;
 using Jitex.Builder.IL;
 using Jitex.Builder.PE;
 using Jitex.Builder.Utils.Extensions;
@@ -70,18 +71,25 @@ namespace Jitex.Builder.Method
         /// Create a body from method.
         /// </summary>
         /// <param name="methodBase">Method to read.</param>
+        /// <param name="readIl">Read il on constructor.</param>
         public MethodBody(MethodBase methodBase)
         {
             Module = methodBase.Module;
-            LocalVariables = methodBase.GetMethodBody().LocalVariables.Select(s => new LocalVariableInfo(s.LocalType)).ToList();
 
-            if (methodBase.IsGenericMethod)
-                GenericMethodArguments = methodBase.GetGenericArguments();
+            if (!(methodBase is DynamicMethod))
+            {
+                LocalVariables = methodBase.GetMethodBody().LocalVariables.Select(s => new LocalVariableInfo(s.LocalType)).ToList();
 
-            if (methodBase.DeclaringType.IsGenericType)
-                GenericTypeArguments = methodBase.DeclaringType.GetGenericArguments();
+                if (methodBase.IsGenericMethod)
+                    GenericMethodArguments = methodBase.GetGenericArguments();
 
-            IL = methodBase.GetILBytes();
+                if (methodBase.DeclaringType.IsGenericType)
+                    GenericTypeArguments = methodBase.DeclaringType.GetGenericArguments();
+
+                IL = methodBase.GetILBytes();
+            }
+            else
+                _il = methodBase.GetILBytes();
         }
 
         /// <summary>
@@ -273,14 +281,14 @@ namespace Jitex.Builder.Method
 
                 if (variable.Type.IsGenericType && !isGenericDefined)
                 {
-                    blob.WriteByte((byte)CorElementType.ELEMENT_TYPE_GENERICINST);
+                    blob.WriteByte((byte) CorElementType.ELEMENT_TYPE_GENERICINST);
                     blob.WriteByte((byte)LocalVariableInfo.DetectCorElementType(variable.Type));
 
                     int typeInfo = GetTypeInfo(variable.Type, metadataInfo);
-                    blob.WriteByte((byte)typeInfo);
+                    blob.WriteByte((byte) typeInfo);
 
                     int countGenericVariables = LocalVariables.Count(w => w.Type.IsGenericType);
-                    blob.WriteByte((byte)countGenericVariables);
+                    blob.WriteByte((byte) countGenericVariables);
 
                     isGenericDefined = true;
                 }
@@ -289,7 +297,7 @@ namespace Jitex.Builder.Method
 
                 if (elementType == CorElementType.ELEMENT_TYPE_SZARRAY)
                 {
-                    blob.WriteByte((byte)elementType);
+                    blob.WriteByte((byte) elementType);
                     elementType = LocalVariableInfo.DetectCorElementType(variable.Type.GetElementType()!);
                 }
 
@@ -312,7 +320,7 @@ namespace Jitex.Builder.Method
                 }
                 else
                 {
-                    blob.WriteByte((byte)elementType);
+                    blob.WriteByte((byte) elementType);
                 }
             }
 

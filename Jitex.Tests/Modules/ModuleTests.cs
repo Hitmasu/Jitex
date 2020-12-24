@@ -13,7 +13,7 @@ namespace Jitex.Tests.Modules
         [Fact, Order(1)]
         public void ModuleLoadTest()
         {
-            JitexManager.LoadModule<ModuleJitex>();
+            JitexManager.LoadModule(ModuleJitex.GetInstance());
             bool moduleIsLoaded = JitexManager.ModuleIsLoaded<ModuleJitex>();
             Assert.True(moduleIsLoaded, "Module is not loaded!");
         }

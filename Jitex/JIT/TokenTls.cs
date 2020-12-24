@@ -10,9 +10,6 @@ namespace Jitex.JIT
         private static readonly MethodBase ResolveToken;
         private static readonly MethodBase ConstructStringLiteral;
 
-        public MethodBase Root { get; set; }
-        public MemberInfo Source { get; set; }
-
         static TokenTls()
         {
             CompileMethod = typeof(ManagedJit).GetMethod("CompileMethod", BindingFlags.Instance | BindingFlags.NonPublic);
@@ -21,10 +18,10 @@ namespace Jitex.JIT
         }
 
         /// <summary>
-        /// Obtém o método que "requisitou" a compilação.
+        /// Get source from call
         /// </summary>
         /// <returns></returns>
-        public MethodBase GetSource()
+        public override MethodBase GetSource()
         {
             StackTrace stack = new StackTrace();
             

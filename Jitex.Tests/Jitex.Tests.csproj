@@ -8,7 +8,7 @@
 			netcoreapp3.1
 		</TargetFrameworks>
 		<IsPackable>false</IsPackable>
-		<LangVersion>7.1</LangVersion>
+		<LangVersion>default</LangVersion>
 		<Platforms>AnyCPU;x64</Platforms>
 	</PropertyGroup>
 
@@ -47,5 +47,9 @@
 		<ProjectReference Include="..\Jitex.Builder\Jitex.Builder.csproj" />
 		<ProjectReference Include="..\Jitex.Tests.Context\Jitex.Tests.Context.csproj" />
 		<ProjectReference Include="..\Jitex\Jitex.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Compile Remove="Test\Test.cs" />
 	</ItemGroup>
 </Project>

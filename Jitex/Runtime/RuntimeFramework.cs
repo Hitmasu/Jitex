@@ -19,7 +19,7 @@ namespace Jitex.Runtime
         /// <param name="nativeSizeOfCode">(OUT) - Size of NativeEntry.</param>
         /// <returns></returns>
         [UnmanagedFunctionPointer(CallingConvention.StdCall, SetLastError = true)]
-        public delegate CorJitResult CompileMethodDelegate(IntPtr thisPtr, IntPtr comp, IntPtr info, uint flags, out IntPtr nativeEntry, out ulong nativeSizeOfCode);
+        public delegate CorJitResult CompileMethodDelegate(IntPtr thisPtr, IntPtr comp, IntPtr info, uint flags, out IntPtr nativeEntry, out int nativeSizeOfCode);
 
         /// <summary>
         /// Returns if runtime is .NET Core or .NET Framework

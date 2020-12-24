@@ -2,7 +2,7 @@
 
 	<PropertyGroup>
 		<TargetFramework>netstandard2.0</TargetFramework>
-		<LangVersion>latest</LangVersion>
+		<LangVersion>default</LangVersion>
 		<Platforms>x64</Platforms>
 		<Authors>Hitmasu</Authors>
 		<Company />
@@ -17,10 +17,10 @@
 		<Version>1.0.5-alpha</Version>
 		<AssemblyName>Jitex.Builder</AssemblyName>
 		<Nullable>enable</Nullable>
+		<PackageVersion>1.1.0-alpha</PackageVersion>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-	  <GenerateSerializationAssemblies>Off</GenerateSerializationAssemblies>
 	</PropertyGroup>
 
 	<ItemGroup>

@@ -7,7 +7,7 @@ namespace Jitex.Runtime.Offsets
     internal static class ResolvedTokenOffset
     {
         public static int Context { get; private set; }
-        public static int Module { get; private set; }
+        public static int Scope { get; private set; }
         public static int Token { get; private set; }
         public static int Type { get; private set; }
 
@@ -18,7 +18,7 @@ namespace Jitex.Runtime.Offsets
         static ResolvedTokenOffset()
         {
             Context = 0x0;
-            Module = 8;
+            Scope = 8;
             Token = 16;
             Type = 20;
             HClass = 24;
