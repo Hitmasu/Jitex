@@ -8,7 +8,7 @@
 			netcoreapp3.1
 		</TargetFrameworks>
 		<IsPackable>false</IsPackable>
-		<LangVersion>7.1</LangVersion>
+		<LangVersion>default</LangVersion>
 		<Platforms>AnyCPU;x64</Platforms>
 	</PropertyGroup>
 

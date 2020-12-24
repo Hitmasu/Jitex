@@ -16,6 +16,7 @@
 	    <Version>1.0.1-alpha</Version>
 	    <Platforms>AnyCPU;x64</Platforms>
 	    <PackageVersion>1.0.2-alpha</PackageVersion>
+	    <LangVersion>default</LangVersion>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
