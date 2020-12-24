@@ -1,27 +1,107 @@
-name: Jitex Ubuntu
+name: Pull Request BUILD
+
 
 on:
-  pull_request_review:
-    branches: [ master ]
+    pull_request:
+      branches: [master]
+      types: [assigned, opened, synchronize, reopened]
 
 jobs:
-  build:
-
-    runs-on: ubuntu-latest
+  windows_build:
+    runs-on: windows-latest
 
     steps:
     - uses: actions/checkout@v2
-    - name: Setup .NET
+    - name: Installing .NET Core 2.1
       uses: actions/setup-dotnet@v1
       with:
-        dotnet-version: 3.1.301
+        dotnet-version: 2.1.x
+    - name: Installing .NET Core 2.2
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 2.2.x
+    - name: Installing .NET Core 3.0
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 3.0.x    
+    - name: Installing .NET Core 3.1
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 3.1.x
     - name: Restore dependencies
-      run: dotnet restore
+      run: |
+        dotnet clean
+        dotnet restore
     - name: Build
       run: dotnet build --no-restore
     - name: Test
       run: |
-        cd Jitex.Tests 
+        cd Jitex.Tests
+        dotnet test -c Debug
+        dotnet test -c Release
+        
+  ubuntu_build:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Installing .NET Core 2.1
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 2.1.x
+    - name: Installing .NET Core 2.2
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 2.2.x
+    - name: Installing .NET Core 3.0
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 3.0.x    
+    - name: Installing .NET Core 3.1
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 3.1.x
+    - name: Restore dependencies
+      run: |
+        dotnet clean
         dotnet restore
+    - name: Build
+      run: dotnet build --no-restore
+    - name: Test
+      run: |
+        cd Jitex.Tests
+        dotnet test -c Debug
+        dotnet test -c Release
+        
+  macos_build:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Installing .NET Core 2.1
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 2.1.x
+    - name: Installing .NET Core 2.2
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 2.2.x
+    - name: Installing .NET Core 3.0
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 3.0.x    
+    - name: Installing .NET Core 3.1
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 3.1.x
+    - name: Restore dependencies
+      run: |
+        dotnet clean
+        dotnet restore
+    - name: Build
+      run: dotnet build --no-restore
+    - name: Test
+      run: |
+        cd Jitex.Tests
         dotnet test -c Debug
         dotnet test -c Release
