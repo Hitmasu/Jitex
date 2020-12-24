@@ -128,7 +128,7 @@ namespace Jitex.JIT.Context
         }
         
         /// <summary>
-        /// Detour method to another method.
+        /// Detour to another method.
         /// </summary>
         /// <param name="method"></param>
         public void ResolveDetour(MethodInfo method)
@@ -137,7 +137,7 @@ namespace Jitex.JIT.Context
         }
 
         /// <summary>
-        /// Detour method to another method.
+        /// Detour to another method.
         /// </summary>
         /// <param name="method"></param>
         public void ResolveDetour(MethodBase method)
@@ -148,7 +148,7 @@ namespace Jitex.JIT.Context
         }
 
         /// <summary>
-        /// Detour method to a address
+        /// Detour to a address
         /// </summary>
         /// <param name="address"></param>
         public void ResolveDetour(IntPtr address)
@@ -159,7 +159,7 @@ namespace Jitex.JIT.Context
         }
 
         /// <summary>
-        /// Detour method to a Delegate
+        /// Detour to a Delegate
         /// </summary>
         /// <param name="del"></param>
         public void ResolveDetour(Delegate del)
@@ -170,7 +170,7 @@ namespace Jitex.JIT.Context
         }
 
         /// <summary>
-        /// Detour method to a Delegate (Func|Action).
+        /// Detour to a Delegate
         /// </summary>
         /// <param name="del"></param>
         /// <typeparam name="T"></typeparam>

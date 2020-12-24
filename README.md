@@ -39,33 +39,13 @@ class Program {
 
 ## Support
 
-- Modify normal and generic methods
-- Inject native code (ASM)
-- Inject MSIL code (IL)
-- Inject variables
-- Inject custom metadatatoken
-
-
-
-## Inject MSIL
-
-```c#
-private static void MethodResolver (MethodContext context) 
-{
-  //Verify with method to be compile is our method who we want modify.
-  if (context.Method.Name == "SimpleSum") {
-    //num1 * num2
-    byte[] newIL = {
-    (byte) OpCodes.Ldarg_0.Value, //parameter num1
-    (byte) OpCodes.Ldarg_1.Value, //parameter num2
-    (byte) OpCodes.Mul.Value,
-    (byte) OpCodes.Ret.Value
-    };
-    MethodBody body = new MethodBody (newIL, context.Method.Module);
-    context.ResolveBody (body);
-  }
-}
-```
+- [Modify normal and generic methods](#Injecft Method)
+- [Detour method](#Detour Method)
+- [Inject MSIL code (IL)](#Inject MSIL)
+- [Inject native code (ASM)](#Inject Native Code)
+- [Inject custom metadatatoken](#Inject custom metadatatoken)
+- [Inject custom string](#Inject custom string)
+- [Modules](#Modules)
 
 ## Inject Method
 
@@ -95,6 +75,52 @@ private static void MethodResolver (MethodContext context)
     //Replace SimpleSum to our SimpleSumReplace
     MethodInfo replaceSumMethod = typeof (Program).GetMethod (nameof (SimpleSumReplace));
     context.ResolveMethod (replaceSumMethod);
+  }
+}
+```
+
+## Detour Method
+
+```c#
+private static void MethodResolver (MethodContext context) {
+  if (context.Method.Name == "SimpleSum") {
+    //Detour by MethodInfo
+    MethodInfo detourMethod = typeof (Program).GetMethod (nameof (SimpleSumDetour));
+    context.ResolveDetour (detourMethod);
+    //or
+    context.ResolveDetour<Action> (SimpleSumDetour);
+
+    //Detour by Action or Func
+    Action<int, int> detourAction = (n1, n2) => {
+      Console.WriteLine ("Detoured");
+      Console.WriteLine (n1 + n2);
+    };
+    context.ResolveDetour (detourAction);
+
+    //Detour by Address
+    IntPtr addressMethod = default; //Address of method to execute.
+    context.ResolveDetour (addressMethod);
+  }
+}
+```
+
+## Inject MSIL
+
+```c#
+private static void MethodResolver (MethodContext context) 
+{
+  //Verify if method to compiled is our method SimpleSum.
+  if (context.Method.Name == "SimpleSum") {
+    //num1 * num2
+    byte[] newIL = {
+    (byte) OpCodes.Ldarg_0.Value, //parameter num1
+    (byte) OpCodes.Ldarg_1.Value, //parameter num2
+    (byte) OpCodes.Mul.Value,
+    (byte) OpCodes.Ret.Value
+    };
+      
+    MethodBody body = new MethodBody (newIL, context.Method.Module);
+    context.ResolveBody (body);
   }
 }
 ```
@@ -137,7 +163,7 @@ private static void MethodResolver (MethodContext context)
 }
 ```
 
-## Inject custom metadata
+## Inject custom MetadataToken
 
 You can inject a custom metadata too, in this way, you can "execute" metadatatoken not referenced in compile-time:
 
@@ -146,10 +172,10 @@ You can inject a custom metadata too, in this way, you can "execute" metadatatok
 ///     Example of a external library to replace SimpleSum.
 /// </summary>
 /// <remarks>
-///     We replace SimpleSum to return the PID of process. To do this, normally we need
+///     We replace SimpleSum to return the PID of process running. To do this, normally we need
 ///     reference assembly (System.Diagnostics.Process) and class Process.
-///     In this case, the original module, dont have any reference to Diagnostics and class Process.
-///     As we pass a MetadataToken from Process.GetCurrentProcess().Id, its necessary resolve that manually,
+///     In this case, the original module, dont have any reference to namespace System.Diagnostics.Process.
+///     As we pass the MetadataToken from Process.GetCurrentProcess().Id, its necessary resolve that manually,
 ///     because CLR dont have any information about that in original module.
 /// </remarks>
 public static class ExternLibrary
@@ -274,12 +300,6 @@ app.UseModule<ModuleJitex2>();
 //or
 app.UseModule(typeof(ModuleJitex);
 ```
-
-## Debugging
-
-We don't support debug (C#/VB.NET) in code generated/injected using Jitex. Somes IDEs (like Visual Studio and Rider), dont offer possibility to reload/update PDB at runtime.
-
-Disassembly debug in Visual Studio and Windbg works fine!
 
 
 
