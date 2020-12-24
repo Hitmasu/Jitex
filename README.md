@@ -53,12 +53,12 @@ class Program {
 
 ## Support
 
-- [Modify normal and generic methods](#Inject Method)
-- [Detour method](#Detour Method)
-- [Inject MSIL code (IL)](#Inject MSIL)
-- [Inject native code (ASM)](#Inject Native Code)
-- [Inject custom metadatatoken](#Inject custom metadatatoken)
-- [Inject custom string](#Inject custom string)
+- [Modify normal and generic methods](#Inject-Method)
+- [Detour method](#Detour-Method)
+- [Inject MSIL code (IL)](#Inject-MSIL)
+- [Inject native code (ASM)](#Inject-Native-Code)
+- [Inject custom metadatatoken](#Inject-custom-metadatatoken)
+- [Inject custom string](#Inject-custom-string)
 - [Modules](#Modules)
 
 ## Inject Method
