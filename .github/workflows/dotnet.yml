@@ -1,33 +1,105 @@
 name: Pull Request BUILD
 
-
 on:
-    pull_request:
-      branches: [master]
-      types: [assigned, opened, synchronize, reopened]
+  push:
+  pull_request:
+    branches: [master]
+    types: [assigned, opened, synchronize, reopened]
+  release:
+    types:
+      - published
+
+env:
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  NUGET_FEED: https://api.nuget.org/v3/index.json
+  NUGET_KEY: ${{ secrets.NUGET_KEY }}
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
   build:
     runs-on: ${{matrix.os}}
+    
     strategy:
       matrix:
         os: [windows-latest, ubuntu-latest, macos-latest]
-        dotnet: ["2.1.x", "2.2.x", "3.0.x", "3.1.x"]
       fail-fast: true
+    
     steps:
     - uses: actions/checkout@v2
-    - name: Installing .NET Core ${{matrix.dotnet}}
+    
+    - name: Installing .NET Core 2.1
       uses: actions/setup-dotnet@v1
       with:
-        dotnet-version: ${{matrix.dotnet}}
+        dotnet-version: 2.1.x    
+    
+    - name: Installing .NET Core 2.2
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 2.2.x    
+    
+    - name: Installing .NET Core 3.0
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 3.0.x      
+    
+    - name: Installing .NET Core 3.1
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 3.1.x      
     - run: |
         dotnet clean && dotnet nuget locals all --clear
         dotnet restore
+        
     - name: Building
       run: dotnet build --no-restore
+      
     - name: Testing
       run: cd Jitex.Tests
+      
     - name: Testing Debug
       run: dotnet test -c Debug
+      
     - name: Testing Release
       run: dotnet test -c Release
+      
+  publish:
+    needs: [build]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release'
+    
+    steps:
+      - uses: actions/checkout@v2
+        
+      - name: Installing .NET Core
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: 3.1.x
+      - run: |
+          dotnet clean && dotnet nuget locals all --clear
+          dotnet restore
+          
+      - name: Building Jitex.Builder
+        run: |
+          cd Jitex.Builder
+          dotnet publish -c Release --no-restore
+          cd ..
+          
+      - name: Building Jitex
+        run: |
+          cd Jitex
+          dotnet publish -c Release --no-restore
+          cd ..
+          
+      - name: Creating Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            ./Jitex/bin/Release/*.nupkg
+            ./Jitex.Builder/bin/Release/*.nupkg
+                 
+      - name: Publishing Jitex.Builder on Nuget
+        run: dotnet nuget push ./Jitex.Builder/bin/Release/*.nupkg --source $NUGET_FEED --skip-duplicate --api-key $NUGET_KEY
+        
+      - name: Publishing Jitex on Nuget
+        run: dotnet nuget push ./Jitex/bin/Release/*.nupkg --source $NUGET_FEED --skip-duplicate --api-key $NUGET_KEY
