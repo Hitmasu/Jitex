@@ -53,7 +53,7 @@ class Program {
 
 ## Support
 
-- [Modify normal and generic methods](#Injecft Method)
+- [Modify normal and generic methods](#Inject Method)
 - [Detour method](#Detour Method)
 - [Inject MSIL code (IL)](#Inject MSIL)
 - [Inject native code (ASM)](#Inject Native Code)
