@@ -1,10 +1,7 @@
-name: Pull Request BUILD
+name: Jitex Build
 
 on:
   push:
-  pull_request:
-    branches: [master]
-    types: [assigned, opened, synchronize, reopened]
   release:
     types:
       - published
@@ -19,58 +16,55 @@ env:
 jobs:
   build:
     runs-on: ${{matrix.os}}
-    
+
     strategy:
       matrix:
         os: [windows-latest, ubuntu-latest, macos-latest]
       fail-fast: true
-    
+
     steps:
-    - uses: actions/checkout@v2
-    
-    - name: Installing .NET Core 2.1
-      uses: actions/setup-dotnet@v1
-      with:
-        dotnet-version: 2.1.x    
-    
-    - name: Installing .NET Core 2.2
-      uses: actions/setup-dotnet@v1
-      with:
-        dotnet-version: 2.2.x    
-    
-    - name: Installing .NET Core 3.0
-      uses: actions/setup-dotnet@v1
-      with:
-        dotnet-version: 3.0.x      
-    
-    - name: Installing .NET Core 3.1
-      uses: actions/setup-dotnet@v1
-      with:
-        dotnet-version: 3.1.x      
-    - run: |
-        dotnet clean && dotnet nuget locals all --clear
-        dotnet restore
-        
-    - name: Building
-      run: dotnet build --no-restore
-      
-    - name: Testing
-      run: cd Jitex.Tests
-      
-    - name: Testing Debug
-      run: dotnet test -c Debug
-      
-    - name: Testing Release
-      run: dotnet test -c Release
-      
+      - uses: actions/checkout@v2
+
+      - name: Installing .NET Core 2.1
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: 2.1.x
+
+      - name: Installing .NET Core 2.2
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: 2.2.x
+
+      - name: Installing .NET Core 3.0
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: 3.0.x
+
+      - name: Installing .NET Core 3.1
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: 3.1.x
+      - run: |
+          dotnet clean && dotnet nuget locals all --clear
+          dotnet restore
+
+      - name: Testing
+        run: cd Jitex.Tests
+
+      - name: Testing Debug
+        run: dotnet test -c Debug
+
+      - name: Testing Release
+        run: dotnet test -c Release
+
   publish:
     needs: [build]
     runs-on: ubuntu-latest
     if: github.event_name == 'release'
-    
+
     steps:
       - uses: actions/checkout@v2
-        
+
       - name: Installing .NET Core
         uses: actions/setup-dotnet@v1
         with:
@@ -78,28 +72,28 @@ jobs:
       - run: |
           dotnet clean && dotnet nuget locals all --clear
           dotnet restore
-          
+
       - name: Building Jitex.Builder
         run: |
           cd Jitex.Builder
           dotnet publish -c Release --no-restore
           cd ..
-          
+
       - name: Building Jitex
         run: |
           cd Jitex
           dotnet publish -c Release --no-restore
           cd ..
-          
+
       - name: Creating Release
         uses: softprops/action-gh-release@v1
         with:
           files: |
             ./Jitex/bin/Release/*.nupkg
             ./Jitex.Builder/bin/Release/*.nupkg
-                 
+
       - name: Publishing Jitex.Builder on Nuget
         run: dotnet nuget push ./Jitex.Builder/bin/Release/*.nupkg --source $NUGET_FEED --skip-duplicate --api-key $NUGET_KEY
-        
+
       - name: Publishing Jitex on Nuget
         run: dotnet nuget push ./Jitex/bin/Release/*.nupkg --source $NUGET_FEED --skip-duplicate --api-key $NUGET_KEY
