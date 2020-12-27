@@ -5,7 +5,8 @@
 			netcoreapp2.1;
 			netcoreapp2.2;
 			netcoreapp3.0;
-			netcoreapp3.1
+			netcoreapp3.1;
+			net5.0
 		</TargetFrameworks>
 		<IsPackable>false</IsPackable>
 		<LangVersion>default</LangVersion>
