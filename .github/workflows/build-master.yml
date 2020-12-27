@@ -2,6 +2,10 @@ name: Jitex Build
 
 on:
   push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+    types: [assigned, opened, synchronize, reopened]
   release:
     types:
       - published
@@ -44,6 +48,12 @@ jobs:
         uses: actions/setup-dotnet@v1
         with:
           dotnet-version: 3.1.x
+
+      - name: Installing .NET 5
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: 5.0.x
+
       - run: |
           dotnet clean && dotnet nuget locals all --clear
           dotnet restore
