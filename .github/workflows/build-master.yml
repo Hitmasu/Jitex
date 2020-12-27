@@ -18,7 +18,7 @@ env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
-  build-master:
+  build:
     runs-on: ${{matrix.os}}
 
     strategy:
