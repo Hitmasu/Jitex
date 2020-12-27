@@ -80,11 +80,11 @@ namespace Jitex.Runtime
 
             string frameworkRunning = RuntimeInformation.FrameworkDescription;
 
-            if (frameworkRunning.StartsWith(".NET Core"))
-                Framework = new NETCore();
-            else if (frameworkRunning.StartsWith(".NET Framework"))
+            if (frameworkRunning.StartsWith(".NET Framework"))
                 Framework = new NETFramework();
-            else
+            else if (frameworkRunning.StartsWith(".NET")) 
+                Framework = new NETCore();
+            else 
                 throw new NotSupportedException($"Framework {frameworkRunning} is not supported!");
 
             return Framework;
