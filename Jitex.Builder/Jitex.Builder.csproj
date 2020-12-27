@@ -14,10 +14,9 @@
 		<PackageLicenseFile></PackageLicenseFile>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<PackageTags>JIT Jitex</PackageTags>
-		<Version>1.0.5-alpha</Version>
+		<Version>1.1.1-alpha</Version>
 		<AssemblyName>Jitex.Builder</AssemblyName>
 		<Nullable>enable</Nullable>
-		<PackageVersion>1.1.0-alpha</PackageVersion>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
