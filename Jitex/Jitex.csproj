@@ -16,9 +16,8 @@
 		<PackageLicenseFile></PackageLicenseFile>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<PackageTags>JIT</PackageTags>
-		<Version>4.1.3-alpha</Version>
 		<AssemblyName>Jitex</AssemblyName>
-		<PackageVersion>5.0.0-alpha</PackageVersion>
+		<PackageVersion>5.1.0-alpha</PackageVersion>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">

@@ -72,7 +72,7 @@ namespace Jitex
         /// <typeparam name="TModule">Module to load.</typeparam>
         public static void LoadModule<TModule>() where TModule : JitexModule, new()
         {
-            LoadModule(typeof(TModule), null);
+            LoadModule(typeof(TModule));
         }
 
         /// <summary>
