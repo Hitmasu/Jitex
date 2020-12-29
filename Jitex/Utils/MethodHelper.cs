@@ -8,7 +8,7 @@ using System.Runtime.InteropServices;
 
 namespace Jitex.Utils
 {
-    internal static class MethodHelper
+    public static class MethodHelper
     {
         private static readonly ConstructorInfo CtorHandle;
         private static readonly MethodInfo GetMethodBase;
@@ -34,7 +34,7 @@ namespace Jitex.Utils
             GetMethodBase = runtimeType
                 .GetMethod("GetMethodBase", BindingFlags.NonPublic | BindingFlags.Static, null, CallingConventions.Any, new[] { runtimeType, runtimeMethodHandleInternalType }, null)
                 ?? throw new MethodAccessException("Method GetMethodBase from RuntimeType was not found!");
-                
+
 
             GetMethodDescriptorInfo = typeof(DynamicMethod).GetMethod("GetMethodDescriptor", BindingFlags.NonPublic | BindingFlags.Instance);
         }
@@ -67,18 +67,12 @@ namespace Jitex.Utils
         {
             RuntimeMethodHandle handle = GetMethodHandle(method);
             RuntimeHelpers.PrepareMethod(handle);
+            IntPtr handleAdress = Marshal.ReadIntPtr(handle.Value + IntPtr.Size);
 
-            IntPtr methodPointer = handle.GetFunctionPointer();
+            if (handleAdress == default)
+                handleAdress = handle.Value;
 
-            byte jmp = Marshal.ReadByte(methodPointer);
-
-            if (jmp == 0xE9)
-            {
-                int jmpSize = Marshal.ReadInt32(methodPointer + 1);
-                methodPointer = new IntPtr(methodPointer.ToInt64() + jmpSize + 5);
-            }
-
-            return methodPointer;
+            return Marshal.ReadIntPtr(handleAdress + IntPtr.Size * 5);
         }
 
         public static RuntimeMethodHandle GetMethodHandle(MethodBase method)

@@ -27,7 +27,12 @@ namespace Jitex.JIT.Context
             /// <summary>
             /// Bytecode (pos-compile)
             /// </summary>
-            NATIVE
+            Native,
+
+            /// <summary>
+            /// Detour
+            /// </summary>
+            Detour
         }
 
         /// <summary>
@@ -59,16 +64,12 @@ namespace Jitex.JIT.Context
         /// </summary>
         internal byte[]? NativeCode { get; private set; }
 
-        internal bool IsDetour { get; private set; }
+        public DetourContext DetourContext { get; private set; }
 
         /// <summary>
         /// Resolution mode.
         /// </summary>
-        /// <remarks>
-        /// IL to MSIL
-        /// ASM to byte-code.
-        /// </remarks>
-        internal ResolveMode Mode => NativeCode == null ? ResolveMode.IL : ResolveMode.NATIVE;
+        internal ResolveMode Mode { get; private set; }
 
         internal MethodContext(MethodBase method, MethodBase? source)
         {
@@ -84,16 +85,7 @@ namespace Jitex.JIT.Context
         {
             NativeCode = nativeCode.ToArray();
             IsResolved = true;
-        }
-
-        /// <summary>
-        /// Resolve method by IL.
-        /// </summary>
-        /// <param name="il">IL instructions.</param>
-        public void ResolveIL(IEnumerable<byte> il)
-        {
-            Body = new MethodBody(il.ToArray());
-            IsResolved = true;
+            Mode = ResolveMode.Native;
         }
 
         /// <summary>
@@ -101,10 +93,20 @@ namespace Jitex.JIT.Context
         /// </summary>
         /// <param name="il">IL instructions.</param>
         /// <param name="maxStack">Stack size to instrucitons.</param>
-        public void ResolveIL(IEnumerable<byte> il, uint maxStack)
+        public void ResolveIL(IEnumerable<byte> il, uint maxStack = 8)
         {
             Body = new MethodBody(il.ToArray(), maxStack);
             IsResolved = true;
+            Mode = ResolveMode.IL;
+        }
+
+        /// <summary>
+        /// Resolve method by MethodBase.
+        /// </summary>
+        /// <param name="method">Body of new method.</param>
+        public void ResolveMethod(MethodBase method)
+        {
+            ResolveBody(new MethodBody(method));
         }
 
         /// <summary>
@@ -115,58 +117,25 @@ namespace Jitex.JIT.Context
         {
             Body = methodBody;
             IsResolved = true;
-        }
-
-        /// <summary>
-        /// Resolve method by MethodInfo.
-        /// </summary>
-        /// <param name="method">Body of new method.</param>
-        public void ResolveMethod(MethodInfo method)
-        {
-            Body = new MethodBody(method);
-            IsResolved = true;
-        }
-        
-        /// <summary>
-        /// Detour to another method.
-        /// </summary>
-        /// <param name="method"></param>
-        public void ResolveDetour(MethodInfo method)
-        {
-            ResolveDetour(method as MethodBase);
+            Mode = ResolveMode.IL;
         }
 
         /// <summary>
         /// Detour to another method.
         /// </summary>
         /// <param name="method"></param>
-        public void ResolveDetour(MethodBase method)
+        public void ResolveDetour(MethodInfo method, DetourMode mode = DetourMode.Trampoline)
         {
-            NativeCode = DetourHelper.CreateDetour(method);
-            IsResolved = true;
-            IsDetour = true;
-        }
-
-        /// <summary>
-        /// Detour to a address
-        /// </summary>
-        /// <param name="address"></param>
-        public void ResolveDetour(IntPtr address)
-        {
-            NativeCode = DetourHelper.CreateDetour(address);
-            IsResolved = true;
-            IsDetour = true;
+            ResolveDetour(method as MethodBase, mode);
         }
 
         /// <summary>
         /// Detour to a Delegate
         /// </summary>
         /// <param name="del"></param>
-        public void ResolveDetour(Delegate del)
+        public void ResolveDetour(Delegate del, DetourMode mode = DetourMode.Trampoline)
         {
-            NativeCode = DetourHelper.CreateDetour(del);
-            IsResolved = true;
-            IsDetour = true;
+            ResolveDetour<Delegate>(del, mode);
         }
 
         /// <summary>
@@ -174,11 +143,50 @@ namespace Jitex.JIT.Context
         /// </summary>
         /// <param name="del"></param>
         /// <typeparam name="T"></typeparam>
-        public void ResolveDetour<T>(T del) where T : Delegate
+        public void ResolveDetour<T>(T del, DetourMode mode = DetourMode.Trampoline) where T : Delegate
         {
-            NativeCode = DetourHelper.CreateDetour(del);
+            ResolveDetour(del.Method, mode);
+        }
+
+        /// <summary>
+        /// Detour to a address
+        /// </summary>
+        /// <param name="address"></param>
+        public void ResolveDetour(IntPtr address, int size = 0, DetourMode mode = DetourMode.Trampoline)
+        {
+            if (mode == DetourMode.Trampoline)
+            {
+                byte[] nativeCode = DetourHelper.CreateDetour(address);
+                DetourContext = new DetourContext(nativeCode);
+            }
+            else
+            {
+                DetourContext = new DetourContext(address, size);
+            }
+
             IsResolved = true;
-            IsDetour = true;
+            Mode = ResolveMode.Detour;
+        }
+
+        /// <summary>
+        /// Detour to another method.
+        /// </summary>
+        /// <param name="method"></param>
+        public void ResolveDetour(MethodBase method, DetourMode mode = DetourMode.Trampoline)
+        {
+            if (mode == DetourMode.Trampoline)
+            {
+                byte[] nativeCode = DetourHelper.CreateDetour(method);
+                DetourContext = new DetourContext(nativeCode);
+            }
+            else
+            {
+                IntPtr address = MethodHelper.GetMethodAddress(method);
+                DetourContext = new DetourContext(address, 0);
+            }
+
+            IsResolved = true;
+            Mode = ResolveMode.Detour;
         }
     }
 }

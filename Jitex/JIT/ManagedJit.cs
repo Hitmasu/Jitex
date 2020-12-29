@@ -240,9 +240,9 @@ namespace Jitex.JIT
                             _tokenTls = new TokenTls();
                         }
 
-                        if (methodContext != null && methodContext.IsResolved)
+                        if (methodContext != null && methodContext.IsResolved && methodContext.Mode != MethodContext.ResolveMode.Detour)
                         {
-                            int ilLength = 0;
+                            int ilLength;
 
                             if (methodContext.Mode == MethodContext.ResolveMode.IL)
                             {
@@ -266,21 +266,16 @@ namespace Jitex.JIT
                             }
                             else
                             {
-                                if (!methodContext.IsDetour)
-                                {
-                                    (ilAddress, ilLength) = PrepareIL(methodContext);
 
-                                    if (methodInfo.MaxStack < 8)
-                                        methodInfo.MaxStack = 8;
-                                }
+                                (ilAddress, ilLength) = PrepareIL(methodContext);
+
+                                if (methodInfo.MaxStack < 8)
+                                    methodInfo.MaxStack = 8;
                             }
 
-                            if (!methodContext.IsDetour)
-                            {
-                                methodInfo.EHCount = methodContext.Body.EHCount;
-                                methodInfo.ILCode = ilAddress;
-                                methodInfo.ILCodeSize = (uint)ilLength;
-                            }
+                            methodInfo.EHCount = methodContext.Body.EHCount;
+                            methodInfo.ILCode = ilAddress;
+                            methodInfo.ILCodeSize = (uint)ilLength;
                         }
                     }
                 }
@@ -293,8 +288,23 @@ namespace Jitex.JIT
                 if (sigAddress != IntPtr.Zero)
                     Marshal.FreeHGlobal(sigAddress);
 
-                if (methodContext?.Mode == MethodContext.ResolveMode.NATIVE)
+                if (methodContext?.Mode == MethodContext.ResolveMode.Native)
                     Marshal.Copy(methodContext.NativeCode!, 0, nativeEntry, methodContext.NativeCode!.Length);
+
+                else if (methodContext?.Mode == MethodContext.ResolveMode.Detour)
+                {
+                    DetourContext detourContext = methodContext.DetourContext;
+
+                    if (detourContext.Mode == DetourMode.DirectCall)
+                    {
+                        nativeEntry = detourContext.Address;
+
+                        if (detourContext.Size > 0)
+                            nativeSizeOfCode = detourContext.Size;
+                    }
+                    else
+                        Marshal.Copy(detourContext.NativeCode!, 0, nativeEntry, detourContext.NativeCode!.Length);
+                }
 
                 return result;
             }
