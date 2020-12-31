@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace Jitex.Runtime.Offsets
+﻿namespace Jitex.Framework.Offsets
 {
     internal static class ConstructStringOffset
     {

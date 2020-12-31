@@ -2,8 +2,8 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Jitex.Exceptions;
-using Jitex.Runtime;
-using Jitex.Runtime.Offsets;
+using Jitex.Framework;
+using Jitex.Framework.Offsets;
 
 namespace Jitex.JIT.CorInfo
 {

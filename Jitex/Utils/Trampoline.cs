@@ -16,6 +16,8 @@ namespace Jitex.Utils
             0xFF, 0xE0
         };
 
+        public static int Size => TrampolineInstruction.Length;
+
         public static byte[] GetTrampoline(IntPtr methodAddress)
         {
             byte[] trampoline = TrampolineInstruction;

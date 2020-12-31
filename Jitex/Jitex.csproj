@@ -16,6 +16,7 @@
 		<PackageLicenseFile></PackageLicenseFile>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<PackageTags>JIT</PackageTags>
+		<LangVersion>8</LangVersion>
 		<AssemblyName>Jitex</AssemblyName>
 		<Version>5.1.1-alpha</Version>
 	</PropertyGroup>

@@ -1,4 +1,4 @@
-﻿namespace Jitex.Runtime.Offsets
+﻿namespace Jitex.Framework.Offsets
 {
     internal static class SigInfoOffset
     {

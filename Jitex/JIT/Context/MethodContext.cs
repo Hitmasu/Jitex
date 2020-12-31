@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using Jitex.Intercept;
+using Jitex.Runtime;
 using Jitex.Utils;
 using MethodBody = Jitex.Builder.Method.MethodBody;
 
@@ -17,22 +19,25 @@ namespace Jitex.JIT.Context
         /// <summary>
         /// Resolution mode.
         /// </summary>
+        [Flags]
         public enum ResolveMode
         {
             /// <summary>
             /// MSIL (pre-compile)
             /// </summary>
-            IL,
+            IL = 1 << 0,
 
             /// <summary>
             /// Bytecode (pos-compile)
             /// </summary>
-            Native,
+            Native = 1 << 1,
 
             /// <summary>
             /// Detour
             /// </summary>
-            Detour
+            Detour = 1 << 2,
+
+            Intercept = 1 << 3
         }
 
         /// <summary>
@@ -65,6 +70,8 @@ namespace Jitex.JIT.Context
         internal byte[]? NativeCode { get; private set; }
 
         public DetourContext DetourContext { get; private set; }
+
+        internal InterceptContext InterceptContext { get; private set; }
 
         /// <summary>
         /// Resolution mode.
@@ -181,12 +188,23 @@ namespace Jitex.JIT.Context
             }
             else
             {
-                IntPtr address = MethodHelper.GetMethodAddress(method);
+                IntPtr address = RuntimeMethodCache.GetNativeAddress(method);
                 DetourContext = new DetourContext(address, 0);
             }
 
             IsResolved = true;
             Mode = ResolveMode.Detour;
+        }
+
+        public void InterceptCall()
+        {
+            InterceptBuilder builder = new InterceptBuilder(Method);
+            MethodBase interceptMethod = builder.Create();
+
+            byte[] nativeCode = DetourHelper.CreateDetour(interceptMethod);
+            InterceptContext = new InterceptContext(Method, nativeCode);
+
+            Mode = ResolveMode.Intercept;
         }
     }
 }

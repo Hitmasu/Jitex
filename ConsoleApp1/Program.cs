@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Runtime.CompilerServices;
 using Jitex;
+using Jitex.Intercept;
 using Jitex.JIT.Context;
 
 namespace ConsoleApp1
@@ -9,34 +11,36 @@ namespace ConsoleApp1
         static void Main(string[] args)
         {
             JitexManager.AddMethodResolver(MethodResolver);
+            JitexManager.AddInterceptor(Interceptor);
 
-            int result = Sum<int>(1, 1);
-            Console.WriteLine(result);
-            Console.WriteLine(Test());
+            ABC abc = new ABC();
+            int sum = Sum();
+
+            Console.WriteLine(sum);
             Console.ReadKey();
         }
 
-        public static int Test()
+        private static void Interceptor(CallContext context)
         {
-            return Sum<int>(1, 1);
+            int originalResult = context.Continue<int>();
+            context.ReturnValue = originalResult*20;
         }
 
-        public static int Sum<T>(int n1, int n2)
-        {
-            return n1 + n2;
-        }
-        public static int Mul<T>(int n1, int n2)
-        {
-            return n1 * n2;
-        }
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        public static int Sum() => 20;
 
         private static void MethodResolver(MethodContext context)
         {
-            if (context.Method.Name == "Sum")
-            {
-                var m = typeof(Program).GetMethod(nameof(Mul)).MakeGenericMethod(context.Method.GetGenericArguments());
-                context.ResolveDetour(m);
-            }
+            if (context.Method.Name.Contains("ctor") && context.Method.DeclaringType == typeof(ABC))
+                context.InterceptCall();
+        }
+    }
+
+    class ABC
+    {
+        public int Test(int n1, int n2)
+        {
+            return n1 + n2;
         }
     }
 }

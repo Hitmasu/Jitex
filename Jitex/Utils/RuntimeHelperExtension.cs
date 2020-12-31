@@ -1,5 +1,8 @@
 ﻿using System;
+using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using static Jitex.Utils.Trampoline;
 
 namespace Jitex.Utils
@@ -14,6 +17,14 @@ namespace Jitex.Utils
             Delegate trampoline = Marshal.GetDelegateForFunctionPointer(trampolinePtr, del.GetType());
             trampoline.DynamicInvoke(parameters);
             FreeTrampoline(trampolinePtr);
+        }
+
+        public static Task InternalPrepareMethodAsync(MethodBase method)
+        {
+            return Task.Run(() =>
+            {
+                RuntimeHelpers.PrepareMethod(method.MethodHandle);
+            });
         }
     }
 }

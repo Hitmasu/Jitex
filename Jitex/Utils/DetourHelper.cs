@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Reflection;
+using Jitex.Runtime;
 
 namespace Jitex.Utils
 {
@@ -7,7 +8,7 @@ namespace Jitex.Utils
     {
         public static byte[] CreateDetour(MethodBase methodDetour)
         {
-            IntPtr detourAddress = MethodHelper.GetMethodAddress(methodDetour);
+            IntPtr detourAddress = RuntimeMethodCache.GetNativeAddress(methodDetour);
             return Trampoline.GetTrampoline(detourAddress);
         }
 
@@ -18,7 +19,7 @@ namespace Jitex.Utils
 
         public static byte[] CreateDetour(Delegate del)
         {
-            IntPtr detourAddress = MethodHelper.GetMethodAddress(del.Method);
+            IntPtr detourAddress = RuntimeMethodCache.GetNativeAddress(del.Method);
             return Trampoline.GetTrampoline(detourAddress);
         }
     }

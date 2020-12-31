@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 
-namespace Jitex.Runtime
+namespace Jitex.Framework
 {
     internal sealed class NETFramework : RuntimeFramework
     {

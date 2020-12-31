@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using Jitex.JIT;
 using Jitex.Utils.Comparer;
+using Jitex.Intercept;
 
 namespace Jitex
 {
@@ -15,8 +16,10 @@ namespace Jitex
         private static readonly object TokenResolverLock = new object();
 
         private static ManagedJit? _jit;
+        private static InterceptManager? _interceptManager;
 
         private static ManagedJit Jit => _jit ??= ManagedJit.GetInstance();
+        private static InterceptManager InterceptManager => _interceptManager ??= InterceptManager.GetInstance();
 
         /// <summary>
         /// All modules load on Jitex.
@@ -38,8 +41,8 @@ namespace Jitex
             {
                 if (!ModuleIsLoaded(typeModule))
                 {
-                    JitexModule module = (JitexModule) Activator.CreateInstance(typeModule);
-                    
+                    JitexModule module = (JitexModule)Activator.CreateInstance(typeModule);
+
                     module.LoadResolvers();
 
                     ModulesLoaded.Add(typeModule, module);
@@ -53,11 +56,13 @@ namespace Jitex
         /// <param name="typeModule">Module to load.</param>
         public static void LoadModule(Type typeModule, object? instance)
         {
+            if (instance == null) throw new ArgumentNullException(nameof(instance));
+
             lock (LockModules)
             {
                 if (!ModuleIsLoaded(typeModule))
                 {
-                    JitexModule module = (JitexModule) instance;
+                    JitexModule module = (JitexModule)instance;
 
                     module.LoadResolvers();
 
@@ -126,6 +131,11 @@ namespace Jitex
         public static bool ModuleIsLoaded(Type typeModule)
         {
             return ModulesLoaded.TryGetValue(typeModule, out JitexModule module) && module.IsLoaded;
+        }
+
+        public static void AddInterceptor(InterceptHandler.InterceptorHandler Interceptor)
+        {
+            InterceptManager.AddInterceptor(Interceptor);
         }
 
         /// <summary>

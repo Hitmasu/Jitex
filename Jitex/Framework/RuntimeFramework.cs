@@ -4,7 +4,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using Jitex.JIT.CorInfo;
 
-namespace Jitex.Runtime
+namespace Jitex.Framework
 {
     internal abstract class RuntimeFramework
     {
