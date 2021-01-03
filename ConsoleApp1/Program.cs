@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Jitex;
 using Jitex.Intercept;
@@ -6,41 +7,57 @@ using Jitex.JIT.Context;
 
 namespace ConsoleApp1
 {
+    class ABC{}
+
     class Program
     {
-        static void Main(string[] args)
+        static void Main()
         {
             JitexManager.AddMethodResolver(MethodResolver);
             JitexManager.AddInterceptor(Interceptor);
 
-            ABC abc = new ABC();
-            int sum = Sum();
+            Program p = new Program();
 
+            int sum = p.Sum<Program>(2, 5);
             Console.WriteLine(sum);
+
+            //sum = p.Sum<int>(2, 5);
+            //Console.WriteLine(sum);
+
+            sum = p.Sum<ABC>(2, 5);
+            Console.WriteLine(sum);
+
+            Debugger.Break();
+
             Console.ReadKey();
         }
 
         private static void Interceptor(CallContext context)
         {
-            int originalResult = context.Continue<int>();
-            context.ReturnValue = originalResult*20;
+            Random rnd = new Random();
+            context.ReturnValue = rnd.Next();
+            JitexManager.DisableIntercept(context.Method);
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
-        public static int Sum() => 20;
+        public int Sum<T>(int n1, int n2)
+        {
+            Console.WriteLine(typeof(T));
+            return n1 + n2;
+        }
 
         private static void MethodResolver(MethodContext context)
         {
-            if (context.Method.Name.Contains("ctor") && context.Method.DeclaringType == typeof(ABC))
+            if (context.Method.Name == "Sum")
                 context.InterceptCall();
         }
     }
 
-    class ABC
+    class Gen<T>
     {
-        public int Test(int n1, int n2)
+        public void Get()
         {
-            return n1 + n2;
+            Console.WriteLine(nameof(T));
         }
     }
 }

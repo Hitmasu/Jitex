@@ -1,67 +1,44 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Threading;
-using System.Threading.Tasks;
 using Jitex.JIT;
 using Jitex.Utils;
+using Jitex.Utils.Comparer;
 
 namespace Jitex.Runtime
 {
     public static class RuntimeMethodCache
     {
-        private static readonly Type CanonType;
+
         private static readonly ConcurrentBag<MethodCompiled> CompiledMethods = new ConcurrentBag<MethodCompiled>();
         private static readonly ConcurrentDictionary<IntPtr, MethodBase> HandleCache = new ConcurrentDictionary<IntPtr, MethodBase>();
+        private static bool IsLinqCompiled;
 
-        static RuntimeMethodCache()
+        internal static void AddMethod(MethodCompiled methodCompiled)
         {
-            CanonType = Type.GetType("System.__Canon");
-        }
-
-        public static void AddMethod(MethodCompiled methodCompiled)
-        {
-            CompiledMethods.Add(methodCompiled);
             HandleCache.TryAdd(methodCompiled.Handle, methodCompiled.Method);
+            CompiledMethods.Add(methodCompiled);
         }
 
         public static IntPtr GetNativeAddress(MethodBase method)
         {
-            if (method.IsGenericMethod && method is MethodInfo methodInfo)
-            {
-                Type[]? genericArguments = methodInfo.GetGenericArguments();
+            if (!IsLinqCompiled)
+                PrepareLinq(method);
 
-                bool hasCanon = false;
-
-                for (int i = 0; i < genericArguments.Length; i++)
-                {
-                    Type genericArgument = genericArguments[i];
-
-                    if (genericArgument.IsClass)
-                    {
-                        genericArguments[i] = CanonType;
-                        hasCanon = true;
-                    }
-                }
-
-                if (hasCanon)
-                {
-                    method = methodInfo.GetGenericMethodDefinition().MakeGenericMethod(genericArguments);
-                }
-            }
-
-            MethodCompiled methodCompiled = CompiledMethods.FirstOrDefault(w => w.Method == method);
+            MethodCompiled? methodCompiled = CompiledMethods.FirstOrDefault(w => MethodEqualityComparer.Instance.Equals(w.Method, method));
 
             if (methodCompiled == null)
             {
+                if (!JitexManager.IsLoaded)
+                    throw new Exception("Jitex is not installed!");
+
                 RuntimeHelperExtension.InternalPrepareMethodAsync(method).Wait();
 
                 while (true)
                 {
-                    methodCompiled = CompiledMethods.FirstOrDefault(w => w.Method == method);
+                    methodCompiled = CompiledMethods.FirstOrDefault(w => MethodEqualityComparer.Instance.Equals(w.Method, method));
 
                     if (methodCompiled != null)
                         break;
@@ -71,6 +48,23 @@ namespace Jitex.Runtime
             }
 
             return methodCompiled.NativeCodeAddress;
+        }
+
+        private static void PrepareLinq(MethodBase method)
+        {
+            if (IsLinqCompiled)
+                return;
+
+            try
+            {
+                CompiledMethods.FirstOrDefault(w => w == w);
+            }
+            catch
+            {
+                ConcurrentBag<MethodCompiled> stubList = new ConcurrentBag<MethodCompiled>();
+                stubList.FirstOrDefault(w => w.Method == method);
+                IsLinqCompiled = true;
+            }
         }
 
         public static MethodBase? GetMethodFromHandle(IntPtr handle)

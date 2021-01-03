@@ -322,9 +322,8 @@ namespace Jitex.JIT
                     InterceptContext interceptContext = methodContext.InterceptContext;
                     interceptContext.PrimaryNativeAddress = nativeEntry;
 
-                    //Create a backup original method
+                    //Create a backup from original method
                     _framework.CompileMethod(thisPtr, comp, info, flags, out IntPtr nativeEntrySecondary, out _);
-
                     interceptContext.SecondaryNativeAddress = nativeEntrySecondary;
                     Intercept.InterceptManager.GetInstance().AddIntercept(interceptContext);
                 }

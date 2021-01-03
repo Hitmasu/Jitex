@@ -16,11 +16,5 @@ namespace Jitex.Utils
         {
             return Trampoline.GetTrampoline(address);
         }
-
-        public static byte[] CreateDetour(Delegate del)
-        {
-            IntPtr detourAddress = RuntimeMethodCache.GetNativeAddress(del.Method);
-            return Trampoline.GetTrampoline(detourAddress);
-        }
     }
 }

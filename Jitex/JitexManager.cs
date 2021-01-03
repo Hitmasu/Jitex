@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Jitex.JIT;
 using Jitex.Utils.Comparer;
 using Jitex.Intercept;
+using Jitex.JIT.CorInfo;
 
 namespace Jitex
 {
@@ -14,6 +15,7 @@ namespace Jitex
         private static readonly object LockModules = new object();
         private static readonly object MethodResolverLock = new object();
         private static readonly object TokenResolverLock = new object();
+        private static readonly object CallInterceptorLock = new object();
 
         private static ManagedJit? _jit;
         private static InterceptManager? _interceptManager;
@@ -24,7 +26,7 @@ namespace Jitex
         /// <summary>
         /// All modules load on Jitex.
         /// </summary>
-        public static IDictionary<Type, JitexModule> ModulesLoaded { get; } = new Dictionary<Type, JitexModule>(TypeComparer.Instance);
+        public static IDictionary<Type, JitexModule> ModulesLoaded { get; } = new Dictionary<Type, JitexModule>(TypeEqualityComparer.Instance);
 
         /// <summary>
         /// Returns if Jitex is loaded on application. 
@@ -133,9 +135,29 @@ namespace Jitex
             return ModulesLoaded.TryGetValue(typeModule, out JitexModule module) && module.IsLoaded;
         }
 
-        public static void AddInterceptor(InterceptHandler.InterceptorHandler Interceptor)
+        public static void AddInterceptor(InterceptHandler.InterceptorHandler callInterceptor)
         {
-            InterceptManager.AddInterceptor(Interceptor);
+            InterceptManager.AddCallInterceptor(callInterceptor);
+        }
+
+        public static void RemoveInterceptor(InterceptHandler.InterceptorHandler callInterceptor)
+        {
+            InterceptManager.RemoveCallInterceptor(callInterceptor);
+        }
+
+        public static bool HasInterceptor(InterceptHandler.InterceptorHandler callInterceptor)
+        {
+            return InterceptManager.HasCallInteceptor(callInterceptor);
+        }
+
+        public static void EnableIntercept(System.Reflection.MethodBase method)
+        {
+            InterceptManager.EnableIntercept(method);
+        }
+
+        public static void DisableIntercept(System.Reflection.MethodBase method)
+        {
+            InterceptManager.RemoveIntercept(method);
         }
 
         /// <summary>

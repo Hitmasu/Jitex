@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Reflection;
 
@@ -6,9 +7,9 @@ namespace Jitex.JIT
 {
     [DebuggerDisplay("{Method.Name}")]
 
-    public class MethodCompiled
+    public class MethodCompiled: IEquatable<MethodCompiled>
     {
-        public IntPtr CILJit { get; set; }
+        public IntPtr CILJit { get; }
         public MethodBase Method { get; }
         public IntPtr NativeCodeAddress { get; }
         public int NativeCodeSize { get; }
@@ -25,6 +26,11 @@ namespace Jitex.JIT
             Flags = flags;
             Comp = comp;
             CILJit = cilJit;
+        }
+
+        public bool Equals(MethodCompiled other)
+        {
+            throw new NotImplementedException();
         }
     }
 }

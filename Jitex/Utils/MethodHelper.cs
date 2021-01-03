@@ -8,9 +8,12 @@ namespace Jitex.Utils
     {
         private static readonly ConstructorInfo CtorHandle;
         private static readonly MethodInfo GetMethodBase;
+        private static readonly Type CanonType;
 
         static MethodHelper()
         {
+            CanonType = Type.GetType("System.__Canon");
+
             Type? runtimeMethodHandleInternalType = Type.GetType("System.RuntimeMethodHandleInternal");
 
             if (runtimeMethodHandleInternalType == null)
@@ -40,6 +43,26 @@ namespace Jitex.Utils
         private static object? GetMethodHandleFromPointer(IntPtr methodHandle)
         {
             return CtorHandle!.Invoke(new object?[] { methodHandle });
+        }
+
+        public static MethodInfo GetMethodGeneric(MethodInfo method)
+        {
+            Type[]? genericArguments = method.GetGenericArguments();
+
+            bool hasCanon = false;
+
+            for (int i = 0; i < genericArguments.Length; i++)
+            {
+                Type genericArgument = genericArguments[i];
+
+                if (genericArgument.IsClass)
+                {
+                    genericArguments[i] = CanonType;
+                    hasCanon = true;
+                }
+            }
+
+            return hasCanon ? method.GetGenericMethodDefinition().MakeGenericMethod(genericArguments) : method;
         }
     }
 }

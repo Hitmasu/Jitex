@@ -1,21 +1,24 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Reflection;
 
 namespace Jitex.Intercept
 {
     public class CallContext
     {
-        private object _returnValue;
+        private object? _returnValue;
+
         public MethodBase Method { get; }
         private Delegate Call { get; }
-        public object Instance { get; set; }
-        public object[] Args { get; set; }
+        public object? Instance { get; set; }
+        public object[]? Parameters { get; set; }
 
         public bool IsReturnSetted { get; private set; }
 
-        public object ReturnValue
+        public object? ReturnValue
         {
             get => _returnValue;
+
             set
             {
                 _returnValue = value;
@@ -23,56 +26,60 @@ namespace Jitex.Intercept
             }
         }
 
-        public object[] RawArgs
+        public object[] RawParameters
         {
             get
             {
-                if (Method.IsStatic)
-                    return Args;
+                List<object> rawParameters = new List<object>();
 
-                object[] rawArgs = new object[Args.Length + 1];
-                rawArgs[0] = Instance;
-                Args.CopyTo(rawArgs, 1);
+                if(Method.IsGenericMethod)
+                    rawParameters.Add(Method.MethodHandle.Value);
 
-                return rawArgs;
+                if (!Method.IsStatic)
+                    rawParameters.Add(Instance!);
+
+                if (Parameters != null)
+                    rawParameters.AddRange(Parameters);
+
+                return rawParameters.ToArray();
             }
         }
 
-        internal CallContext(MethodBase method, Delegate call, object[] args)
+        internal CallContext(MethodBase method, Delegate call, object[] parameters)
         {
             Method = method;
             Call = call;
 
-            if (!Method.IsStatic)
+            if (!Method.IsConstructor && !Method.IsStatic)
             {
-                Instance = args[0];
+                Instance = parameters[0];
 
-                Args = new object[args.Length - 1];
+                Parameters = new object[parameters.Length - 1];
 
-                for (int i = 1; i < args.Length; i++)
+                for (int i = 1; i < parameters.Length; i++)
                 {
-                    Args[i - 1] = args[i];
+                    Parameters[i - 1] = parameters[i];
                 }
             }
             else
             {
-                Args = args;
+                Parameters = parameters;
             }
         }
 
-        public object Continue()
+        internal void ContinueFlow()
         {
-            ReturnValue = Call.DynamicInvoke(RawArgs);
-            return ReturnValue;
+            ReturnValue = Continue<object>();
         }
 
         public TResult Continue<TResult>()
         {
-            return (TResult) Continue();
+            return (TResult)Call.DynamicInvoke(RawParameters);
+        }
+
+        public void Continue()
+        {
+            Call.DynamicInvoke(RawParameters);
         }
     }
 }
-
-
-
-
