@@ -3,6 +3,7 @@ using Jitex.JIT.CorInfo;
 using Jitex.Utils;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -235,6 +236,9 @@ namespace Jitex.JIT
 
                     MethodBase? source = _compileTls.GetSource();
 
+                    if(methodFound.Name == "Sum2")
+                        Debugger.Break();
+
                     methodContext = new MethodContext(methodFound, source);
 
                     foreach (MethodResolverHandler resolver in resolvers)
@@ -319,12 +323,16 @@ namespace Jitex.JIT
                 }
                 else if (methodContext?.Mode == MethodContext.ResolveMode.Intercept)
                 {
-                    InterceptContext interceptContext = methodContext.InterceptContext;
-                    interceptContext.PrimaryNativeAddress = nativeEntry;
-
                     //Create a backup from original method
                     _framework.CompileMethod(thisPtr, comp, info, flags, out IntPtr nativeEntrySecondary, out _);
+
+                    InterceptContext interceptContext = methodContext.InterceptContext;
+
+                    //For some reason, reverse order not work with generic methods.
+                    interceptContext.PrimaryNativeAddress = nativeEntry;
                     interceptContext.SecondaryNativeAddress = nativeEntrySecondary;
+
+                    nativeEntry = nativeEntrySecondary;
                     Intercept.InterceptManager.GetInstance().AddIntercept(interceptContext);
                 }
 
@@ -362,7 +370,8 @@ namespace Jitex.JIT
 
                     if (resolvedToken.Module != null)
                     {
-                        MethodBase? source = RuntimeMethodCache.GetMethodFromHandle(resolvedToken.Context);
+                        IntPtr sourceAddress = Marshal.ReadIntPtr(thisHandle, IntPtr.Size * 2);
+                        MethodBase? source = RuntimeMethodCache.GetMethodFromHandle(sourceAddress);
 
                         if (source == null)
                             source = _tokenTls.GetSource();

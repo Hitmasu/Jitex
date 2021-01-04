@@ -73,7 +73,7 @@ namespace Jitex.Intercept
 
             if (interceptContext == null) throw new InterceptNotFound(method);
 
-            Delegate del = DelegateHelper.CreateDelegate(interceptContext.SecondaryNativeAddress, method);
+            Delegate del = DelegateHelper.CreateDelegate(interceptContext.PrimaryNativeAddress, method);
 
             if (genericTypeArguments != null)
             {

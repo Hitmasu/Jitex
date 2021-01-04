@@ -7,13 +7,14 @@ namespace Jitex.JIT.Context
     {
         public MethodBase Method { get; }
 
-        public IntPtr PrimaryNativeAddress
+        public IntPtr PrimaryNativeAddress { get; set; }
+
+        public IntPtr SecondaryNativeAddress
         {
             get => NativeAddress;
             set => NativeAddress = value;
         }
-        public IntPtr SecondaryNativeAddress { get; set; }
-
+        
         public InterceptContext(MethodBase method, byte[] nativeCode) : base(nativeCode)
         {
             Method = method;

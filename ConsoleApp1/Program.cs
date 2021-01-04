@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using Jitex;
 using Jitex.Intercept;
@@ -11,39 +12,47 @@ namespace ConsoleApp1
 
     class Program
     {
+        private static MethodBase m = null;
         static void Main()
         {
             JitexManager.AddMethodResolver(MethodResolver);
             JitexManager.AddInterceptor(Interceptor);
 
-            Program p = new Program();
-
-            int sum = p.Sum<Program>(2, 5);
-            Console.WriteLine(sum);
-
-            //sum = p.Sum<int>(2, 5);
-            //Console.WriteLine(sum);
-
-            sum = p.Sum<ABC>(2, 5);
-            Console.WriteLine(sum);
-
-            Debugger.Break();
+            int result = Sum<Program>(1, 1);
+            Console.WriteLine(result);
+            result = Sum<Program>(1, 1);
+            Console.WriteLine(result);
+            JitexManager.EnableIntercept(m);
+            result = Sum<Program>(1, 1);
+            Console.WriteLine(result);
 
             Console.ReadKey();
         }
 
+        private static void Caller(int n1)
+        {
+        }
+
         private static void Interceptor(CallContext context)
         {
-            Random rnd = new Random();
-            context.ReturnValue = rnd.Next();
-            JitexManager.DisableIntercept(context.Method);
+            context.Continue();
+            context.ReturnValue = 999;
+            m = context.Method;
+            context.DisableIntercept();
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
-        public int Sum<T>(int n1, int n2)
+        public static int Sum<T>(int n1, int n2)
         {
             Console.WriteLine(typeof(T));
-            return n1 + n2;
+            return Sum2();
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+
+        public static int Sum2()
+        {
+            return 19;
         }
 
         private static void MethodResolver(MethodContext context)

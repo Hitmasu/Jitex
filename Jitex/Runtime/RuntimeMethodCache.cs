@@ -14,17 +14,16 @@ namespace Jitex.Runtime
 
         private static readonly ConcurrentBag<MethodCompiled> CompiledMethods = new ConcurrentBag<MethodCompiled>();
         private static readonly ConcurrentDictionary<IntPtr, MethodBase> HandleCache = new ConcurrentDictionary<IntPtr, MethodBase>();
-        private static bool IsLinqCompiled;
+        private static bool _isLinqCompiled;
 
         internal static void AddMethod(MethodCompiled methodCompiled)
         {
-            HandleCache.TryAdd(methodCompiled.Handle, methodCompiled.Method);
             CompiledMethods.Add(methodCompiled);
         }
 
         public static IntPtr GetNativeAddress(MethodBase method)
         {
-            if (!IsLinqCompiled)
+            if (!_isLinqCompiled)
                 PrepareLinq(method);
 
             MethodCompiled? methodCompiled = CompiledMethods.FirstOrDefault(w => MethodEqualityComparer.Instance.Equals(w.Method, method));
@@ -52,7 +51,7 @@ namespace Jitex.Runtime
 
         private static void PrepareLinq(MethodBase method)
         {
-            if (IsLinqCompiled)
+            if (_isLinqCompiled)
                 return;
 
             try
@@ -63,7 +62,7 @@ namespace Jitex.Runtime
             {
                 ConcurrentBag<MethodCompiled> stubList = new ConcurrentBag<MethodCompiled>();
                 stubList.FirstOrDefault(w => w.Method == method);
-                IsLinqCompiled = true;
+                _isLinqCompiled = true;
             }
         }
 
@@ -72,19 +71,12 @@ namespace Jitex.Runtime
             if (HandleCache.TryGetValue(handle, out MethodBase? method))
                 return method;
 
-            try
-            {
-                method = MethodHelper.GetMethodFromHandle(handle);
+            method = MethodHelper.GetMethodFromHandle(handle);
 
-                if (method != null)
-                    HandleCache.TryAdd(handle, method);
+            if (method != null)
+                HandleCache.TryAdd(handle, method);
 
-                return method;
-            }
-            catch
-            {
-                return null;
-            }
+            return method;
         }
     }
 }

@@ -81,5 +81,10 @@ namespace Jitex.Intercept
         {
             Call.DynamicInvoke(RawParameters);
         }
+
+        public void DisableIntercept()
+        {
+            JitexManager.DisableIntercept(Method);
+        }
     }
 }
