@@ -2,6 +2,7 @@
 using Jitex.JIT.CorInfo;
 using Jitex.Utils;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -44,6 +45,8 @@ namespace Jitex.JIT
     /// </summary>
     internal sealed class ManagedJit : IDisposable
     {
+        private static readonly ConcurrentDictionary<IntPtr, MethodBase?> HandleSource = new ConcurrentDictionary<IntPtr, MethodBase?>();
+
         /// <summary>
         /// Lock to prevent multiple instance.
         /// </summary>
@@ -234,10 +237,8 @@ namespace Jitex.JIT
                         }
                     }
 
-                    MethodBase? source = _compileTls.GetSource();
-
-                    if(methodFound.Name == "Sum2")
-                        Debugger.Break();
+                    if (!HandleSource.TryGetValue(methodInfo.MethodHandle, out MethodBase? source))
+                        source = _compileTls.GetSource();
 
                     methodContext = new MethodContext(methodFound, source);
 
@@ -351,41 +352,50 @@ namespace Jitex.JIT
 
             if (thisHandle == IntPtr.Zero)
             {
+                HandleSource.AddOrUpdate(IntPtr.Zero, MethodBase.GetCurrentMethod(), (ptr, b) => null);
                 return;
             }
 
             try
             {
-                if (_tokenTls.EnterCount == 1 && _tokenResolvers != null)
+                if (_tokenTls.EnterCount > 1 || _tokenResolvers == null)
                 {
-                    Delegate[] resolvers = _tokenResolvers.GetInvocationList();
+                    CEEInfo.ResolveToken(thisHandle, pResolvedToken);
+                    return;
+                }
 
-                    if (!resolvers.Any())
-                    {
-                        CEEInfo.ResolveToken(thisHandle, pResolvedToken);
-                        return;
-                    }
+                Delegate[] resolvers = _tokenResolvers.GetInvocationList();
 
-                    ResolvedToken resolvedToken = new ResolvedToken(pResolvedToken);
+                if (!resolvers.Any())
+                {
+                    CEEInfo.ResolveToken(thisHandle, pResolvedToken);
+                    return;
+                }
 
-                    if (resolvedToken.Module != null)
-                    {
-                        IntPtr sourceAddress = Marshal.ReadIntPtr(thisHandle, IntPtr.Size * 2);
-                        MethodBase? source = RuntimeMethodCache.GetMethodFromHandle(sourceAddress);
+                ResolvedToken resolvedToken = new ResolvedToken(pResolvedToken);
 
-                        if (source == null)
-                            source = _tokenTls.GetSource();
+                IntPtr sourceAddress = Marshal.ReadIntPtr(thisHandle, IntPtr.Size * 2);
+                MethodBase? source = RuntimeMethodCache.GetMethodFromHandle(sourceAddress);
 
-                        TokenContext context = new TokenContext(ref resolvedToken, source);
+                if (source == null)
+                    source = _tokenTls.GetSource();
 
-                        foreach (TokenResolverHandler resolver in resolvers)
-                        {
-                            resolver(context);
-                        }
-                    }
+                TokenContext context = new TokenContext(ref resolvedToken, source);
+
+                foreach (TokenResolverHandler resolver in resolvers)
+                {
+                    resolver(context);
                 }
 
                 CEEInfo.ResolveToken(thisHandle, pResolvedToken);
+
+                if (resolvedToken.HMethod != IntPtr.Zero)
+                {
+                    if (!HandleSource.TryGetValue(resolvedToken.HMethod, out MethodBase? _))
+                    {
+                        HandleSource[resolvedToken.HMethod] = source;
+                    }
+                }
             }
             finally
             {
@@ -486,16 +496,7 @@ namespace Jitex.JIT
 
             System.Reflection.MethodInfo method = (System.Reflection.MethodInfo)methodContext.Method;
 
-            int metadataToken;
-
-            if (method.IsGenericMethod)
-            {
-                metadataToken = 0x2B000001;
-            }
-            else
-            {
-                metadataToken = method.MetadataToken;
-            }
+            int metadataToken = method.IsGenericMethod ? 0x2B000001 : method.MetadataToken;
 
             byte[] tokenBytes =
             {

@@ -1,11 +1,12 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Reflection;
 
 namespace Jitex.Utils.Comparer
 {
     internal class MethodEqualityComparer : IEqualityComparer<MethodBase>
     {
-        public static readonly MethodEqualityComparer Instance = new MethodEqualityComparer();
+        public static MethodEqualityComparer Instance => new MethodEqualityComparer();
 
         public bool Equals(MethodBase x, MethodBase y)
         {

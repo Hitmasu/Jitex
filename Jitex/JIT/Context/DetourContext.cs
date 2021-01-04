@@ -61,7 +61,7 @@ namespace Jitex.JIT.Context
         internal void WriteDetour()
         {
             if (Mode == DetourMode.DirectCall)
-                throw new InvalidOperationException("Detour as DirectCAll cannot be detoured!");
+                throw new InvalidOperationException("Detour as DirectCall cannot be detoured!");
 
             Marshal.Copy(NativeAddress, OriginalNativeCode, 0, Trampoline.Size);
             Marshal.Copy(NativeCode!, 0, NativeAddress, NativeCode!.Length);

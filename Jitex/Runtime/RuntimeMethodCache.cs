@@ -14,7 +14,7 @@ namespace Jitex.Runtime
 
         private static readonly ConcurrentBag<MethodCompiled> CompiledMethods = new ConcurrentBag<MethodCompiled>();
         private static readonly ConcurrentDictionary<IntPtr, MethodBase> HandleCache = new ConcurrentDictionary<IntPtr, MethodBase>();
-        private static bool _isLinqCompiled;
+        private static volatile bool _isLinqCompiled;
 
         internal static void AddMethod(MethodCompiled methodCompiled)
         {
@@ -24,7 +24,7 @@ namespace Jitex.Runtime
         public static IntPtr GetNativeAddress(MethodBase method)
         {
             if (!_isLinqCompiled)
-                PrepareLinq(method);
+                PrepareLinq();
 
             MethodCompiled? methodCompiled = CompiledMethods.FirstOrDefault(w => MethodEqualityComparer.Instance.Equals(w.Method, method));
 
@@ -49,25 +49,27 @@ namespace Jitex.Runtime
             return methodCompiled.NativeCodeAddress;
         }
 
-        private static void PrepareLinq(MethodBase method)
+        private static void PrepareLinq()
         {
             if (_isLinqCompiled)
                 return;
 
             try
             {
-                CompiledMethods.FirstOrDefault(w => w == w);
+                _ = CompiledMethods.FirstOrDefault(w => MethodEqualityComparer.Instance.Equals(w.Method, w.Method));
+
             }
             catch
             {
                 ConcurrentBag<MethodCompiled> stubList = new ConcurrentBag<MethodCompiled>();
-                stubList.FirstOrDefault(w => w.Method == method);
+                stubList.FirstOrDefault(w => MethodEqualityComparer.Instance.Equals(w.Method, w.Method));
                 _isLinqCompiled = true;
             }
         }
 
         public static MethodBase? GetMethodFromHandle(IntPtr handle)
         {
+
             if (HandleCache.TryGetValue(handle, out MethodBase? method))
                 return method;
 
