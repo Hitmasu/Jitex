@@ -72,12 +72,19 @@ namespace Jitex.Runtime
             if (HandleCache.TryGetValue(handle, out MethodBase? method))
                 return method;
 
-            method = MethodHelper.GetMethodFromHandle(handle);
+            try
+            {
+                method = MethodHelper.GetMethodFromHandle(handle);
 
-            if (method != null)
-                HandleCache.TryAdd(handle, method);
+                if (method != null)
+                    HandleCache.TryAdd(handle, method);
 
-            return method;
+                return method;
+            }
+            catch
+            {
+                return null;
+            }
         }
     }
 }

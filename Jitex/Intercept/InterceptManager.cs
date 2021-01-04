@@ -24,6 +24,10 @@ namespace Jitex.Intercept
 
         private InterceptHandler.InterceptorHandler? _interceptors;
 
+        private InterceptManager()
+        {
+        }
+
         internal void AddIntercept(InterceptContext detourContext)
         {
             _interceptedMethods.Add(detourContext);
@@ -59,16 +63,12 @@ namespace Jitex.Intercept
 
         internal bool HasCallInteceptor(InterceptHandler.InterceptorHandler inteceptor) => _interceptors != null && _interceptors.GetInvocationList().Any(del => del.Method == inteceptor.Method);
 
-        private InterceptManager()
-        {
-        }
-
         public object? InterceptCall(long handle, object[] parameters, Type[]? genericTypeArguments, Type[]? genericMethodArguments)
         {
             MethodBase? method = RuntimeMethodCache.GetMethodFromHandle(new IntPtr(handle));
 
-            if(method == null) throw new MethodNotFound(handle);
-            
+            if (method == null) throw new MethodNotFound(handle);
+
             InterceptContext? interceptContext = GetInterceptContext(method);
 
             if (interceptContext == null) throw new InterceptNotFound(method);

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
@@ -9,6 +10,9 @@ namespace Jitex.Utils
         private static readonly ConstructorInfo CtorHandle;
         private static readonly MethodInfo GetMethodBase;
         private static readonly Type CanonType;
+
+        private static readonly ConcurrentDictionary<IntPtr, MethodBase?> Cache = new ConcurrentDictionary<IntPtr, MethodBase?>();
+
 
         static MethodHelper()
         {
@@ -34,13 +38,13 @@ namespace Jitex.Utils
 
         public static MethodBase? GetMethodFromHandle(IntPtr methodHandle)
         {
-            object? handle = GetMethodHandleFromPointer(methodHandle);
+            object? handle = GetRuntimeMethodHandle(methodHandle);
             MethodBase? method = GetMethodBase.Invoke(null, new[] { null, handle }) as MethodBase;
 
             return method;
         }
 
-        private static object? GetMethodHandleFromPointer(IntPtr methodHandle)
+        private static object? GetRuntimeMethodHandle(IntPtr methodHandle)
         {
             return CtorHandle!.Invoke(new object?[] { methodHandle });
         }
