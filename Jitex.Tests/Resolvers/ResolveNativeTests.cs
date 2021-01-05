@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
 using System.Runtime.CompilerServices;
 using Iced.Intel;
@@ -27,10 +28,11 @@ namespace Jitex.Tests.Resolvers
             Assert.True(number == expected, $"Native code not injected! {number}");
         }
 
-
         [Fact]
         public void LargeAssemblyTest()
         {
+            Debugger.Break();
+            ;
             int n1 = 10;
             int n2 = 1000;
             int expected = n1 * n2;
@@ -56,7 +58,7 @@ namespace Jitex.Tests.Resolvers
             {
                 Assembler assembler = new Assembler(64);
 
-                int stackSize = 4;
+                const int stackSize = 4;
                 assembler.push(rbp);
                 assembler.sub(rsp, stackSize);
                 assembler.lea(rbp, __[rsp + stackSize]);

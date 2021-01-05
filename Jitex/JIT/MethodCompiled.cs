@@ -7,7 +7,7 @@ namespace Jitex.JIT
 {
     [DebuggerDisplay("{Method.Name}")]
 
-    public class MethodCompiled: IEquatable<MethodCompiled>
+    public class MethodCompiled
     {
         public IntPtr CILJit { get; }
         public MethodBase Method { get; }
@@ -26,11 +26,6 @@ namespace Jitex.JIT
             Flags = flags;
             Comp = comp;
             CILJit = cilJit;
-        }
-
-        public bool Equals(MethodCompiled other)
-        {
-            throw new NotImplementedException();
         }
     }
 }

@@ -283,6 +283,7 @@ namespace Jitex.JIT
 
                             if (methodInfo.MaxStack < 8)
                                 methodInfo.MaxStack = 8;
+
                         }
 
                         methodInfo.ILCode = ilAddress;
