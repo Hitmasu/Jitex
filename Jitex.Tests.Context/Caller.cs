@@ -14,12 +14,12 @@ namespace Jitex.Tests.Context
         public int GetIdade()
         {
             Person person = new Person();
-            return person.Idade;
+            return person.Age;
         }
     }
 
     public class Person
     {
-        public int Idade { get; set; } = 100;
+        public int Age { get; set; } = 100;
     }
 }

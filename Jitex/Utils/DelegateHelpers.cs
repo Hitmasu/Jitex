@@ -10,7 +10,7 @@ namespace Jitex.Utils
     /// <summary>
     /// Helpers to manage delegate
     /// </summary>
-    public static class DelegateHelper
+    internal static class DelegateHelper
     {
         private static readonly MethodInfo MakeNewCustomDelegate;
 
@@ -32,7 +32,7 @@ namespace Jitex.Utils
             List<Type> parameters = new List<Type>();
 
             if (!method.IsStatic)
-                parameters.Add(method.DeclaringType);
+                parameters.Add(typeof(IntPtr));
 
             if (method.IsGenericMethod)
                 parameters.Add(typeof(IntPtr));

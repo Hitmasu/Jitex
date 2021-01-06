@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Reflection;
 using Jitex.Exceptions;
@@ -11,8 +11,15 @@ using Jitex.Utils.Comparer;
 
 namespace Jitex.Intercept
 {
+    /// <summary>
+    /// Handlers to InterceptManager
+    /// </summary>
     public class InterceptHandler
     {
+        /// <summary>
+        /// Handler from Interceptor method.
+        /// </summary>
+        /// <param name="context">Context of call.</param>
         public delegate void InterceptorHandler(CallContext context);
     }
 
@@ -63,6 +70,15 @@ namespace Jitex.Intercept
 
         internal bool HasCallInteceptor(InterceptHandler.InterceptorHandler inteceptor) => _interceptors != null && _interceptors.GetInvocationList().Any(del => del.Method == inteceptor.Method);
 
+        /// <summary>
+        /// Intercept call of method.
+        /// </summary>
+        /// <param name="handle">Handle from method.</param>
+        /// <param name="parameters">Parameters from method.</param>
+        /// <param name="genericTypeArguments">Generic types from type method.</param>
+        /// <param name="genericMethodArguments">Generic types from method.</param>
+        /// <returns></returns>
+        [Obsolete("That method should not be called manually.")]
         public object? InterceptCall(long handle, object[] parameters, Type[]? genericTypeArguments, Type[]? genericMethodArguments)
         {
             MethodBase? method = RuntimeMethodCache.GetMethodFromHandle(new IntPtr(handle));
@@ -102,6 +118,7 @@ namespace Jitex.Intercept
             return context.ReturnValue;
         }
 
+        [Obsolete("That method should not be called manually.")]
         public static InterceptManager GetInstance()
         {
             return _instance ??= new InterceptManager();

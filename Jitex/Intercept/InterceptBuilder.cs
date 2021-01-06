@@ -1,13 +1,18 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 
 namespace Jitex.Intercept
 {
+    /// <summary>
+    /// Prepare a method to intercept call.
+    /// </summary>
     internal class InterceptBuilder
     {
+        /// <summary>
+        /// Method original.
+        /// </summary>
         public MethodBase Method { get; }
         private AssemblyBuilder AssemblyBuilder { get; }
         private ModuleBuilder ModuleBuilder { get; }
@@ -27,7 +32,10 @@ namespace Jitex.Intercept
             ObjectCtor = typeof(object).GetConstructor(System.Type.EmptyTypes);
         }
 
-
+        /// <summary>
+        /// Create a builder
+        /// </summary>
+        /// <param name="method">Method original which will be intercept.</param>
         public InterceptBuilder(MethodBase method)
         {
             Method = method;
@@ -42,6 +50,10 @@ namespace Jitex.Intercept
             TypeBuilder = BuildType();
         }
 
+        /// <summary>
+        /// Create a method to intercept.
+        /// </summary>
+        /// <returns></returns>
         public MethodBase Create()
         {
             if (Method.IsConstructor)
@@ -128,8 +140,30 @@ namespace Jitex.Intercept
             return type;
         }
 
+        /// <summary>
+        /// Create the body of method interceptor.
+        /// </summary>
+        /// <param name="generator">Generator of method.</param>
+        /// <param name="parameters">Parameters of method.</param>
+        /// <param name="returnType">Return type of method.</param>
+        /// <remarks>
+        /// Thats just create a middleware to call InterceptCall.
+        /// Basically, that will be generated:
+        /// public ReturnType Method(args){
+        ///    object[] args = new object[args.length];
+        ///    object[0] = this
+        ///    object[1] = args[1]
+        ///    ...
+        ///
+        ///    Type[] genericMethodArgs...
+        ///    Type[] genericTypeArgs...
+        ///
+        ///    return InterceptCall(handle,args,genericTypeArgs,genericMethodArgs);
+        /// }
+        /// </remarks>
         private void BuildBody(ILGenerator generator, ParameterInfo[] parameters, Type returnType)
         {
+            //When generic type is a class, we can only retrieve type when method is in execution.
             void LoadGenericTypes(Type[] types)
             {
                 generator.Emit(OpCodes.Ldc_I4, types.Length);

@@ -64,8 +64,7 @@ namespace Jitex.Tests.Resolvers
                         break;
                 }
             }
-            else if (context.Source == GetMethod<ResolveTokenTests>(nameof(ResolveWithModuleReplace)) && (context.MetadataToken == 0x06000006 
-                     || context.MetadataToken == 0x06000004))
+            else if (context.Source == GetMethod<ResolveTokenTests>(nameof(ResolveWithModuleReplace)) && (context.MetadataToken == 0x06000006 || context.MetadataToken == 0x06000004))
             {
                 context.ResolveFromModule(typeof(Caller).Module);
             }

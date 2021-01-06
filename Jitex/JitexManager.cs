@@ -135,19 +135,19 @@ namespace Jitex
             return ModulesLoaded.TryGetValue(typeModule, out JitexModule module) && module.IsLoaded;
         }
 
-        public static void AddInterceptor(InterceptHandler.InterceptorHandler callInterceptor)
+        public static void AddInterceptor(InterceptHandler.InterceptorHandler interceptorCall)
         {
-            InterceptManager.AddCallInterceptor(callInterceptor);
+            InterceptManager.AddCallInterceptor(interceptorCall);
         }
 
-        public static void RemoveInterceptor(InterceptHandler.InterceptorHandler callInterceptor)
+        public static void RemoveInterceptor(InterceptHandler.InterceptorHandler interceptorCall)
         {
-            InterceptManager.RemoveCallInterceptor(callInterceptor);
+            InterceptManager.RemoveCallInterceptor(interceptorCall);
         }
 
-        public static bool HasInterceptor(InterceptHandler.InterceptorHandler callInterceptor)
+        public static bool HasInterceptor(InterceptHandler.InterceptorHandler interceptorCall)
         {
-            return InterceptManager.HasCallInteceptor(callInterceptor);
+            return InterceptManager.HasCallInteceptor(interceptorCall);
         }
 
         public static void EnableIntercept(System.Reflection.MethodBase method)

@@ -1,6 +1,4 @@
-﻿using System;
-using System.Diagnostics;
-using System.IO;
+﻿using System.IO;
 using System.Runtime.CompilerServices;
 using Iced.Intel;
 using Jitex.JIT.Context;
@@ -31,8 +29,6 @@ namespace Jitex.Tests.Resolvers
         [Fact]
         public void LargeAssemblyTest()
         {
-            Debugger.Break();
-            ;
             int n1 = 10;
             int n2 = 1000;
             int expected = n1 * n2;
@@ -69,18 +65,15 @@ namespace Jitex.Tests.Resolvers
                 assembler.pop(rbp);
                 assembler.ret();
 
-                using (MemoryStream stream = new MemoryStream())
-                {
-                    assembler.Assemble(new StreamCodeWriter(stream), 0);
-
-                    context.ResolveNative(stream.ToArray());
-                }
+                using MemoryStream stream = new MemoryStream();
+                assembler.Assemble(new StreamCodeWriter(stream), 0);
+                context.ResolveNative(stream.ToArray());
             }
             else if (context.Method == GetMethod<ResolveNativeTests>(nameof(LargeSum)))
             {
                 Assembler assembler = new Assembler(64);
 
-                int stackSize = 4;
+                const int stackSize = 4;
                 assembler.push(rbp);
                 assembler.sub(rsp, stackSize);
                 assembler.lea(rbp, __[rsp + stackSize]);
@@ -96,12 +89,9 @@ namespace Jitex.Tests.Resolvers
                 assembler.pop(rbp);
                 assembler.ret();
 
-                using (MemoryStream stream = new MemoryStream())
-                {
-                    assembler.Assemble(new StreamCodeWriter(stream), 0);
-
-                    context.ResolveNative(stream.ToArray());
-                }
+                using MemoryStream stream = new MemoryStream();
+                assembler.Assemble(new StreamCodeWriter(stream), 0);
+                context.ResolveNative(stream.ToArray());
             }
         }
     }

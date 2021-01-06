@@ -45,8 +45,8 @@ namespace ConsoleApp1
 
         private static void MethodResolver(MethodContext context)
         {
-            if (context.Method.Name == "Sum")
-                Console.WriteLine(context.Method.MethodHandle.Value.ToString("X"));
+            // if (context.Method.Name == "Sum")
+            //     Console.WriteLine(context.Method.MethodHandle.Value.ToString("X"));
         }
     }
 
