@@ -37,10 +37,21 @@ namespace Jitex.Utils
             if (method.IsGenericMethod)
                 parameters.Add(typeof(IntPtr));
 
-            parameters.AddRange(method.GetParameters().Select(w => w.ParameterType));
+            foreach (Type parameter in method.GetParameters().Select(w => w.ParameterType))
+            {
+                if (parameter.IsReference())
+                    parameters.Add(typeof(IntPtr));
+                else
+                    parameters.Add(parameter);
+            }
 
             if (method is MethodInfo methodInfo && methodInfo.ReturnType != typeof(void))
-                parameters.Add(methodInfo.ReturnType);
+            {
+                if (methodInfo.ReturnType.IsReference())
+                    parameters.Add(typeof(IntPtr));
+                else
+                    parameters.Add(methodInfo.ReturnType);
+            }
 
             return (Type)MakeNewCustomDelegate.Invoke(null, new object[] { parameters.ToArray() });
         }

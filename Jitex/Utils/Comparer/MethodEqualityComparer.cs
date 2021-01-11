@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Reflection;
 
 namespace Jitex.Utils.Comparer
@@ -16,11 +15,14 @@ namespace Jitex.Utils.Comparer
             if (x == null || y == null)
                 return false;
 
-            if (!x.IsGenericMethod)
-                return x == y;
+            if (x.IsGenericMethod != y.IsGenericMethod)
+                return false;
 
-            x = MethodHelper.GetMethodGeneric((MethodInfo)x);
-            y = MethodHelper.GetMethodGeneric((MethodInfo)y);
+            if(x.IsGenericMethod)
+                x = MethodHelper.GetMethodGeneric((MethodInfo)x);
+
+            if(y.IsGenericMethod)
+                y = MethodHelper.GetMethodGeneric((MethodInfo)y);
 
             return x == y;
         }

@@ -1,7 +1,10 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+using Jitex.Utils;
 
 namespace Jitex.Intercept
 {
@@ -14,22 +17,16 @@ namespace Jitex.Intercept
         /// Method original.
         /// </summary>
         public MethodBase Method { get; }
-        private AssemblyBuilder AssemblyBuilder { get; }
-        private ModuleBuilder ModuleBuilder { get; }
-        private TypeBuilder TypeBuilder { get; }
-        public Type Type { get; private set; }
 
         private static readonly MethodInfo InterceptCall;
         private static readonly MethodInfo InterceptGetInstance;
-        private static readonly MethodInfo GetTypeFromHandle;
         private static readonly ConstructorInfo ObjectCtor;
 
         static InterceptBuilder()
         {
-            InterceptGetInstance = typeof(InterceptManager).GetMethod(nameof(InterceptManager.GetInstance));
+            InterceptGetInstance = typeof(InterceptManager).GetMethod(nameof(InterceptManager.GetInstance),BindingFlags.Public | BindingFlags.Static);
             InterceptCall = typeof(InterceptManager).GetMethod(nameof(InterceptManager.InterceptCall), BindingFlags.Public | BindingFlags.Instance);
-            GetTypeFromHandle = typeof(Type).GetMethod(nameof(Type.GetTypeFromHandle));
-            ObjectCtor = typeof(object).GetConstructor(System.Type.EmptyTypes);
+            ObjectCtor = typeof(object).GetConstructor(Type.EmptyTypes)!;
         }
 
         /// <summary>
@@ -39,15 +36,6 @@ namespace Jitex.Intercept
         public InterceptBuilder(MethodBase method)
         {
             Method = method;
-
-            AssemblyName assemblyName = new AssemblyName { Name = Method.Module.Assembly.FullName + "JitexDynamicAssembly" };
-
-            AssemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(
-                assemblyName,
-                AssemblyBuilderAccess.Run);
-
-            ModuleBuilder = AssemblyBuilder.DefineDynamicModule(Method.Module.Name + "JitexDynamicModule");
-            TypeBuilder = BuildType();
         }
 
         /// <summary>
@@ -56,88 +44,30 @@ namespace Jitex.Intercept
         /// <returns></returns>
         public MethodBase Create()
         {
-            if (Method.IsConstructor)
-                return CreateConstructorInterceptor();
-
             return CreateMethodInterceptor();
-        }
-
-        private Type CreateType()
-        {
-            Type type = TypeBuilder.CreateTypeInfo();
-
-            if (Method.DeclaringType.IsGenericType)
-                type = type.MakeGenericType(Method.DeclaringType.GetGenericArguments());
-
-            return type;
-        }
-
-        private ConstructorInfo CreateConstructorInterceptor()
-        {
-            MethodAttributes attributes = MethodAttributes.Public;
-
-            if (Method.IsStatic)
-                attributes |= MethodAttributes.Static;
-
-            ParameterInfo[] parameters = Method.GetParameters().ToArray();
-
-            ConstructorBuilder constructorBuilder = TypeBuilder.DefineConstructor(attributes, CallingConventions.HasThis, parameters.Select(w => w.ParameterType).ToArray());
-            ILGenerator generator = constructorBuilder.GetILGenerator();
-
-            BuildBody(generator, parameters, typeof(void));
-
-            Type = CreateType();
-            return Type.GetConstructor(parameters.Select(w => w.ParameterType).ToArray());
         }
 
         private MethodInfo CreateMethodInterceptor()
         {
-            MethodAttributes attributes = MethodAttributes.Public;
-
-            if (Method.IsStatic)
-                attributes |= MethodAttributes.Static;
-
-            ParameterInfo[] parameters = Method.GetParameters().ToArray();
-
             MethodInfo methodInfo = (MethodInfo)Method;
 
-            MethodBuilder methodBuilder = TypeBuilder.DefineMethod(Method.Name + "Jitex", attributes, methodInfo.ReturnType, parameters.Select(w => w.ParameterType).ToArray());
+            List<Type> parameters = new List<Type>();
 
             if (Method.IsGenericMethod)
-            {
-                Type[] genericArguments = ((MethodInfo)Method).GetGenericMethodDefinition().GetGenericArguments();
-                methodBuilder.DefineGenericParameters(genericArguments.Select(w => w.Name).ToArray());
-            }
+                parameters.Add(typeof(IntPtr));
 
-            ILGenerator generator = methodBuilder.GetILGenerator();
+            if (!Method.IsStatic)
+                parameters.Add(typeof(IntPtr));
+
+            parameters.AddRange(methodInfo.GetParameters().Select(w => w.ParameterType));
+
+            DynamicMethod methodIntercept = new DynamicMethod(Method.Name + "Jitex", MethodAttributes.Static | MethodAttributes.Public, CallingConventions.Standard, methodInfo.ReturnType, parameters.ToArray(), methodInfo.DeclaringType, true);
+
+            ILGenerator generator = methodIntercept.GetILGenerator();
 
             BuildBody(generator, parameters, methodInfo.ReturnType);
 
-            Type = CreateType();
-
-            MethodInfo method = Type.GetMethod(methodBuilder.Name);
-
-            if (method.IsGenericMethod)
-            {
-                Type[] genericArguments = ((MethodInfo)Method).GetGenericArguments();
-                method = method.MakeGenericMethod(genericArguments);
-            }
-
-            return method;
-        }
-
-        private TypeBuilder BuildType()
-        {
-            TypeBuilder type = ModuleBuilder.DefineType(Method.DeclaringType.Name + "JitexDynamicType",
-                TypeAttributes.Public);
-
-            if (!Method.DeclaringType.IsGenericType)
-                return type;
-
-            Type[] genericArguments = Method.DeclaringType.GetGenericTypeDefinition().GetGenericArguments();
-            type.DefineGenericParameters(genericArguments.Select(w => w.Name).ToArray());
-
-            return type;
+            return methodIntercept;
         }
 
         /// <summary>
@@ -161,35 +91,9 @@ namespace Jitex.Intercept
         ///    return InterceptCall(handle,args,genericTypeArgs,genericMethodArgs);
         /// }
         /// </remarks>
-        private void BuildBody(ILGenerator generator, ParameterInfo[] parameters, Type returnType)
+        private void BuildBody(ILGenerator generator, IEnumerable<Type> parameters, Type returnType)
         {
-            //When generic type is a class, we can only retrieve type when method is in execution.
-            void LoadGenericTypes(Type[] types)
-            {
-                generator.Emit(OpCodes.Ldc_I4, types.Length);
-                generator.Emit(OpCodes.Newarr, typeof(Type));
-
-                generator.Emit(OpCodes.Dup);
-
-                for (int i = 0; i < types.Length; i++)
-                {
-                    Type genericMethodArgument = types[i];
-                    generator.Emit(OpCodes.Ldc_I4, i);
-                    generator.Emit(OpCodes.Ldtoken, genericMethodArgument);
-                    generator.Emit(OpCodes.Call, GetTypeFromHandle);
-                    generator.Emit(OpCodes.Stelem_Ref);
-
-                    if (i < types.Length - 1)
-                        generator.Emit(OpCodes.Dup);
-                }
-            }
-
-            int totalArgs = parameters.Length;
-
-            if (!Method.IsConstructor && !Method.IsStatic)
-                totalArgs++;
-
-            generator.DeclareLocal(typeof(long));
+            int totalArgs = parameters.Count();
 
             if (Method.IsConstructor && !Method.IsStatic)
             {
@@ -197,47 +101,68 @@ namespace Jitex.Intercept
                 generator.Emit(OpCodes.Call, ObjectCtor);
             }
 
-            generator.Emit(OpCodes.Call, InterceptGetInstance);
-            generator.Emit(OpCodes.Ldc_I8, Method.MethodHandle.Value.ToInt64());
-            generator.Emit(OpCodes.Stloc_0);
-            generator.Emit(OpCodes.Ldloc_0);
-
             if (totalArgs > 0)
             {
+                generator.DeclareLocal(typeof(object[]));
+
+                bool typerefDeclared = false;
+
                 generator.Emit(OpCodes.Ldc_I4, totalArgs);
                 generator.Emit(OpCodes.Newarr, typeof(object));
+                generator.Emit(OpCodes.Stloc_0);
 
                 int argIndex = 0;
 
-                generator.Emit(OpCodes.Dup);
-
-                if (!Method.IsStatic)
+                foreach (Type parameterType in parameters)
                 {
-                    generator.Emit(OpCodes.Ldc_I4_0);
-                    generator.Emit(OpCodes.Ldarg_0);
-                    generator.Emit(OpCodes.Stelem_Ref);
+                    Type type = parameterType;
 
-                    if (totalArgs > 1)
+                    if (type.IsReference())
                     {
-                        generator.Emit(OpCodes.Dup);
+                        if (!typerefDeclared)
+                        {
+                            generator.DeclareLocal(typeof(TypedReference));
+                            typerefDeclared = true;
+                        }
+
+                        if (type.IsByRef)
+                        {
+                            generator.Emit(OpCodes.Ldarg_S, argIndex);
+
+                            type = type.GetElementType();
+                            Debug.Assert(type != null);
+                        }
+                        else
+                        {
+                            generator.Emit(OpCodes.Ldarga_S, argIndex);
+                        }
+
+                        generator.Emit(OpCodes.Mkrefany, type);
+                        generator.Emit(OpCodes.Stloc_1);
+                        generator.Emit(OpCodes.Ldloc_0);
+                        generator.Emit(OpCodes.Ldc_I4, argIndex);
+                        generator.Emit(OpCodes.Ldloca_S, 1);
+                        generator.Emit(OpCodes.Conv_U);
+                        generator.Emit(OpCodes.Ldind_I);
+                        generator.Emit(OpCodes.Box, typeof(IntPtr));
+                        generator.Emit(OpCodes.Stelem_Ref);
+
                         argIndex++;
                     }
-                }
+                    else
+                    {
+                        generator.Emit(OpCodes.Ldc_I4, argIndex);
+                        generator.Emit(OpCodes.Ldarg_S, argIndex++);
 
-                foreach (ParameterInfo parameter in parameters)
-                {
-                    Type parameterType = parameter.ParameterType;
+                        if (!(type == typeof(object)))
+                            generator.Emit(OpCodes.Box, type);
 
-                    generator.Emit(OpCodes.Ldc_I4, argIndex);
-                    generator.Emit(OpCodes.Ldarg_S, argIndex++);
+                        generator.Emit(OpCodes.Stelem_Ref);
 
-                    if (!(parameterType == typeof(object)))
-                        generator.Emit(OpCodes.Box, parameterType);
+                        if (argIndex < totalArgs)
+                            generator.Emit(OpCodes.Dup);
+                    }
 
-                    generator.Emit(OpCodes.Stelem_Ref);
-
-                    if (argIndex < totalArgs)
-                        generator.Emit(OpCodes.Dup);
                 }
             }
             else
@@ -245,34 +170,15 @@ namespace Jitex.Intercept
                 generator.Emit(OpCodes.Ldnull);
             }
 
-            if (TypeBuilder.IsGenericType)
-            {
-                Type[] genericTypeArguments = ((MethodInfo)Method).GetGenericMethodDefinition().GetGenericArguments();
-                LoadGenericTypes(genericTypeArguments);
-            }
-            else
-            {
-                generator.Emit(OpCodes.Ldnull);
-            }
-
-            if (Method.IsGenericMethod)
-            {
-                Type[] genericMethodArguments = ((MethodInfo)Method).GetGenericMethodDefinition().GetGenericArguments();
-                LoadGenericTypes(genericMethodArguments);
-            }
-            else
-            {
-                generator.Emit(OpCodes.Ldnull);
-            }
-
+            generator.Emit(OpCodes.Call, InterceptGetInstance);
+            generator.Emit(OpCodes.Ldc_I8, Method.MethodHandle.Value.ToInt64());
+            generator.Emit(OpCodes.Ldloc_0);
             generator.Emit(OpCodes.Call, InterceptCall);
 
             if (returnType == typeof(void))
                 generator.Emit(OpCodes.Pop);
             else if (returnType.IsValueType)
                 generator.Emit(OpCodes.Unbox_Any, returnType);
-            else
-                generator.Emit(OpCodes.Castclass, returnType);
 
             generator.Emit(OpCodes.Ret);
         }

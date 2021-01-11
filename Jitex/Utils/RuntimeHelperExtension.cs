@@ -23,7 +23,8 @@ namespace Jitex.Utils
         {
             return Task.Run(() =>
             {
-                RuntimeHelpers.PrepareMethod(method.MethodHandle);
+                RuntimeMethodHandle handle = MethodHelper.GetMethodHandle(method);
+                RuntimeHelpers.PrepareMethod(handle);
             });
         }
     }
