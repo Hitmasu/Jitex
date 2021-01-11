@@ -1,12 +1,46 @@
 ﻿using System;
+using System.Diagnostics;
+using System.IO;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using Iced.Intel;
 using Jitex;
 using Jitex.Intercept;
 using Jitex.JIT.Context;
+using Jitex.Utils;
+using static Iced.Intel.AssemblerRegisters;
 
 namespace ConsoleApp1
 {
-    class ABC { }
+
+    public record InterceptPerson
+    {
+        public InterceptPerson(string name, int age)
+        {
+            Name = name;
+            Age = age;
+        }
+
+        public InterceptPerson(string name)
+        {
+            Name = name;
+        }
+
+        public string Name { get; set; }
+        public int Age { get; set; }
+
+
+        public string GetAgeAfter10Years(string n1, string n2)
+        {
+            IntPtr addr = TypeUtils.GetAddressFromObject(ref n1);
+            IntPtr addr2 = TypeUtils.GetAddressFromObject(ref n2);
+
+            Console.WriteLine(addr.ToString("X"));
+            Console.WriteLine(addr2.ToString("X"));
+
+            return $"{n1}{n2}";
+        }
+    }
 
     class Program
     {
@@ -14,45 +48,51 @@ namespace ConsoleApp1
         {
             JitexManager.AddMethodResolver(MethodResolver);
             JitexManager.AddInterceptor(Interceptor);
-            JitexManager.AddTokenResolver(TokenResolver);
-            
-            Sum<int>(1, 1);
 
-            Console.ReadKey();
+            string n1 = "Flávio";
+            IntPtr address = TypeUtils.GetAddressFromObject(ref n1);
+            Console.WriteLine(address.ToString("X"));
+            GetAgeAfter10Years(ref n1);
+            Debugger.Break();
         }
 
-        private static void TokenResolver(TokenContext context)
+        private static string ab = "la";
+
+        public static int GetRef()
         {
+            return 0;
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        public static string GetAgeAfter10Years(ref string a)
+        {
+            IntPtr address = TypeUtils.GetAddressFromObject(ref a);
+            Console.WriteLine(address.ToString("X"));
+
+
+            return "aspodkaspodk";
         }
 
         private static void Interceptor(CallContext context)
         {
-            context.Continue();
-        }
+            string a = "xyz";
+            object obj = a;
 
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        public static int Sum<T>(int n1, int n2)
-        {
-            return Sum2();
-        }
+            context.Parameters.OverrideParameterValue(0, obj);
 
-        [MethodImpl(MethodImplOptions.NoInlining)]
-
-        public static int Sum2()
-        {
-            return 19;
+            context.Continue<string>();
         }
 
         private static void MethodResolver(MethodContext context)
         {
-            // if (context.Method.Name == "Sum")
-            //     Console.WriteLine(context.Method.MethodHandle.Value.ToString("X"));
+            if (context.Method.Name == "GetAgeAfter10Years")
+                context.InterceptCall();
         }
     }
 
-    class Gen<T>
+    internal class Gen<T>
     {
-        public void Get()
+        public static void Get()
         {
             Console.WriteLine(nameof(T));
         }

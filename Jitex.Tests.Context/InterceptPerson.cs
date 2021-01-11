@@ -11,6 +11,11 @@ namespace Jitex.Tests.Context
             Age = age;
         }
 
+        public InterceptPerson(string name)
+        {
+            Name = name;
+        }
+
         public string Name { get; set; }
         public int Age { get; set; }
 

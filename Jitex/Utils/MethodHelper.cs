@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Reflection;
+using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
 
 namespace Jitex.Utils
@@ -10,6 +12,8 @@ namespace Jitex.Utils
         private static readonly ConstructorInfo CtorHandle;
         private static readonly MethodInfo GetMethodBase;
         private static readonly Type CanonType;
+        private static readonly MethodInfo GetMethodDescriptorInfo;
+
 
         static MethodHelper()
         {
@@ -31,14 +35,16 @@ namespace Jitex.Utils
             GetMethodBase = runtimeType
                 .GetMethod("GetMethodBase", BindingFlags.NonPublic | BindingFlags.Static, null, CallingConventions.Any, new[] { runtimeType, runtimeMethodHandleInternalType }, null)
                 ?? throw new MethodAccessException("Method GetMethodBase from RuntimeType was not found!");
+
+            GetMethodDescriptorInfo = typeof(DynamicMethod).GetMethod("GetMethodDescriptor", BindingFlags.NonPublic | BindingFlags.Instance);
         }
 
         public static MethodBase? GetMethodFromHandle(IntPtr methodHandle)
         {
-            object? handle = GetRuntimeMethodHandle(methodHandle);
-            MethodBase? method = GetMethodBase.Invoke(null, new[] { null, handle }) as MethodBase;
+                object? handle = GetRuntimeMethodHandle(methodHandle);
+                MethodBase? method = GetMethodBase.Invoke(null, new[] {null, handle}) as MethodBase;
 
-            return method;
+                return method;
         }
 
         private static object? GetRuntimeMethodHandle(IntPtr methodHandle)
@@ -64,6 +70,14 @@ namespace Jitex.Utils
             }
 
             return hasCanon ? method.GetGenericMethodDefinition().MakeGenericMethod(genericArguments) : method;
+        }
+
+        public static RuntimeMethodHandle GetMethodHandle(MethodBase method)
+        {
+            if (method is DynamicMethod)
+                return (RuntimeMethodHandle)GetMethodDescriptorInfo.Invoke(method, null);
+
+            return method.MethodHandle;
         }
     }
 }
