@@ -1,7 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-
-namespace Jitex.Tests.Context
+﻿namespace Jitex.Tests.Context
 {
     public record InterceptPerson
     {

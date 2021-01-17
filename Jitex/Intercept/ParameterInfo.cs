@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 using Jitex.Utils;
@@ -10,7 +11,6 @@ namespace Jitex.Intercept
     public class Parameters : IEnumerable<Parameter>
     {
         private readonly Parameter[] _parameters;
-
         public object this[int index]
         {
             get => GetParameterValue(index);
@@ -117,23 +117,18 @@ namespace Jitex.Intercept
 
         public void OverrideParameterValue(int index, object value)
         {
-            OverrideParameterValue(index, ref value);
+            OverrideParameterValue(index, __makeref(value));
         }
 
         public void OverrideParameterValue(int index, ref object value)
         {
-            IntPtr newReference = TypeUtils.GetAddressFromObject(ref value);
-            IntPtr newValue = Marshal.ReadIntPtr(newReference);
-
-            OverrideParameterValue(index, newValue);
+            OverrideParameterValue(index, __makeref(value));
         }
 
         public unsafe void OverrideParameterValue(int index, TypedReference reference)
         {
-            IntPtr newReference = *(IntPtr*)&reference;
-            IntPtr newValue = Marshal.ReadIntPtr(newReference);
-
-            OverrideParameterValue(index, newValue);
+            IntPtr referenceAddress = *(IntPtr*)&reference;
+            OverrideParameterValue(index, referenceAddress);
         }
 
         public void OverrideParameterValue(int index, IntPtr address)
@@ -141,7 +136,12 @@ namespace Jitex.Intercept
             if (address == IntPtr.Zero) throw new ArgumentException($"Invalid address. Parameter: {nameof(address)}");
 
             Parameter parameter = GetParameter(index);
+
+            if (parameter.Type.IsPrimitive)
+                address = Marshal.ReadIntPtr(address);
+
             Marshal.WriteIntPtr(parameter.Address, address);
+
         }
 
         public IEnumerator<Parameter> GetEnumerator()
@@ -161,25 +161,40 @@ namespace Jitex.Intercept
 
         public object Value => _value;
 
-        internal IntPtr Address { get; set; }
+        public Type Type { get; }
 
-        internal object RealValue => Address == IntPtr.Zero ? Value : Address;
+        public IntPtr Address { get; private set; }
 
-        internal Parameter(object value)
+        public object RealValue
         {
-            _value = value;
+            get
+            {
+                if (Type.IsPrimitive)
+                    return _value;
+
+                IntPtr address = TypeUtils.GetAddressFromObject(ref _value);
+                return Marshal.ReadIntPtr(address);
+            }
         }
 
-        internal Parameter(IntPtr address)
+        internal Parameter(IntPtr address, Type type, bool readValue = true)
         {
+            Type = type;
             Address = address;
-            _value = TypeUtils.GetObjectFromReference(address);
+
+            if (readValue)
+            {
+                if (type.IsPrimitive)
+                    _value = Marshal.PtrToStructure(address, type);
+                else
+                    _value = TypeUtils.GetObjectFromReference(address);
+            }
         }
 
         internal void SetValue(ref object value)
         {
-            _value = value;
             Address = TypeUtils.GetAddressFromObject(ref value);
+            _value = value;
         }
 
         internal void SetAddress(IntPtr address, bool readValue)

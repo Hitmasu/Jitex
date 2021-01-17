@@ -62,16 +62,6 @@ namespace Jitex.Utils
         }
 
         /// <summary>
-        /// Returns if type is a reference type.
-        /// </summary>
-        /// <param name="type">Type to check.</param>
-        /// <returns>True if is a reference type.</returns>
-        public static bool IsReference(this Type type)
-        {
-            return !type.IsPrimitive;
-        }
-
-        /// <summary>
         /// Get object from a reference address.
         /// </summary>
         /// <param name="address">Reference address.</param>

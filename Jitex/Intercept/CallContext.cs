@@ -93,10 +93,10 @@ namespace Jitex.Intercept
                 List<Parameter> rawParameters = new List<Parameter>();
 
                 if (Method.IsGenericMethod)
-                    rawParameters.Add(new Parameter(_methodHandle));
+                    rawParameters.Add(new Parameter(_methodHandle, typeof(IntPtr), false));
 
                 if (!Method.IsStatic)
-                    rawParameters.Add(new Parameter(_instanceAddress));
+                    rawParameters.Add(new Parameter(_instanceAddress, Method.DeclaringType));
 
                 if (Parameters != null && Parameters.Any())
                     rawParameters.AddRange(Parameters);
@@ -130,12 +130,9 @@ namespace Jitex.Intercept
             for (int i = startIndex; i < parameters.Length; i++)
             {
                 object parameter = parameters[i];
-                Type parameterType = parametersMethod[i - startIndex];
+                Type parameterType = parametersMethod[i-startIndex];
 
-                if (parameterType.IsReference())
-                    parametersInfo[i - startIndex] = new Parameter((IntPtr)parameter);
-                else
-                    parametersInfo[i - startIndex] = new Parameter(parameter);
+                parametersInfo[i - startIndex] = new Parameter((IntPtr)parameter, parameterType);
             }
 
             Parameters = new Parameters(parametersInfo);
@@ -163,14 +160,14 @@ namespace Jitex.Intercept
                 if (methodInfo.ReturnType == typeof(void))
                     return default;
 
-                if (!methodInfo.ReturnType.IsReference())
+                if (methodInfo.ReturnType.IsPrimitive)
                     return (TResult)returnValue;
 
                 IntPtr ptrReturn = (IntPtr)returnValue; //Address of instance/Value is returned.
                 IntPtr refReturn;
 
                 if (Marshal.ReadIntPtr(ptrReturn) == methodInfo.ReturnType.TypeHandle.Value)
-                    refReturn = (IntPtr)(&ptrReturn); //It's necessary create a reference to address instance/value.
+                    refReturn = (IntPtr)(&ptrReturn); //It's necessary create a reference to address of instance/value.
                 else
                     refReturn = ptrReturn;
 

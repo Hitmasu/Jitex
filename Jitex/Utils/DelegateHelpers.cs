@@ -4,6 +4,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using IntPtr = System.IntPtr;
 
 namespace Jitex.Utils
 {
@@ -37,17 +38,17 @@ namespace Jitex.Utils
             if (method.IsGenericMethod)
                 parameters.Add(typeof(IntPtr));
 
-            foreach (Type parameter in method.GetParameters().Select(w => w.ParameterType))
+            foreach (ParameterInfo parameter in method.GetParameters())
             {
-                if (parameter.IsReference())
-                    parameters.Add(typeof(IntPtr));
+                if (parameter.ParameterType.IsPrimitive)
+                    parameters.Add(parameter.ParameterType);
                 else
-                    parameters.Add(parameter);
+                    parameters.Add(typeof(IntPtr));
             }
 
             if (method is MethodInfo methodInfo && methodInfo.ReturnType != typeof(void))
             {
-                if (methodInfo.ReturnType.IsReference())
+                if (!methodInfo.ReturnType.IsPrimitive)
                     parameters.Add(typeof(IntPtr));
                 else
                     parameters.Add(methodInfo.ReturnType);

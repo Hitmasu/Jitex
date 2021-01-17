@@ -1,4 +1,5 @@
-﻿using System.Collections.Concurrent;
+﻿using System;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
@@ -55,10 +56,10 @@ namespace Jitex.Tests.Intercept
         }
 
         [Fact]
-        public void NoContinueWithCallTest()
+        public void ModifyPrimitiveReturnTest()
         {
             int result = SimpleSum(1, 1);
-            int expected = 2;
+            int expected = 11;
 
             Assert.Equal(expected, result);
 
@@ -67,8 +68,8 @@ namespace Jitex.Tests.Intercept
 
             Assert.True(CountIntercept(nameof(SimpleSum)) == 1, "Intercepted more than expected!");
 
-            CallsIntercepted.TryRemove(nameof(NoContinueWithCallTest), out _);
-            MethodsCalled.TryRemove(nameof(NoContinueWithCallTest), out _);
+            CallsIntercepted.TryRemove(nameof(ModifyPrimitiveReturnTest), out _);
+            MethodsCalled.TryRemove(nameof(ModifyPrimitiveReturnTest), out _);
         }
 
         [Theory]
@@ -160,6 +161,35 @@ namespace Jitex.Tests.Intercept
 
             Assert.True(CountIntercept(nameof(ConcatNamePersons)) == 1, "Intercepted more than expected!");
             Assert.True(CountCalls(nameof(ConcatNamePersons)) == 1, "Called more than expected!");
+
+            CallsIntercepted.TryRemove(nameof(ModifyObjectAndPrimitiveParametersTest), out _);
+            MethodsCalled.TryRemove(nameof(ModifyObjectAndPrimitiveParametersTest), out _);
+        }
+
+        [Theory]
+        [InlineData("Pedro", 20)]
+        [InlineData("Jorge", 30)]
+        [InlineData("Patricia", 99)]
+        public void ModifyNonPrimitiveReturnTest(string name, int age)
+        {
+            InterceptPerson person = new(name, age);
+
+            InterceptPerson result = MakeNewPerson(person);
+            InterceptPerson expected = new(ReverseText(name), age * age);
+
+            Assert.Equal(expected.Name, result.Name);
+            Assert.Equal(expected.Age, result.Age);
+
+            Assert.Equal(name, person.Name);
+            Assert.Equal(age, person.Age);
+
+            Assert.False(HasCalled(nameof(MakeNewPerson)), "Call not continued!");
+            Assert.True(HasIntercepted(nameof(MakeNewPerson)), "Method not intercepted!");
+
+            Assert.True(CountIntercept(nameof(MakeNewPerson)) == 1, "Intercepted more than expected!");
+
+            CallsIntercepted.TryRemove(nameof(ModifyNonPrimitiveReturnTest), out _);
+            MethodsCalled.TryRemove(nameof(ModifyNonPrimitiveReturnTest), out _);
         }
 
         private static string ReverseText(string text) => new(text.Reverse().ToArray());
@@ -185,7 +215,13 @@ namespace Jitex.Tests.Intercept
             string name1 = person1.Name;
             string name2 = person2.Name;
 
-            return name1+name2;
+            return name1 + separator + name2;
+        }
+
+        private InterceptPerson MakeNewPerson(InterceptPerson person1)
+        {
+            AddMethodCall(nameof(MakeNewPerson));
+            return new (person1.Name, person1.Age);
         }
 
         private static void InterceptorCall(CallContext context)
@@ -194,17 +230,17 @@ namespace Jitex.Tests.Intercept
 
             MethodBase testSource = GetSourceTest();
 
-            if (testSource.Name == nameof(NoContinueWithCallTest))
+            if (testSource.Name == nameof(ModifyPrimitiveReturnTest))
             {
-                context.ReturnValue = 2;
+                context.ReturnValue = 11;
             }
             else if (testSource.Name == nameof(ModifyPrimitiveParametersTest))
             {
-                int n1 = (int)context.Parameters[0];
-                int n2 = (int)context.Parameters[1];
+                int n1 = context.Parameters.GetParameterValue<int>(0);
+                int n2 = context.Parameters.GetParameterValue<int>(1);
 
-                context.Parameters[0] = n1 + n2;
-                context.Parameters[1] = n1 * n2;
+                context.Parameters.SetParameterValue(0, n1 + n2);
+                context.Parameters.SetParameterValue(1, n1 * n2);
             }
             else if (testSource.Name == nameof(ModifyInstanceTest) && context.Method.Name == nameof(InterceptPerson.GetAgeAfter10Years))
             {
@@ -218,18 +254,35 @@ namespace Jitex.Tests.Intercept
             }
             else if (testSource.Name == nameof(ModifyObjectParameterTest) && context.Method.Name == nameof(SumAge))
             {
-                InterceptPerson interceptPerson = (InterceptPerson)context.Parameters[0];
+                InterceptPerson interceptPerson = context.Parameters.GetParameterValue<InterceptPerson>(0);
                 interceptPerson.Age += 255;
-
-                context.Parameters[0] = interceptPerson;
             }
             else if (testSource.Name == nameof(ModifyObjectAndPrimitiveParametersTest) && context.Method.Name == nameof(ConcatNamePersons))
             {
-                InterceptPerson person1 = context.GetParameter<InterceptPerson>(0);
-                InterceptPerson person2 = context.GetParameter<InterceptPerson>(2);
+                InterceptPerson person1 = context.Parameters!.GetParameterValue<InterceptPerson>(0);
+                InterceptPerson person2 = context.Parameters.GetParameterValue<InterceptPerson>(2);
 
-                person1.Name = ReverseText(person1.Name);
-                person2.Name = ReverseText(person1.Name);
+                InterceptPerson newPerson1 = person1 with
+                {
+                    Name = ReverseText(person1.Name)
+                };
+
+                InterceptPerson newPerson2 = person2 with
+                {
+                    Name = ReverseText(person2.Name)
+                };
+
+                context.Parameters.SetParameterValue(0, newPerson1);
+                context.Parameters.SetParameterValue(2, newPerson2);
+            }
+            else if (testSource.Name == nameof(ModifyNonPrimitiveReturnTest) && context.Method.Name == nameof(MakeNewPerson))
+            {
+                InterceptPerson person = context.Parameters.GetParameterValue<InterceptPerson>(0);
+
+                string newName = ReverseText(person.Name);
+                int newAge = person.Age * person.Age;
+
+                context.ReturnValue = new InterceptPerson(newName, newAge);
             }
         }
 
@@ -238,7 +291,8 @@ namespace Jitex.Tests.Intercept
             if (context.Method.Name == nameof(SimpleSum) ||
                 context.Method.Name == nameof(InterceptPerson.GetAgeAfter10Years) ||
                 context.Method.Name == nameof(SumAge) ||
-                context.Method.Name == nameof(ConcatNamePersons)
+                context.Method.Name == nameof(ConcatNamePersons) ||
+                context.Method.Name == nameof(MakeNewPerson)
             )
                 context.InterceptCall();
         }

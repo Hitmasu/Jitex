@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
-using Jitex.Utils;
 
 namespace Jitex.Intercept
 {
@@ -24,7 +23,7 @@ namespace Jitex.Intercept
 
         static InterceptBuilder()
         {
-            InterceptGetInstance = typeof(InterceptManager).GetMethod(nameof(InterceptManager.GetInstance),BindingFlags.Public | BindingFlags.Static);
+            InterceptGetInstance = typeof(InterceptManager).GetMethod(nameof(InterceptManager.GetInstance), BindingFlags.Public | BindingFlags.Static);
             InterceptCall = typeof(InterceptManager).GetMethod(nameof(InterceptManager.InterceptCall), BindingFlags.Public | BindingFlags.Instance);
             ObjectCtor = typeof(object).GetConstructor(Type.EmptyTypes)!;
         }
@@ -117,52 +116,35 @@ namespace Jitex.Intercept
                 {
                     Type type = parameterType;
 
-                    if (type.IsReference())
+                    if (!typerefDeclared)
                     {
-                        if (!typerefDeclared)
-                        {
-                            generator.DeclareLocal(typeof(TypedReference));
-                            typerefDeclared = true;
-                        }
+                        generator.DeclareLocal(typeof(TypedReference));
+                        typerefDeclared = true;
+                    }
 
-                        if (type.IsByRef)
-                        {
-                            generator.Emit(OpCodes.Ldarg_S, argIndex);
+                    if (type.IsByRef)
+                    {
+                        generator.Emit(OpCodes.Ldarg_S, argIndex);
 
-                            type = type.GetElementType();
-                            Debug.Assert(type != null);
-                        }
-                        else
-                        {
-                            generator.Emit(OpCodes.Ldarga_S, argIndex);
-                        }
-
-                        generator.Emit(OpCodes.Mkrefany, type);
-                        generator.Emit(OpCodes.Stloc_1);
-                        generator.Emit(OpCodes.Ldloc_0);
-                        generator.Emit(OpCodes.Ldc_I4, argIndex);
-                        generator.Emit(OpCodes.Ldloca_S, 1);
-                        generator.Emit(OpCodes.Conv_U);
-                        generator.Emit(OpCodes.Ldind_I);
-                        generator.Emit(OpCodes.Box, typeof(IntPtr));
-                        generator.Emit(OpCodes.Stelem_Ref);
-
-                        argIndex++;
+                        type = type.GetElementType()!;
+                        Debug.Assert(type != null);
                     }
                     else
                     {
-                        generator.Emit(OpCodes.Ldc_I4, argIndex);
-                        generator.Emit(OpCodes.Ldarg_S, argIndex++);
-
-                        if (!(type == typeof(object)))
-                            generator.Emit(OpCodes.Box, type);
-
-                        generator.Emit(OpCodes.Stelem_Ref);
-
-                        if (argIndex < totalArgs)
-                            generator.Emit(OpCodes.Dup);
+                        generator.Emit(OpCodes.Ldarga_S, argIndex);
                     }
 
+                    generator.Emit(OpCodes.Mkrefany, type);
+                    generator.Emit(OpCodes.Stloc_1);
+                    generator.Emit(OpCodes.Ldloc_0);
+                    generator.Emit(OpCodes.Ldc_I4, argIndex);
+                    generator.Emit(OpCodes.Ldloca_S, 1);
+                    generator.Emit(OpCodes.Conv_U);
+                    generator.Emit(OpCodes.Ldind_I);
+                    generator.Emit(OpCodes.Box, typeof(IntPtr));
+                    generator.Emit(OpCodes.Stelem_Ref);
+
+                    argIndex++;
                 }
             }
             else

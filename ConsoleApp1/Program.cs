@@ -1,19 +1,16 @@
 ﻿using System;
 using System.Diagnostics;
-using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using Iced.Intel;
 using Jitex;
 using Jitex.Intercept;
 using Jitex.JIT.Context;
 using Jitex.Utils;
-using static Iced.Intel.AssemblerRegisters;
 
 namespace ConsoleApp1
 {
 
-    public record InterceptPerson
+    public class InterceptPerson
     {
         public InterceptPerson(string name, int age)
         {
@@ -24,6 +21,11 @@ namespace ConsoleApp1
         public InterceptPerson(string name)
         {
             Name = name;
+        }
+
+        ~InterceptPerson()
+        {
+            Debugger.Break();
         }
 
         public string Name { get; set; }
@@ -44,49 +46,49 @@ namespace ConsoleApp1
 
     class Program
     {
-        static void Main()
+        unsafe static void Main()
         {
             JitexManager.AddMethodResolver(MethodResolver);
             JitexManager.AddInterceptor(Interceptor);
 
-            string n1 = "Flávio";
-            IntPtr address = TypeUtils.GetAddressFromObject(ref n1);
-            Console.WriteLine(address.ToString("X"));
-            GetAgeAfter10Years(ref n1);
-            Debugger.Break();
+            Program p = new Program();
+            int a = 20;
+
+            var l = __makeref(a);
+            IntPtr addr = *(IntPtr*)&l;
+
+            Console.WriteLine($"Reference: 0x{addr.ToString("X")}");
+            Console.WriteLine($"Value: 0x{Marshal.ReadIntPtr(addr).ToString("X")}");
+
+
+            InterceptPerson person = new InterceptPerson("aqsd", 10);
+            int age = p.SumAge(person);
+            Console.WriteLine(age);
+            Console.ReadKey();
         }
 
-        private static string ab = "la";
-
-        public static int GetRef()
+        private int SumAge(InterceptPerson b)
         {
-            return 0;
-        }
-
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        public static string GetAgeAfter10Years(ref string a)
-        {
-            IntPtr address = TypeUtils.GetAddressFromObject(ref a);
-            Console.WriteLine(address.ToString("X"));
-
-
-            return "aspodkaspodk";
+            return b.Age + 30;
         }
 
         private static void Interceptor(CallContext context)
         {
-            string a = "xyz";
-            object obj = a;
+            if (context.Method.Name == nameof(SumAge))
+            {
+                InterceptPerson person = context.Parameters.GetParameterValue<InterceptPerson>(0);
+                person.Age += 50;
 
-            context.Parameters.OverrideParameterValue(0, obj);
-
-            context.Continue<string>();
+                context.Parameters.SetParameterValue(0, person);
+            }
         }
 
         private static void MethodResolver(MethodContext context)
         {
-            if (context.Method.Name == "GetAgeAfter10Years")
+            if (context.Method.Name == nameof(SumAge))
+            {
                 context.InterceptCall();
+            }
         }
     }
 
