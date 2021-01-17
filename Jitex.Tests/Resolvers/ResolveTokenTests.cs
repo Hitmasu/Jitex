@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using Jitex.Builder.Method;
 using Jitex.JIT.Context;
 using Jitex.Tests.Context;
 using Xunit;
@@ -13,9 +11,22 @@ namespace Jitex.Tests.Resolvers
     [Collection("Manager")]
     public class ResolveTokenTests
     {
+        private static readonly int _ctorPersonToken = 0;
+        private static readonly int _getAgePersonPropertyToken = 0;
+
+        static ResolveTokenTests()
+        {
+            Type personType = typeof(Caller).Module.GetType("Jitex.Tests.Context.Person");
+            ConstructorInfo ctor = personType.GetConstructor(Type.EmptyTypes);
+            MethodBase getAge = personType.GetMethod("get_Age");
+
+            _ctorPersonToken = ctor.MetadataToken;
+            _getAgePersonPropertyToken = getAge.MetadataToken;
+        }
+
         public ResolveTokenTests()
         {
-            JitexManager.AddMethodResolver(CompileResolver);
+            JitexManager.AddMethodResolver(MethodResolver);
             JitexManager.AddTokenResolver(TokenResolver);
         }
 
@@ -50,36 +61,34 @@ namespace Jitex.Tests.Resolvers
             if (context.Source == GetMethod<ResolveTokenTests>(nameof(ResolveTokenReplace)))
             {
                 Type personType = typeof(Caller).Module.GetType("Jitex.Tests.Context.Person");
-
-                switch (context.MetadataToken)
+                
+                if (context.MetadataToken == _ctorPersonToken)
                 {
-                    case 0x06000006:
-                        ConstructorInfo ctor = personType.GetConstructor(Type.EmptyTypes);
-                        context.ResolveConstructor(ctor);
-                        break;
-
-                    case 0x06000004:
-                        MethodBase get_Idade = personType.GetMethod("get_Idade");
-                        context.ResolveMethod(get_Idade);
-                        break;
+                    ConstructorInfo ctor = personType.GetConstructor(Type.EmptyTypes);
+                    context.ResolveConstructor(ctor);
+                }
+                else if (context.MetadataToken == _getAgePersonPropertyToken)
+                {
+                    MethodBase getAge = personType.GetMethod("get_Age");
+                    context.ResolveMethod(getAge);
                 }
             }
-            else if (context.Source == GetMethod<ResolveTokenTests>(nameof(ResolveWithModuleReplace)) && (context.MetadataToken == 0x06000006 || context.MetadataToken == 0x06000004))
+            else if (context.Source == GetMethod<ResolveTokenTests>(nameof(ResolveWithModuleReplace)) && (context.MetadataToken == _ctorPersonToken || context.MetadataToken == _getAgePersonPropertyToken))
             {
                 context.ResolveFromModule(typeof(Caller).Module);
             }
         }
 
-        private void CompileResolver(MethodContext context)
+        private void MethodResolver(MethodContext context)
         {
             if (context.Method == GetMethod<ResolveTokenTests>(nameof(ResolveTokenReplace)))
             {
-                MethodInfo methodToReplace = GetMethod<Caller>(nameof(Caller.GetIdade));
+                MethodInfo methodToReplace = GetMethod<Caller>(nameof(Caller.GetAge));
                 context.ResolveMethod(methodToReplace);
             }
             else if (context.Method == GetMethod<ResolveTokenTests>(nameof(ResolveWithModuleReplace)))
             {
-                MethodInfo methodToReplace = GetMethod<Caller>(nameof(Caller.GetIdade));
+                MethodInfo methodToReplace = GetMethod<Caller>(nameof(Caller.GetAge));
                 context.ResolveMethod(methodToReplace);
             }
         }

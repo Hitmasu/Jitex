@@ -11,7 +11,7 @@ namespace Jitex.Tests.Context
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
-        public int GetIdade()
+        public int GetAge()
         {
             Person person = new Person();
             return person.Age;

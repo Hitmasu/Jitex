@@ -208,6 +208,7 @@ namespace Jitex.Tests.Intercept
             return person.Age + 10;
         }
 
+        [MethodImpl(MethodImplOptions.NoInlining)]
         private string ConcatNamePersons(InterceptPerson person1, string separator, InterceptPerson person2)
         {
             AddMethodCall(nameof(ConcatNamePersons));
@@ -218,6 +219,7 @@ namespace Jitex.Tests.Intercept
             return name1 + separator + name2;
         }
 
+        [MethodImpl(MethodImplOptions.NoInlining)]
         private InterceptPerson MakeNewPerson(InterceptPerson person1)
         {
             AddMethodCall(nameof(MakeNewPerson));
