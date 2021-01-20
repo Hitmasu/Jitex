@@ -76,7 +76,7 @@ namespace Jitex.Intercept
         /// <param name="parameters">Parameters from method.</param>
         /// <returns></returns>
         [Obsolete("That method shouldn't be called manually.")]
-        public object? InterceptCall(long handle, object[] parameters)
+        public IntPtr InterceptCall(long handle, object[] parameters)
         {
             MethodBase? method = RuntimeMethodCache.GetMethodFromHandle(new IntPtr(handle));
 
@@ -105,13 +105,12 @@ namespace Jitex.Intercept
                 }
             }
 
-            if (!context.IsReturnSetted)
+            if (context.ContinueCall)
                 context.ContinueFlow();
 
-            return context.ReturnValue;
+            return context.ReturnAddress;
         }
 
-        [Obsolete("That method shouldn't not be called manually.")]
         public static InterceptManager GetInstance()
         {
             return _instance ??= new InterceptManager();

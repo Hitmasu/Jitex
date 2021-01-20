@@ -46,9 +46,17 @@ namespace Jitex.Utils
                     parameters.Add(typeof(IntPtr));
             }
 
-            if (method is MethodInfo methodInfo && methodInfo.ReturnType != typeof(void))
+            if (method is ConstructorInfo)
             {
-                if (!methodInfo.ReturnType.IsPrimitive)
+                parameters.Add(typeof(void));
+            }
+            else
+            {
+                MethodInfo methodInfo = (MethodInfo)method;
+
+                if (methodInfo.ReturnType == typeof(void))
+                    parameters.Add(typeof(void));
+                else if (!methodInfo.ReturnType.IsPrimitive)
                     parameters.Add(typeof(IntPtr));
                 else
                     parameters.Add(methodInfo.ReturnType);

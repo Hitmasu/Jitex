@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Diagnostics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
+using System.Drawing;
 using Jitex;
 using Jitex.Intercept;
 using Jitex.JIT.Context;
@@ -23,64 +21,42 @@ namespace ConsoleApp1
             Name = name;
         }
 
-        ~InterceptPerson()
-        {
-            Debugger.Break();
-        }
-
         public string Name { get; set; }
+
         public int Age { get; set; }
-
-
-        public string GetAgeAfter10Years(string n1, string n2)
-        {
-            IntPtr addr = TypeUtils.GetAddressFromObject(ref n1);
-            IntPtr addr2 = TypeUtils.GetAddressFromObject(ref n2);
-
-            Console.WriteLine(addr.ToString("X"));
-            Console.WriteLine(addr2.ToString("X"));
-
-            return $"{n1}{n2}";
-        }
     }
 
     class Program
     {
-        unsafe static void Main()
+        private static int value = 100;
+        private InterceptPerson result;
+
+        static void Main()
         {
             JitexManager.AddMethodResolver(MethodResolver);
             JitexManager.AddInterceptor(Interceptor);
 
-            Program p = new Program();
-            int a = 20;
-
-            var l = __makeref(a);
-            IntPtr addr = *(IntPtr*)&l;
-
-            Console.WriteLine($"Reference: 0x{addr.ToString("X")}");
-            Console.WriteLine($"Value: 0x{Marshal.ReadIntPtr(addr).ToString("X")}");
-
-
-            InterceptPerson person = new InterceptPerson("aqsd", 10);
-            int age = p.SumAge(person);
-            Console.WriteLine(age);
+            int n1 = 1;
+            int n2 = 2;
+            int n3;
+            SumAge(ref n1, ref n2, out n3);
+            Console.WriteLine(n3);
             Console.ReadKey();
         }
 
-        private int SumAge(InterceptPerson b)
+
+        private static void SumAge(ref int n1, ref int n2, out int result)
         {
-            return b.Age + 30;
+            result = n1 + n2;
         }
 
         private static void Interceptor(CallContext context)
         {
-            if (context.Method.Name == nameof(SumAge))
-            {
-                InterceptPerson person = context.Parameters.GetParameterValue<InterceptPerson>(0);
-                person.Age += 50;
-
-                context.Parameters.SetParameterValue(0, person);
-            }
+            //if (context.Method.Name == nameof(SumAge))
+            //{
+            //    Point p = new Point(0xFF, 0xFF);
+            //    context.Parameters.OverrideParameterValue(0, p);
+            //}
         }
 
         private static void MethodResolver(MethodContext context)

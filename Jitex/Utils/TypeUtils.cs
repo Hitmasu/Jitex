@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Reflection;
 using System.Reflection.Emit;
 
 namespace Jitex.Utils
@@ -6,9 +7,9 @@ namespace Jitex.Utils
     /// <summary>
     /// Utilities for type.
     /// </summary>
-    public static class TypeUtils
+    internal static class TypeUtils
     {
-        private static readonly System.Reflection.MethodInfo ToObject;
+        private static readonly MethodInfo ToObject;
         private static readonly Func<IntPtr, object> GetInstance;
 
         static TypeUtils()

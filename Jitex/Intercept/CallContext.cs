@@ -64,7 +64,7 @@ namespace Jitex.Intercept
         /// <summary>
         /// If Return value has been setted.
         /// </summary>
-        public bool IsReturnSetted { get; private set; }
+        public bool ContinueCall { get; set; } = true;
 
         /// <summary>
         /// Return value of call.
@@ -76,7 +76,31 @@ namespace Jitex.Intercept
             set
             {
                 _returnValue = value;
-                IsReturnSetted = true;
+                ContinueCall = false;
+            }
+        }
+
+        public IntPtr ReturnAddress
+        {
+            get
+            {
+                MethodInfo method = (MethodInfo)Method;
+                Type returnType = method.ReturnType;
+
+                if (returnType.IsByRef)
+                    returnType = returnType.GetElementType()!;
+
+                if (_returnValue is IntPtr returnAddress && method.ReturnType != typeof(IntPtr))
+                    return returnAddress;
+
+                returnAddress = TypeUtils.GetAddressFromObject(ref _returnValue);
+                returnAddress = Marshal.ReadIntPtr(returnAddress);
+
+                //Is a struct without ref/out
+                if (returnType.IsValueType && !returnType.IsPrimitive)
+                    returnAddress += IntPtr.Size;
+
+                return returnAddress;
             }
         }
 
@@ -130,7 +154,7 @@ namespace Jitex.Intercept
             for (int i = startIndex; i < parameters.Length; i++)
             {
                 object parameter = parameters[i];
-                Type parameterType = parametersMethod[i-startIndex];
+                Type parameterType = parametersMethod[i - startIndex];
 
                 parametersInfo[i - startIndex] = new Parameter((IntPtr)parameter, parameterType);
             }
@@ -138,42 +162,52 @@ namespace Jitex.Intercept
             Parameters = new Parameters(parametersInfo);
         }
 
+        public ref object? GetRefReturnValue() => ref _returnValue;
+
+        public void SetRefReturnValue(ref object returnValue) => _returnValue = returnValue;
+
         /// <summary>
         /// Continue original call.
         /// </summary>
         internal void ContinueFlow()
         {
-            ReturnValue = Continue<object>();
+            _returnValue = Call.DynamicInvoke(ParametersCall);
         }
 
-        /// <summary>
-        /// Continue original call and retrieve result.
-        /// </summary>
-        /// <typeparam name="TResult">Type expected from result.</typeparam>
-        /// <returns>Result from original call (Returns default on void or constructor).</returns>
-        public unsafe TResult Continue<TResult>()
+        public object? Continue()
         {
             object returnValue = Call.DynamicInvoke(ParametersCall);
 
             if (Method is MethodInfo methodInfo)
             {
-                if (methodInfo.ReturnType == typeof(void))
+                Type returnType = methodInfo.ReturnType;
+
+                if (returnType == typeof(void))
                     return default;
 
-                if (methodInfo.ReturnType.IsPrimitive)
-                    return (TResult)returnValue;
+                if (returnType.IsValueType)
+                {
+                    return returnValue;
+                }
 
                 IntPtr ptrReturn = (IntPtr)returnValue; //Address of instance/Value is returned.
                 IntPtr refReturn;
 
                 if (Marshal.ReadIntPtr(ptrReturn) == methodInfo.ReturnType.TypeHandle.Value)
-                    refReturn = (IntPtr)(&ptrReturn); //It's necessary create a reference to address of instance/value.
+                {
+                    unsafe
+                    {
+                        refReturn = (IntPtr)(&ptrReturn); //It's necessary create a reference to address of instance/value.
+                    }
+                }
                 else
+                {
                     refReturn = ptrReturn;
+                }
 
                 returnValue = TypeUtils.GetObjectFromReference(refReturn);
 
-                return (TResult)returnValue;
+                return returnValue;
             }
 
             //It's a constructor
@@ -181,11 +215,18 @@ namespace Jitex.Intercept
         }
 
         /// <summary>
-        /// Continue original call.
+        /// Continue original call and retrieve result.
         /// </summary>
-        public void Continue()
+        /// <typeparam name="TResult">Type expected from result.</typeparam>
+        /// <returns>Result from original call (Returns default on void or constructor).</returns>
+        public TResult Continue<TResult>()
         {
-            Call.DynamicInvoke(ParametersCall);
+            object? returnValue = Continue();
+
+            if (returnValue == null)
+                return default;
+
+            return (TResult)returnValue;
         }
 
         /// <summary>
