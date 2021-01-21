@@ -18,7 +18,7 @@ It's a library built in .NET Standard 2.0, works on all version >=.NET Core 2.0.
 
 ------
 
-Jitex can help you inject code at runtime easily.
+Jitex can help you replace code at runtime easily.
 
 ```c#
 class Program {
