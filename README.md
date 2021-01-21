@@ -58,7 +58,7 @@ class Program {
 - [Replace MSIL code (IL)](#Replace-MSIL)
 - [Replace native code (ASM)](#Replace-Native-Code)
 - [Execute custom metadatatoken](#Inject-custom-metadatatoken)
-- [Replace content string](#Replace-custom-string)
+- [Replace content string](#Replace-content-string)
 - [Modules](#Modules)
 
 ## Replace Method
