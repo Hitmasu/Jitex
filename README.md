@@ -53,15 +53,15 @@ class Program {
 
 ## Support
 
-- [Modify normal and generic methods](#Inject-Method)
+- [Modify normal and generic methods](#Replace-Method)
 - [Detour method](#Detour-Method)
-- [Inject MSIL code (IL)](#Inject-MSIL)
-- [Inject native code (ASM)](#Inject-Native-Code)
-- [Inject custom metadatatoken](#Inject-custom-metadatatoken)
-- [Inject custom string](#Inject-custom-string)
+- [Replace MSIL code (IL)](#Replace-MSIL)
+- [Replace native code (ASM)](#Replace-Native-Code)
+- [Execute custom metadatatoken](#Inject-custom-metadatatoken)
+- [Replace content string](#Replace-custom-string)
 - [Modules](#Modules)
 
-## Inject Method
+## Replace Method
 
 ```c#
 /// <summary>
@@ -118,7 +118,7 @@ private static void MethodResolver (MethodContext context) {
 }
 ```
 
-## Inject MSIL
+## Replace MSIL
 
 ```c#
 private static void MethodResolver (MethodContext context) 
@@ -139,7 +139,7 @@ private static void MethodResolver (MethodContext context)
 }
 ```
 
-## Inject Native Code
+## Replace Native Code
 
 ```c#
 private static void MethodResolver (MethodContext context) 
@@ -257,7 +257,7 @@ static void Main (string[] args) {
 }
 ```
 
-## Inject custom string
+## Replace content string
 
 ```c#
 private static void TokenResolver (TokenContext context) {
