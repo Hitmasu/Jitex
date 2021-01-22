@@ -27,17 +27,6 @@ namespace Jitex.Tests.Intercept
             JitexManager.AddInterceptor(InterceptorCall);
         }
 
-        /// <summary>
-        /// A simple call test.
-        /// </summary>
-        /// <remarks>
-        /// Intercept call but does nothing.
-        /// 
-        /// Expected:
-        /// • Normal result.
-        /// • Method original should be called.
-        /// • Method should be intercepted.
-        /// </remarks>
         [Theory]
         [InlineData(1, 1)]
         [InlineData(-1, 20)]
@@ -145,36 +134,32 @@ namespace Jitex.Tests.Intercept
         }
 
         [Theory]
-        [InlineData("Michael", "Robert", " ")]
-        [InlineData("Brenda", "John", "-")]
-        [InlineData("Felipe", "Souza", ",")]
-        public void ModifyNonPrimitivePrametersTest(string name1, string name2, string separator)
+        [InlineData(7, 9)]
+        [InlineData(-1, 20)]
+        [InlineData(2000, 7000)]
+        public void ModifyValueTypeParametersTest(int x, int y)
         {
-            InterceptPerson person1 = new(name1, 20);
-            InterceptPerson person2 = new(name2, 30);
-
-            string result = ConcatNamePersons(person1, separator, person2);
-            string expected = $"{ReverseText(name1)}{separator}{ReverseText(name2)}";
+            Point point = new(x, y);
+            Point result = CreatePoint(point);
+            Point expected = new(x + y, y + x);
 
             Assert.Equal(expected, result);
-            Assert.Equal(name1, person1.Name);
-            Assert.Equal(name2, person2.Name);
 
-            Assert.True(HasCalled(nameof(ConcatNamePersons)), "Call not continued!");
-            Assert.True(HasIntercepted(nameof(ConcatNamePersons)), "Method not intercepted!");
+            Assert.True(HasCalled(nameof(CreatePoint)), "Call not continued!");
+            Assert.True(HasIntercepted(nameof(CreatePoint)), "Method not intercepted!");
 
-            Assert.True(CountIntercept(nameof(ConcatNamePersons)) == 1, "Intercepted more than expected!");
-            Assert.True(CountCalls(nameof(ConcatNamePersons)) == 1, "Called more than expected!");
+            Assert.True(CountIntercept(nameof(CreatePoint)) == 1, "Intercepted more than expected!");
+            Assert.True(CountCalls(nameof(CreatePoint)) == 1, "Called more than expected!");
 
-            CallsIntercepted.TryRemove(nameof(ModifyNonPrimitivePrametersTest), out _);
-            MethodsCalled.TryRemove(nameof(ModifyNonPrimitivePrametersTest), out _);
+            CallsIntercepted.TryRemove(nameof(ModifyValueTypeParametersTest), out _);
+            MethodsCalled.TryRemove(nameof(ModifyValueTypeParametersTest), out _);
         }
 
         [Theory]
         [InlineData("Pedro", 20)]
         [InlineData("Jorge", 30)]
         [InlineData("Patricia", 99)]
-        public void ModifyObjectReturnTest(string name, int age)
+        public void ModifyClassReturnTest(string name, int age)
         {
             InterceptPerson person = new(name, age);
 
@@ -192,8 +177,8 @@ namespace Jitex.Tests.Intercept
 
             Assert.True(CountIntercept(nameof(MakeNewPerson)) == 1, "Intercepted more than expected!");
 
-            CallsIntercepted.TryRemove(nameof(ModifyObjectReturnTest), out _);
-            MethodsCalled.TryRemove(nameof(ModifyObjectReturnTest), out _);
+            CallsIntercepted.TryRemove(nameof(ModifyClassReturnTest), out _);
+            MethodsCalled.TryRemove(nameof(ModifyClassReturnTest), out _);
         }
 
         [Fact]
@@ -224,7 +209,7 @@ namespace Jitex.Tests.Intercept
         [InlineData(7, 9)]
         [InlineData(-1, 20)]
         [InlineData(2000, 7000)]
-        public void ModifyRefParametersTest(int n1, int n2)
+        public void ModifyRefPrimitiveParametersTest(int n1, int n2)
         {
             int n1Expected = n1 * n2;
             int n2Expected = n1 + n2;
@@ -242,8 +227,8 @@ namespace Jitex.Tests.Intercept
             Assert.True(CountIntercept(nameof(SimpleSumRef)) == 1, "Intercepted more than expected!");
             Assert.True(CountCalls(nameof(SimpleSumRef)) == 1, "Called more than expected!");
 
-            CallsIntercepted.TryRemove(nameof(ModifyRefParametersTest), out _);
-            MethodsCalled.TryRemove(nameof(ModifyRefParametersTest), out _);
+            CallsIntercepted.TryRemove(nameof(ModifyRefPrimitiveParametersTest), out _);
+            MethodsCalled.TryRemove(nameof(ModifyRefPrimitiveParametersTest), out _);
         }
 
         [Theory]
@@ -273,7 +258,7 @@ namespace Jitex.Tests.Intercept
         [InlineData(7, 9)]
         [InlineData(-1, 20)]
         [InlineData(2000, 7000)]
-        public void InterceptValueTypeRefReturn(int x, int y)
+        public void InterceptRefValueTypeReturn(int x, int y)
         {
             ref Point result = ref CreatePoint(x, y);
 
@@ -299,15 +284,15 @@ namespace Jitex.Tests.Intercept
             Assert.True(CountIntercept(nameof(CreatePoint)) == 1, "Intercepted more than expected!");
             Assert.True(CountCalls(nameof(CreatePoint)) == 1, "Called more than expected!");
 
-            CallsIntercepted.TryRemove(nameof(InterceptValueTypeRefReturn), out _);
-            MethodsCalled.TryRemove(nameof(InterceptValueTypeRefReturn), out _);
+            CallsIntercepted.TryRemove(nameof(InterceptRefValueTypeReturn), out _);
+            MethodsCalled.TryRemove(nameof(InterceptRefValueTypeReturn), out _);
         }
 
         [Theory]
         [InlineData("Pedro", 20)]
         [InlineData("Jorge", 30)]
         [InlineData("Patricia", 99)]
-        public void InterceptObjectRefReturn(string name, int age)
+        public void InterceptRefClassReturn(string name, int age)
         {
             ref InterceptPerson result = ref CreatePerson(name, age);
 
@@ -336,20 +321,21 @@ namespace Jitex.Tests.Intercept
             Assert.True(CountIntercept(nameof(CreatePerson)) == 1, "Intercepted more than expected!");
             Assert.True(CountCalls(nameof(CreatePerson)) == 1, "Called more than expected!");
 
-            CallsIntercepted.TryRemove(nameof(InterceptObjectRefReturn), out _);
-            MethodsCalled.TryRemove(nameof(InterceptObjectRefReturn), out _);
+            CallsIntercepted.TryRemove(nameof(InterceptRefClassReturn), out _);
+            MethodsCalled.TryRemove(nameof(InterceptRefClassReturn), out _);
         }
 
         [Theory]
         [InlineData(7, 9)]
         [InlineData(-1, 20)]
         [InlineData(2000, 7000)]
-        public void ModifyValueTypeRefReturn(int x, int y)
+        public void ModifyRefValueTypeReturn(int x, int y)
         {
             ref Point result = ref CreatePoint(x, y);
             Point expected = new(x + y, x - y);
 
             Assert.Equal(result, expected);
+            Assert.Equal(default, _point);
 
             Assert.False(HasCalled(nameof(CreatePoint)), "Call continued!");
             Assert.True(HasIntercepted(nameof(CreatePoint)), "Method not intercepted!");
@@ -357,10 +343,31 @@ namespace Jitex.Tests.Intercept
             Assert.True(CountIntercept(nameof(CreatePoint)) == 1, "Intercepted more than expected!");
             Assert.True(CountCalls(nameof(CreatePoint)) == 0, "Called more than expected!");
 
-            CallsIntercepted.TryRemove(nameof(ModifyValueTypeRefReturn), out _);
-            MethodsCalled.TryRemove(nameof(ModifyValueTypeRefReturn), out _);
+            CallsIntercepted.TryRemove(nameof(ModifyRefValueTypeReturn), out _);
+            MethodsCalled.TryRemove(nameof(ModifyRefValueTypeReturn), out _);
         }
 
+        [Theory]
+        [InlineData("Pedro", 20)]
+        [InlineData("Jorge", 30)]
+        [InlineData("Patricia", 99)]
+        public void ModifyRefClassReturn(string name, int age)
+        {
+            ref InterceptPerson result = ref CreatePerson(name, age);
+            InterceptPerson expected = new(name + " " + name, age + age);
+
+            Assert.Equal(result, expected);
+            Assert.Equal(default, _person);
+
+            Assert.False(HasCalled(nameof(CreatePerson)), "Call continued!");
+            Assert.True(HasIntercepted(nameof(CreatePerson)), "Method not intercepted!");
+
+            Assert.True(CountIntercept(nameof(CreatePerson)) == 1, "Intercepted more than expected!");
+            Assert.True(CountCalls(nameof(CreatePerson)) == 0, "Called more than expected!");
+
+            CallsIntercepted.TryRemove(nameof(ModifyRefClassReturn), out _);
+            MethodsCalled.TryRemove(nameof(ModifyRefClassReturn), out _);
+        }
 
         private static string ReverseText(string text) => new(text.Reverse().ToArray());
 
@@ -409,14 +416,10 @@ namespace Jitex.Tests.Intercept
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
-        private string ConcatNamePersons(InterceptPerson person1, string separator, InterceptPerson person2)
+        private Point CreatePoint(Point point)
         {
-            AddMethodCall(nameof(ConcatNamePersons));
-
-            string name1 = person1.Name;
-            string name2 = person2.Name;
-
-            return name1 + separator + name2;
+            AddMethodCall(nameof(CreatePoint));
+            return new Point(point.X, point.Y);
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
@@ -463,28 +466,22 @@ namespace Jitex.Tests.Intercept
             }
             else if (testSource.Name == nameof(ModifyObjectParameterTest) && context.Method.Name == nameof(SumAge))
             {
-                InterceptPerson interceptPerson = context.Parameters.GetParameterValue<InterceptPerson>(0);
+                InterceptPerson interceptPerson = context.Parameters!.GetParameterValue<InterceptPerson>(0);
                 interceptPerson.Age += 255;
             }
-            else if (testSource.Name == nameof(ModifyNonPrimitivePrametersTest) && context.Method.Name == nameof(ConcatNamePersons))
+            else if (testSource.Name == nameof(ModifyValueTypeParametersTest) && context.Method.Name == nameof(CreatePoint))
             {
-                InterceptPerson person1 = context.Parameters!.GetParameterValue<InterceptPerson>(0);
-                InterceptPerson person2 = context.Parameters.GetParameterValue<InterceptPerson>(2);
+                Point point = context.Parameters!.GetParameterValue<Point>(0);
 
-                InterceptPerson newPerson1 = person1 with
-                {
-                    Name = ReverseText(person1.Name)
-                };
+                int x = point.X;
+                int y = point.Y;
 
-                InterceptPerson newPerson2 = person2 with
-                {
-                    Name = ReverseText(person2.Name)
-                };
+                point.X += y;
+                point.Y += x;
 
-                context.Parameters.SetParameterValue(0, newPerson1);
-                context.Parameters.SetParameterValue(2, newPerson2);
+                context.Parameters.SetParameterValue(0, point);
             }
-            else if (testSource.Name == nameof(ModifyObjectReturnTest) && context.Method.Name == nameof(MakeNewPerson))
+            else if (testSource.Name == nameof(ModifyClassReturnTest) && context.Method.Name == nameof(MakeNewPerson))
             {
                 InterceptPerson person = context.Parameters.GetParameterValue<InterceptPerson>(0);
 
@@ -493,7 +490,7 @@ namespace Jitex.Tests.Intercept
 
                 context.ReturnValue = new InterceptPerson(newName, newAge);
             }
-            else if (testSource.Name == nameof(ModifyRefParametersTest) && context.Method.Name == nameof(SimpleSumRef))
+            else if (testSource.Name == nameof(ModifyRefPrimitiveParametersTest) && context.Method.Name == nameof(SimpleSumRef))
             {
                 int n1 = context.Parameters.GetParameterValue<int>(0);
                 int n2 = context.Parameters.GetParameterValue<int>(1);
@@ -516,13 +513,21 @@ namespace Jitex.Tests.Intercept
                 context.Parameters.OverrideParameterValue(2, result);
                 context.ContinueCall = false;
             }
-            else if (testSource.Name == nameof(ModifyValueTypeRefReturn) && context.Method.Name == nameof(CreatePoint))
+            else if (testSource.Name == nameof(ModifyRefValueTypeReturn) && context.Method.Name == nameof(CreatePoint))
             {
                 int x = context.Parameters.GetParameterValue<int>(0);
                 int y = context.Parameters.GetParameterValue<int>(1);
 
                 Point point = new(x + y, x - y);
                 context.ReturnValue = point;
+            }
+            else if (testSource.Name == nameof(ModifyRefClassReturn) && context.Method.Name == nameof(CreatePerson))
+            {
+                string name = context.Parameters.GetParameterValue<string>(0);
+                int age = context.Parameters.GetParameterValue<int>(1);
+
+                InterceptPerson person = new(name + " " + name, age + age);
+                context.ReturnValue = person;
             }
         }
 
@@ -531,7 +536,6 @@ namespace Jitex.Tests.Intercept
             if (context.Method.Name == nameof(SimpleSum) ||
                 context.Method.Name == nameof(InterceptPerson.GetAgeAfter10Years) ||
                 context.Method.Name == nameof(SumAge) ||
-                context.Method.Name == nameof(ConcatNamePersons) ||
                 context.Method.Name == nameof(MakeNewPerson) ||
                 context.Method.Name == nameof(SimpleCall) ||
                 context.Method.Name == nameof(SimpleSumRef) ||

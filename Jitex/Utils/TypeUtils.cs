@@ -1,6 +1,7 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Reflection;
-using System.Reflection.Emit;
+using System.Runtime.InteropServices;
 
 namespace Jitex.Utils
 {
@@ -9,37 +10,12 @@ namespace Jitex.Utils
     /// </summary>
     internal static class TypeUtils
     {
-        private static readonly MethodInfo ToObject;
-        private static readonly Func<IntPtr, object> GetInstance;
+        private static readonly IntPtr ObjectTypeHandle;
 
         static TypeUtils()
         {
-            ToObject = typeof(TypedReference).GetMethod(nameof(TypedReference.ToObject))!;
-            GetInstance = CreateMethodToObject();
+            ObjectTypeHandle = typeof(object).TypeHandle.Value;
         }
-
-        /// <summary>
-        /// Create a method to get value from address.
-        /// </summary>
-        /// <remarks>
-        /// Normally, TypedReference only works using __makeref and with an object already "declared".
-        /// In some cases, we dont have information about object, just a pointer to value (normally in return values).
-        /// This method, pass address of value directly to __makeref, without use ldloca.s or ldarga.s.
-        /// </remarks>
-        /// <returns></returns>
-        private static Func<IntPtr, object> CreateMethodToObject()
-        {
-            //TODO: Make return ref object.
-            DynamicMethod ptrToObjectMethod = new DynamicMethod("PtrToObject", typeof(object), new[] { typeof(IntPtr) });
-            ILGenerator? generator = ptrToObjectMethod.GetILGenerator();
-            generator.Emit(OpCodes.Ldarg_0);
-            generator.Emit(OpCodes.Mkrefany, typeof(string));
-            generator.Emit(OpCodes.Call, ToObject);
-            generator.Emit(OpCodes.Ret);
-
-            return (Func<IntPtr, object>)ptrToObjectMethod.CreateDelegate(typeof(Func<IntPtr, object>));
-        }
-
         /// <summary>
         /// Get reference address from object.
         /// </summary>
@@ -52,24 +28,60 @@ namespace Jitex.Utils
         }
 
         /// <summary>
-        /// Get reference address from object.
-        /// </summary>
-        /// <param name="obj">Object to get address.</param>
-        /// <returns>Reference address from object.</returns>
-        public static unsafe IntPtr GetAddressFromObject(ref string obj)
-        {
-            TypedReference typeRef = __makeref(obj);
-            return *(IntPtr*)(&typeRef);
-        }
-
-        /// <summary>
         /// Get object from a reference address.
         /// </summary>
         /// <param name="address">Reference address.</param>
         /// <returns>Object from reference.</returns>
+        ///
+        ///Created by: IllidanS4
+        ///https://github.com/IllidanS4/SharpUtils/blob/a3b4da490537e361e6a5debc873c303023d83bf1/Unsafe/Pointer.cs#L58
         public static object GetObjectFromReference(IntPtr address)
         {
-            return GetInstance(address);
+            TypedReference tr = default;
+            Span<IntPtr> spanTr;
+
+            unsafe
+            {
+                spanTr = new Span<IntPtr>(&tr, sizeof(TypedReference));
+            }
+
+            spanTr[0] = address;
+            spanTr[1] = ObjectTypeHandle;
+
+            return __refvalue(tr, object);
+        }
+
+        public static IntPtr GetValueAddress(IntPtr address, Type type)
+        {
+            Type elementType;
+
+            if (type.IsByRef)
+                elementType = type.GetElementType()!;
+            else
+                elementType = type;
+
+            if (elementType.IsPrimitive)
+            {
+                if (type.IsByRef)
+                    return address;
+
+                address = Marshal.ReadIntPtr(address);
+                return address;
+            }
+
+            if (elementType.IsValueType)
+            {
+                address = Marshal.ReadIntPtr(address);
+                return address + IntPtr.Size;
+            }
+
+            //if (elementType.IsPrimitive && type.IsByRef)
+            //    return address;
+
+            if (type.IsByRef)
+                return address;
+
+            return Marshal.ReadIntPtr(address);
         }
     }
 }

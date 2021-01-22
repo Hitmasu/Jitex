@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Drawing;
 using Jitex;
 using Jitex.Intercept;
@@ -33,46 +34,79 @@ namespace ConsoleApp1
 
         static void Main()
         {
-            JitexManager.AddMethodResolver(MethodResolver);
-            JitexManager.AddInterceptor(Interceptor);
+            object obj = new object();
 
-            int n1 = 1;
-            int n2 = 2;
-            int n3;
-            SumAge(ref n1, ref n2, out n3);
-            Console.WriteLine(n3);
+            unsafe
+            {
+                TypedReference tr = __makeref(obj);
+                IntPtr address = *(IntPtr*)(&tr);
+                Console.WriteLine($"Original variable address {address.ToString("X")}");
+            }
+
+            ShowMyAddress(obj);
             Console.ReadKey();
+            //JitexManager.AddMethodResolver(MethodResolver);
+            //int result = fib(10);
+            //Console.WriteLine(result);
         }
 
 
-        private static void SumAge(ref int n1, ref int n2, out int result)
+        public static void ShowMyAddress(in object obj)
         {
-            result = n1 + n2;
-        }
-
-        private static void Interceptor(CallContext context)
-        {
-            //if (context.Method.Name == nameof(SumAge))
+            //unsafe
             //{
-            //    Point p = new Point(0xFF, 0xFF);
-            //    context.Parameters.OverrideParameterValue(0, p);
+            //    TypedReference tr = __makeref(obj);
+            //    IntPtr address = *(IntPtr*) (&tr);
+            //    Console.WriteLine($"Original variable address {address.ToString("X")}");
             //}
+
+            Debugger.Break();
         }
+
+        public static int fib(int n)
+        {
+            return -9999;
+        }
+
 
         private static void MethodResolver(MethodContext context)
         {
-            if (context.Method.Name == nameof(SumAge))
+            if (context.Method.Name == nameof(fib))
             {
-                context.InterceptCall();
+                byte[] asm =
+                {
+                    0x55,
+                    0x48, 0x89, 0xe5,
+                    0x53,
+                    0x48, 0x83, 0xec, 0x18,
+                    0x89, 0x7d, 0xec,
+                    0x83, 0x7d, 0xec, 0x02,
+                    0x7f, 0x07,
+                    0xb8, 0x01, 0x00, 0x00, 0x00,
+                    0xeb, 0x1e,
+                    0x8b, 0x45, 0xec,
+                    0x83, 0xe8, 0x01,
+                    0x89, 0xc7,
+                    0xe8, 0xda, 0xff, 0xff, 0xff,
+                    0x89, 0xc3,
+                    0x8b, 0x45, 0xec,
+                    0x83, 0xe8, 0x02,
+                    0x89, 0xc7,
+                    0xe8, 0xcb, 0xff, 0xff, 0xff,
+                    0x01, 0xd8,
+                    0x48, 0x8b, 0x5d, 0xf8,
+                    0xc9,
+                    0xc3,
+                    0x55,
+                    0x48, 0x89, 0xe5,
+                    0xb8, 0x00, 0x00, 0x00,
+                    0x5d,
+                    0xc3,
+                    0x66, 0x0f, 0x1f, 0x44, 0x00, 0x00
+                };
+                context.ResolveNative(asm);
+                //context.InterceptCall();
             }
-        }
-    }
-
-    internal class Gen<T>
-    {
-        public static void Get()
-        {
-            Console.WriteLine(nameof(T));
         }
     }
 }

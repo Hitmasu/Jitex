@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using System.Reflection.Metadata;
 using System.Runtime.InteropServices;
 using Jitex.Utils;
 
@@ -61,7 +59,6 @@ namespace Jitex.Intercept
 
             return ref _parameters[index].GetValue();
         }
-
 
         /// <summary>
         /// Set value to parameter.
@@ -179,13 +176,31 @@ namespace Jitex.Intercept
     public class Parameter
     {
         private object _value;
+        private IntPtr _address;
 
         public object Value => _value;
 
         public Type Type { get; }
-        internal Type ElementType { get; }
+        internal bool IsOriginalReturn { get; set; }
 
-        public IntPtr Address { get; private set; }
+        internal IntPtr Address
+        {
+            get
+            {
+                IntPtr address;
+
+                if (_address == IntPtr.Zero)
+                    address = TypeUtils.GetAddressFromObject(ref _value);
+                else if (IsOriginalReturn)
+                    return _address;
+                else
+                    address = _address;
+
+                return TypeUtils.GetValueAddress(address, Type);
+            }
+        }
+
+        internal Type ElementType { get; }
 
         public object RealValue
         {
@@ -194,33 +209,23 @@ namespace Jitex.Intercept
                 if (Type.IsPrimitive)
                     return _value;
 
-                IntPtr address;
-
-                if (Address == IntPtr.Zero)
-                    address = TypeUtils.GetAddressFromObject(ref _value);
-                else
-                    address = Address;
-
-                if (Type.IsByRef)
-                    return address;
-
-                return Marshal.ReadIntPtr(address);
+                return Address;
             }
         }
 
         internal Parameter(IntPtr address, Type type, bool readValue = true)
         {
-            Type = type;
-            Address = address;
+            Type = type ?? throw new ArgumentNullException(nameof(type));
+            _address = address;
 
             if (readValue)
             {
                 if (type.IsByRef)
-                    ElementType = type.GetElementType();
+                    ElementType = type.GetElementType()!;
                 else
                     ElementType = type;
 
-                if (ElementType.IsPrimitive)
+                if (ElementType.IsValueType)
                     _value = Marshal.PtrToStructure(address, ElementType);
                 else
                     _value = TypeUtils.GetObjectFromReference(address);
@@ -236,12 +241,12 @@ namespace Jitex.Intercept
         internal void SetValue(ref object value)
         {
             _value = value;
-            Address = TypeUtils.GetAddressFromObject(ref _value);
+            _address = TypeUtils.GetAddressFromObject(ref _value);
         }
 
         internal void SetAddress(IntPtr address, bool readValue)
         {
-            Address = address;
+            _address = address;
 
             if (readValue)
                 _value = TypeUtils.GetObjectFromReference(address);

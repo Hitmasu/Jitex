@@ -15,9 +15,8 @@ namespace Jitex.Intercept
     /// </remarks>
     public class CallContext
     {
-        private object? _returnValue;
-
-        private IntPtr _instanceAddress;
+        private Type _returnType;
+        private Parameter? _returnValue;
         private object _instanceValue;
 
         /// <summary>
@@ -48,9 +47,7 @@ namespace Jitex.Intercept
             set
             {
                 if (value == null) throw new ArgumentNullException("Instance can not be null!");
-
                 _instanceValue = value;
-                _instanceAddress = TypeUtils.GetAddressFromObject(ref _instanceValue);
             }
         }
 
@@ -71,11 +68,13 @@ namespace Jitex.Intercept
         /// </summary>
         public object? ReturnValue
         {
-            get => _returnValue;
+            get => _returnValue?.Value;
 
             set
             {
-                _returnValue = value;
+                if (value != null)
+                    _returnValue = new Parameter(ref value, ((MethodInfo)Method).ReturnType);
+
                 ContinueCall = false;
             }
         }
@@ -84,23 +83,10 @@ namespace Jitex.Intercept
         {
             get
             {
-                MethodInfo method = (MethodInfo)Method;
-                Type returnType = method.ReturnType;
+                if (_returnValue == null)
+                    return IntPtr.Zero; ;
 
-                if (returnType.IsByRef)
-                    returnType = returnType.GetElementType()!;
-
-                if (_returnValue is IntPtr returnAddress && method.ReturnType != typeof(IntPtr))
-                    return returnAddress;
-
-                returnAddress = TypeUtils.GetAddressFromObject(ref _returnValue);
-                returnAddress = Marshal.ReadIntPtr(returnAddress);
-
-                //Is a struct without ref/out
-                if (returnType.IsValueType && !returnType.IsPrimitive)
-                    returnAddress += IntPtr.Size;
-
-                return returnAddress;
+                return _returnValue.Address;
             }
         }
 
@@ -120,7 +106,7 @@ namespace Jitex.Intercept
                     rawParameters.Add(new Parameter(_methodHandle, typeof(IntPtr), false));
 
                 if (!Method.IsStatic)
-                    rawParameters.Add(new Parameter(_instanceAddress, Method.DeclaringType));
+                    rawParameters.Add(new Parameter(ref _instanceValue, Method.DeclaringType));
 
                 if (Parameters != null && Parameters.Any())
                     rawParameters.AddRange(Parameters);
@@ -143,8 +129,8 @@ namespace Jitex.Intercept
 
             if (!Method.IsConstructor && !Method.IsStatic)
             {
-                _instanceAddress = (IntPtr)parameters[startIndex++];
-                _instanceValue = TypeUtils.GetObjectFromReference(_instanceAddress);
+                IntPtr instanceAddress = (IntPtr)parameters[startIndex++];
+                _instanceValue = TypeUtils.GetObjectFromReference(instanceAddress);
             }
 
             Parameter[] parametersInfo = new Parameter[parameters.Length - startIndex];
@@ -160,18 +146,27 @@ namespace Jitex.Intercept
             }
 
             Parameters = new Parameters(parametersInfo);
+
+            if (method is MethodInfo methodInfo)
+                _returnType = methodInfo.ReturnType;
         }
-
-        public ref object? GetRefReturnValue() => ref _returnValue;
-
-        public void SetRefReturnValue(ref object returnValue) => _returnValue = returnValue;
 
         /// <summary>
         /// Continue original call.
         /// </summary>
         internal void ContinueFlow()
         {
-            _returnValue = Call.DynamicInvoke(ParametersCall);
+            object returnValue = Call.DynamicInvoke(ParametersCall);
+
+            if (returnValue is IntPtr returnAddress)
+            {
+                _returnValue = new Parameter(returnAddress, _returnType);
+                _returnValue.IsOriginalReturn = true;
+            }
+            else
+            {
+                ReturnValue = returnValue;
+            }
         }
 
         public object? Continue()
