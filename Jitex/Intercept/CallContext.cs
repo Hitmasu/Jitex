@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -13,16 +14,19 @@ namespace Jitex.Intercept
     /// <remarks>
     /// That should contains all information necessary to continue (or not) with call.
     /// </remarks>
-    public class CallContext
+    public class CallContext : IDisposable
     {
-        private Type _returnType;
+        private readonly Type? _returnType;
         private Parameter? _returnValue;
-        private object _instanceValue;
+        private Parameter? _instanceValue;
 
         /// <summary>
         /// Generic method.
         /// </summary>
-        private readonly IntPtr _methodHandle;
+        private readonly Parameter? _methodHandle;
+
+        public bool HasInstance => !Method.IsConstructor && !Method.IsStatic;
+        public bool HasReturn => _returnType != typeof(void);
 
         /// <summary>
         /// Method source call.
@@ -43,11 +47,18 @@ namespace Jitex.Intercept
         /// </summary>
         public object? Instance
         {
-            get => _instanceValue;
+            get => HasInstance ? _instanceValue!.Value : _instanceValue;
+
             set
             {
-                if (value == null) throw new ArgumentNullException("Instance can not be null!");
-                _instanceValue = value;
+                if (!HasInstance) throw new ArgumentException($"Method {Method.Name} don't have instance.");
+
+                _instanceValue!.Dispose();
+
+                if (value == null)
+                    _instanceValue = new Parameter(IntPtr.Zero, Method.DeclaringType!);
+                else
+                    _instanceValue = new Parameter(value, Method.DeclaringType!);
             }
         }
 
@@ -59,9 +70,9 @@ namespace Jitex.Intercept
         public Parameters? Parameters { get; }
 
         /// <summary>
-        /// If Return value has been setted.
+        /// If original call should proceed.
         /// </summary>
-        public bool ContinueCall { get; set; } = true;
+        public bool ProceedCall { get; set; } = true;
 
         /// <summary>
         /// Return value of call.
@@ -72,10 +83,12 @@ namespace Jitex.Intercept
 
             set
             {
+                _returnValue?.Dispose();
+
                 if (value != null)
                     _returnValue = new Parameter(ref value, ((MethodInfo)Method).ReturnType);
 
-                ContinueCall = false;
+                ProceedCall = false;
             }
         }
 
@@ -84,9 +97,9 @@ namespace Jitex.Intercept
             get
             {
                 if (_returnValue == null)
-                    return IntPtr.Zero; ;
+                    return IntPtr.Zero;
 
-                return _returnValue.Address;
+                return _returnValue.AddressValue;
             }
         }
 
@@ -103,10 +116,10 @@ namespace Jitex.Intercept
                 List<Parameter> rawParameters = new List<Parameter>();
 
                 if (Method.IsGenericMethod)
-                    rawParameters.Add(new Parameter(_methodHandle, typeof(IntPtr), false));
+                    rawParameters.Add(_methodHandle!);
 
                 if (!Method.IsStatic)
-                    rawParameters.Add(new Parameter(ref _instanceValue, Method.DeclaringType));
+                    rawParameters.Add(_instanceValue!);
 
                 if (Parameters != null && Parameters.Any())
                     rawParameters.AddRange(Parameters);
@@ -115,9 +128,9 @@ namespace Jitex.Intercept
             }
         }
 
-        private object[] ParametersCall => RawParameters.Select(w => w.RealValue).ToArray();
+        private object[] ParametersCall => RawParameters.Select(w => w.RealValue).ToArray()!;
 
-        internal CallContext(MethodBase method, Delegate call, object[] parameters)
+        internal CallContext(MethodBase method, Delegate call, in object[] parameters)
         {
             Method = method;
             Call = call;
@@ -125,12 +138,15 @@ namespace Jitex.Intercept
             int startIndex = 0;
 
             if (Method.IsGenericMethod)
-                _methodHandle = (IntPtr)parameters[startIndex++];
+            {
+                IntPtr handle = (IntPtr)parameters[startIndex++];
+                _methodHandle = new Parameter(handle, typeof(IntPtr), false);
+            }
 
-            if (!Method.IsConstructor && !Method.IsStatic)
+            if (HasInstance)
             {
                 IntPtr instanceAddress = (IntPtr)parameters[startIndex++];
-                _instanceValue = TypeUtils.GetObjectFromReference(instanceAddress);
+                _instanceValue = new Parameter(instanceAddress, Method.DeclaringType!);
             }
 
             Parameter[] parametersInfo = new Parameter[parameters.Length - startIndex];
@@ -156,21 +172,37 @@ namespace Jitex.Intercept
         /// </summary>
         internal void ContinueFlow()
         {
-            object returnValue = Call.DynamicInvoke(ParametersCall);
-
-            if (returnValue is IntPtr returnAddress)
+            if (_returnType == typeof(void))
             {
-                _returnValue = new Parameter(returnAddress, _returnType);
-                _returnValue.IsOriginalReturn = true;
+                Call.DynamicInvoke(ParametersCall);
             }
             else
             {
-                ReturnValue = returnValue;
+                object returnValue = Call.DynamicInvoke(ParametersCall);
+
+                if (returnValue is IntPtr returnAddress)
+                {
+                    _returnValue = new Parameter(returnAddress, _returnType!, isReturnAddress: true)
+                    {
+                        IsReturnAddress = true
+                    };
+                }
+                else
+                {
+                    ReturnValue = returnValue;
+                }
             }
         }
 
         public object? Continue()
         {
+            if (_returnType == typeof(void))
+            {
+                Call.DynamicInvoke(ParametersCall);
+                ProceedCall = false;
+                return null;
+            }
+
             object returnValue = Call.DynamicInvoke(ParametersCall);
 
             if (Method is MethodInfo methodInfo)
@@ -200,7 +232,7 @@ namespace Jitex.Intercept
                     refReturn = ptrReturn;
                 }
 
-                returnValue = TypeUtils.GetObjectFromReference(refReturn);
+                returnValue = TypeHelper.GetObjectFromReference(refReturn);
 
                 return returnValue;
             }
@@ -214,14 +246,14 @@ namespace Jitex.Intercept
         /// </summary>
         /// <typeparam name="TResult">Type expected from result.</typeparam>
         /// <returns>Result from original call (Returns default on void or constructor).</returns>
-        public TResult Continue<TResult>()
+        public TResult? Continue<TResult>()
         {
             object? returnValue = Continue();
 
             if (returnValue == null)
                 return default;
 
-            return (TResult)returnValue;
+            return (TResult?)returnValue;
         }
 
         /// <summary>
@@ -230,6 +262,14 @@ namespace Jitex.Intercept
         public void DisableIntercept()
         {
             JitexManager.DisableIntercept(Method);
+        }
+
+        public void Dispose()
+        {
+            _returnValue?.Dispose();
+            _instanceValue?.Dispose();
+            _methodHandle?.Dispose();
+            Parameters?.Dispose();
         }
     }
 }

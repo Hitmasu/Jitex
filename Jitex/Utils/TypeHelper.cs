@@ -8,20 +8,32 @@ namespace Jitex.Utils
     /// <summary>
     /// Utilities for type.
     /// </summary>
-    internal static class TypeUtils
+    public static class TypeHelper
     {
         private static readonly IntPtr ObjectTypeHandle;
 
-        static TypeUtils()
+        static TypeHelper()
         {
             ObjectTypeHandle = typeof(object).TypeHandle.Value;
         }
+
         /// <summary>
         /// Get reference address from object.
         /// </summary>
         /// <param name="obj">Object to get address.</param>
         /// <returns>Reference address from object.</returns>
-        public static unsafe IntPtr GetAddressFromObject(ref object obj)
+        public static unsafe IntPtr GetReferenceFromObject(ref object obj)
+        {
+            TypedReference typeRef = __makeref(obj);
+            return *(IntPtr*)(&typeRef);
+        }
+
+        /// <summary>
+        /// Get reference address from object.
+        /// </summary>
+        /// <param name="obj">Object to get address.</param>
+        /// <returns>Reference address from object.</returns>
+        public static unsafe IntPtr GetReferenceFromObject<T>(ref T obj)
         {
             TypedReference typeRef = __makeref(obj);
             return *(IntPtr*)(&typeRef);
@@ -75,12 +87,10 @@ namespace Jitex.Utils
                 return address + IntPtr.Size;
             }
 
-            //if (elementType.IsPrimitive && type.IsByRef)
-            //    return address;
-
             if (type.IsByRef)
                 return address;
 
+            //return address;
             return Marshal.ReadIntPtr(address);
         }
     }

@@ -1,16 +1,19 @@
 ﻿using System;
+using System.Buffers;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Jitex.Utils;
 
 namespace Jitex.Intercept
 {
-    public class Parameters : IEnumerable<Parameter>
+    public class Parameters : IEnumerable<Parameter>, IDisposable
     {
         private readonly Parameter[] _parameters;
-        public object this[int index]
+
+        public object? this[int index]
         {
             get => GetParameterValue(index);
             set => SetParameterValue(index, ref value);
@@ -38,10 +41,14 @@ namespace Jitex.Intercept
         /// <typeparam name="T">Type from parameter.</typeparam>
         /// <param name="index">Index of parameter.</param>
         /// <returns>Value from parameter.</returns>
-        public T GetParameterValue<T>(int index)
+        public T? GetParameterValue<T>(int index)
         {
             ref object value = ref GetParameterValue(index);
-            return (T)value;
+
+            if (value == null)
+                return default;
+
+            return (T?)value;
         }
 
         /// <summary>
@@ -49,15 +56,10 @@ namespace Jitex.Intercept
         /// </summary>
         /// <param name="index">Index of parameter.</param>
         /// <returns>Value from parameter.</returns>
-        public ref object GetParameterValue(int index)
+        public ref object? GetParameterValue(int index)
         {
-            if (_parameters == null)
-                throw new NullReferenceException("No parameters loaded.");
-
-            if (index < 0 || index > _parameters.Length)
-                throw new ArgumentOutOfRangeException(nameof(index));
-
-            return ref _parameters[index].GetValue();
+            Parameter parameter = GetParameter(index);
+            return ref parameter.GetValue();
         }
 
         /// <summary>
@@ -67,7 +69,8 @@ namespace Jitex.Intercept
         /// <param name="value">Value to set.</param>
         public void SetParameterValue(int index, object value)
         {
-            SetParameterValue(index, ref value);
+            Parameter parameter = GetParameter(index);
+            parameter.SetValue(value);
         }
 
         /// <summary>
@@ -138,7 +141,7 @@ namespace Jitex.Intercept
 
         public void OverrideParameterValue(int index, IntPtr address)
         {
-            if (address == IntPtr.Zero) throw new ArgumentException($"Invalid address. Parameter: {nameof(address)}");
+            if (address == IntPtr.Zero) throw new ArgumentNullException(nameof(address));
 
             Parameter parameter = GetParameter(index);
 
@@ -149,7 +152,7 @@ namespace Jitex.Intercept
                 unsafe
                 {
                     Span<byte> source = new Span<byte>(address.ToPointer(), sizeType);
-                    Span<byte> dest = new Span<byte>(parameter.Address.ToPointer(), sizeType);
+                    Span<byte> dest = new Span<byte>(parameter.AddressValue.ToPointer(), sizeType);
 
                     source.CopyTo(dest);
                 }
@@ -157,7 +160,7 @@ namespace Jitex.Intercept
             else
             {
                 address = Marshal.ReadIntPtr(address);
-                Marshal.WriteIntPtr(parameter.Address, address);
+                Marshal.WriteIntPtr(parameter.AddressValue, address);
             }
 
         }
@@ -171,90 +174,207 @@ namespace Jitex.Intercept
         {
             return _parameters.GetEnumerator();
         }
+
+        public void Dispose()
+        {
+            foreach (Parameter parameter in _parameters)
+                parameter.Dispose();
+        }
     }
 
-    public class Parameter
+    /// <summary>
+    /// Information about parameter method.
+    /// </summary>
+    public class Parameter : IDisposable
     {
-        private object _value;
+        private object? _value;
         private IntPtr _address;
+        private IntPtr _addressValue;
 
-        public object Value => _value;
+        /// <summary>
+        /// Value of parameter.
+        /// </summary>
+        public object? Value => _value;
 
+        /// <summary>
+        /// Type of parameter.
+        /// </summary>
         public Type Type { get; }
-        internal bool IsOriginalReturn { get; set; }
 
-        internal IntPtr Address
+        /// <summary>
+        /// If address setted is from return original method.
+        /// </summary>
+        internal bool IsReturnAddress { get; set; }
+
+        /// <summary>
+        /// Address of parameter.
+        /// </summary>
+        internal IntPtr AddressValue
         {
             get
             {
-                IntPtr address;
+                if (_addressValue == IntPtr.Zero)
+                    return GetAddressValue();
 
-                if (_address == IntPtr.Zero)
-                    address = TypeUtils.GetAddressFromObject(ref _value);
-                else if (IsOriginalReturn)
-                    return _address;
-                else
-                    address = _address;
-
-                return TypeUtils.GetValueAddress(address, Type);
+                return _addressValue;
             }
         }
 
+        /// <summary>
+        /// "Real type" from parameter (case parameter is ByRef)
+        /// </summary>
         internal Type ElementType { get; }
 
-        public object RealValue
+        /// <summary>
+        /// Value from parameter (Address or Value)
+        /// </summary>
+        /// <remarks>
+        /// It's necessary to difference how value is passed to a method. Eg.:
+        /// ValueType -> Pass directly value to method.
+        /// ReferenceType -> Pass a IntPtr (reference address) to method.
+        /// </remarks>
+        public object? RealValue
         {
             get
             {
                 if (Type.IsPrimitive)
                     return _value;
 
-                return Address;
+                return AddressValue;
             }
         }
 
-        internal Parameter(IntPtr address, Type type, bool readValue = true)
+        /// <summary>
+        /// Create parameter from address.
+        /// </summary>
+        /// <param name="address">Address of parameter.</param>
+        /// <param name="type">Type of parameter.</param>
+        /// <param name="readValue">If value should be read.</param>
+        /// <param name="isReturnAddress">If address is a return from original method.</param>
+        internal Parameter(IntPtr address, Type type, bool readValue = true, bool isReturnAddress = false)
         {
+            IsReturnAddress = isReturnAddress;
             Type = type ?? throw new ArgumentNullException(nameof(type));
-            _address = address;
+
+            if (type.IsByRef)
+                ElementType = type.GetElementType()!;
+            else
+                ElementType = type;
+
+            //Normally, we dont should store address, because the value address can be updated (moved by GC)
+            //and stored address become outdated.
+            //But case parameter is ByRef, it's necessary store case we need modify later.
+            if(Type.IsByRef || isReturnAddress)
+                SetAddress(address);
 
             if (readValue)
             {
-                if (type.IsByRef)
-                    ElementType = type.GetElementType()!;
-                else
-                    ElementType = type;
-
-                if (ElementType.IsValueType)
+                if (address == IntPtr.Zero)
+                    _value = null;
+                else if (ElementType.IsValueType)
                     _value = Marshal.PtrToStructure(address, ElementType);
                 else
-                    _value = TypeUtils.GetObjectFromReference(address);
+                    _value = TypeHelper.GetObjectFromReference(address);
             }
         }
 
+        /// <summary>
+        /// Create parameter from ref value.
+        /// </summary>
+        /// <param name="value">Value of parameter.</param>
+        /// <param name="type">Type of parameter.</param>
         internal Parameter(ref object value, Type type)
         {
             _value = value;
             Type = type;
         }
 
+        /// <summary>
+        /// Create parameter from value.
+        /// </summary>
+        /// <param name="value">Value of parameter.</param>
+        /// <param name="type">Type of parameter.</param>
+        internal Parameter(object value, Type type) : this(ref value, type) { }
+        
+        internal void SetValue(object value)
+        {
+            _value = value;
+            SetAddress(IntPtr.Zero);
+        }
+
         internal void SetValue(ref object value)
         {
             _value = value;
-            _address = TypeUtils.GetAddressFromObject(ref _value);
+            IntPtr address = TypeHelper.GetReferenceFromObject(ref _value);
+            SetAddress(address);
         }
 
         internal void SetAddress(IntPtr address, bool readValue)
         {
-            _address = address;
+            SetAddress(address);
 
             if (readValue)
-                _value = TypeUtils.GetObjectFromReference(address);
+                _value = TypeHelper.GetObjectFromReference(address);
         }
 
-        internal ref object GetValue()
+        /// <summary>
+        /// Read "real address" from parameter.
+        /// </summary>
+        /// <remarks>
+        /// A address from parameter have some difference, Eg.:
+        /// ValueType is passed a value address directly
+        /// ReferenceType is passed a reference address which pointer to a value address.
+        /// </remarks>
+        /// <returns>Return RealAddress from parameter.</returns>
+        private IntPtr GetAddressValue()
+        {
+            IntPtr address;
+
+            if (_address == IntPtr.Zero)
+            {
+                if (_value == null)
+                    return IntPtr.Zero;
+
+                address = TypeHelper.GetReferenceFromObject(ref _value);
+            }
+            else if (IsReturnAddress)
+            {
+                if (Type.IsValueType)
+                    address = _address - IntPtr.Size;
+                else
+                    address = _address;
+
+                return address;
+            }
+            else
+            {
+                address = _address;
+            }
+
+            return TypeHelper.GetValueAddress(address, Type);
+        }
+
+        /// <summary>
+        /// Set address to parameter.
+        /// </summary>
+        /// <param name="address">Address to set.</param>
+        private void SetAddress(IntPtr address)
+        {
+            _address = address;
+
+            IntPtr addressValue = GetAddressValue();
+
+            _addressValue = addressValue;
+        }
+
+        internal ref object? GetValue()
         {
             return ref _value;
+        }
+
+        public void Dispose()
+        {
+            _value = null;
         }
     }
 }

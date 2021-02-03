@@ -397,7 +397,7 @@ namespace Jitex.Tests.Intercept
         private ref InterceptPerson CreatePerson(string name, int age)
         {
             AddMethodCall(nameof(CreatePerson));
-            _person = new(name, age);
+            _person = new InterceptPerson(name, age);
             return ref _person;
         }
 
@@ -511,7 +511,7 @@ namespace Jitex.Tests.Intercept
                 int result = newN1 + newN2;
 
                 context.Parameters.OverrideParameterValue(2, result);
-                context.ContinueCall = false;
+                context.ProceedCall = false;
             }
             else if (testSource.Name == nameof(ModifyRefValueTypeReturn) && context.Method.Name == nameof(CreatePoint))
             {
