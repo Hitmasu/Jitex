@@ -18,6 +18,7 @@ namespace Jitex.Intercept
         public MethodBase Method { get; }
 
         private static readonly MethodInfo InterceptCall;
+        private static readonly MethodInfo CallDispose;
         private static readonly ConstructorInfo ObjectCtor;
         private static readonly ConstructorInfo ConstructorCallManager;
         private static readonly ConstructorInfo ConstructorIntPtrLong;
@@ -25,9 +26,10 @@ namespace Jitex.Intercept
         static InterceptBuilder()
         {
             ObjectCtor = typeof(object).GetConstructor(Type.EmptyTypes)!;
-            ConstructorCallManager = typeof(CallManager).GetConstructor(new[] { typeof(IntPtr), typeof(object[]).MakeByRefType(),typeof(bool) })!;
+            ConstructorCallManager = typeof(CallManager).GetConstructor(new[] { typeof(IntPtr), typeof(object[]).MakeByRefType(), typeof(bool) })!;
             InterceptCall = typeof(CallManager).GetMethod(nameof(CallManager.InterceptCall), BindingFlags.Public | BindingFlags.Instance)!;
             ConstructorIntPtrLong = typeof(IntPtr).GetConstructor(new[] { typeof(long) })!;
+            CallDispose = typeof(CallManager).GetMethod(nameof(CallManager.Dispose), BindingFlags.Public | BindingFlags.Instance)!;
         }
 
         /// <summary>
@@ -96,6 +98,8 @@ namespace Jitex.Intercept
         {
             int totalArgs = parameters.Count();
 
+            LocalBuilder lastLocalVariable;
+
             if (Method.IsConstructor && !Method.IsStatic)
             {
                 generator.Emit(OpCodes.Ldarg_0);
@@ -104,7 +108,7 @@ namespace Jitex.Intercept
 
             if (totalArgs > 0)
             {
-                generator.DeclareLocal(typeof(object[]));
+                lastLocalVariable = generator.DeclareLocal(typeof(object[]));
 
                 bool typerefDeclared = false;
 
@@ -120,7 +124,7 @@ namespace Jitex.Intercept
 
                     if (!typerefDeclared)
                     {
-                        generator.DeclareLocal(typeof(TypedReference));
+                        lastLocalVariable = generator.DeclareLocal(typeof(TypedReference));
                         typerefDeclared = true;
                     }
 
@@ -154,6 +158,8 @@ namespace Jitex.Intercept
                 generator.Emit(OpCodes.Ldnull);
             }
 
+            lastLocalVariable = generator.DeclareLocal(typeof(IntPtr));
+
             generator.Emit(OpCodes.Ldc_I8, Method.MethodHandle.Value.ToInt64());
             generator.Emit(OpCodes.Newobj, ConstructorIntPtrLong);
 
@@ -165,11 +171,22 @@ namespace Jitex.Intercept
                 generator.Emit(OpCodes.Ldc_I4_0);
 
             generator.Emit(OpCodes.Newobj, ConstructorCallManager);
+            generator.Emit(OpCodes.Dup);
             generator.Emit(OpCodes.Call, InterceptCall);
 
             if (returnType == typeof(void))
+            {
                 generator.Emit(OpCodes.Pop);
-            else if (returnType.IsValueType)
+                generator.Emit(OpCodes.Call, CallDispose);
+            }
+            else
+            {
+                generator.Emit(OpCodes.Stloc_S, lastLocalVariable.LocalIndex);
+                generator.Emit(OpCodes.Call, CallDispose);
+                generator.Emit(OpCodes.Ldloc_S, lastLocalVariable.LocalIndex);
+            }
+
+            if (returnType != typeof(void) && returnType.IsValueType)
                 generator.Emit(OpCodes.Unbox_Any, returnType);
 
             generator.Emit(OpCodes.Ret);
