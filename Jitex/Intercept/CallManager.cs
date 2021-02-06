@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Threading.Tasks;
 using Jitex.Exceptions;
 using Jitex.JIT.Context;
 using Jitex.Utils;
@@ -37,10 +38,10 @@ namespace Jitex.Intercept
             _context = new CallContext(cache.Method, cache.Delegate, parameters);
         }
 
-        public IntPtr InterceptCall()
+        public async ValueTask<IntPtr> InterceptCall()
         {
-            foreach (InterceptHandler.InterceptorHandler interceptor in InterceptManager.GetInterceptors())
-                interceptor(_context);
+            foreach (InterceptHandler.InterceptorAsyncHandler interceptor in InterceptManager.GetInterceptorsAsync())
+                await interceptor(_context).ConfigureAwait(false);
 
             if (_context.ProceedCall)
                 _context.ContinueFlow();

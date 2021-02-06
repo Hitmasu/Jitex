@@ -4,6 +4,10 @@ using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
+using Jitex.Utils;
+using Jitex.Utils.Extension;
 
 namespace Jitex.Intercept
 {
@@ -18,7 +22,11 @@ namespace Jitex.Intercept
         public MethodBase Method { get; }
 
         private static readonly MethodInfo InterceptCall;
+        private static readonly MethodInfo InterceptCallAsync;
+        private static readonly MethodInfo GetAwaiter;
+        private static readonly MethodInfo GetResult;
         private static readonly MethodInfo CallDispose;
+        private static readonly MethodInfo GetReferenceFromTypedReference;
         private static readonly ConstructorInfo ObjectCtor;
         private static readonly ConstructorInfo ConstructorCallManager;
         private static readonly ConstructorInfo ConstructorIntPtrLong;
@@ -26,10 +34,14 @@ namespace Jitex.Intercept
         static InterceptBuilder()
         {
             ObjectCtor = typeof(object).GetConstructor(Type.EmptyTypes)!;
+            GetAwaiter = typeof(Task<object>).GetMethod(nameof(Task<object>.GetAwaiter), BindingFlags.Public | BindingFlags.Instance)!;
+            GetResult = typeof(TaskAwaiter<object>).GetMethod(nameof(TaskAwaiter<object>.GetResult), BindingFlags.Public | BindingFlags.Instance)!;
             ConstructorCallManager = typeof(CallManager).GetConstructor(new[] { typeof(IntPtr), typeof(object[]).MakeByRefType(), typeof(bool) })!;
             InterceptCall = typeof(CallManager).GetMethod(nameof(CallManager.InterceptCall), BindingFlags.Public | BindingFlags.Instance)!;
+            InterceptCallAsync = typeof(CallManager).GetMethod(nameof(CallManager.InterceptCallAsync), BindingFlags.Public | BindingFlags.Instance)!;
             ConstructorIntPtrLong = typeof(IntPtr).GetConstructor(new[] { typeof(long) })!;
             CallDispose = typeof(CallManager).GetMethod(nameof(CallManager.Dispose), BindingFlags.Public | BindingFlags.Instance)!;
+            GetReferenceFromTypedReference = typeof(TypeHelper).GetMethod(nameof(TypeHelper.GetReferenceFromTypedReference))!;
         }
 
         /// <summary>
@@ -86,19 +98,13 @@ namespace Jitex.Intercept
         ///    object[] args = new object[args.length];
         ///    object[0] = this
         ///    object[1] = args[1]
-        ///    ...
-        ///
-        ///    Type[] genericMethodArgs...
-        ///    Type[] genericTypeArgs...
-        ///
-        ///    return InterceptCall(handle,args,genericTypeArgs,genericMethodArgs);
+        ///    ....
+        ///    return InterceptCall();
         /// }
         /// </remarks>
         private void BuildBody(ILGenerator generator, IEnumerable<Type> parameters, Type returnType)
         {
             int totalArgs = parameters.Count();
-
-            LocalBuilder lastLocalVariable;
 
             if (Method.IsConstructor && !Method.IsStatic)
             {
@@ -106,12 +112,11 @@ namespace Jitex.Intercept
                 generator.Emit(OpCodes.Call, ObjectCtor);
             }
 
+
+            generator.DeclareLocal(typeof(object[]));
+
             if (totalArgs > 0)
             {
-                lastLocalVariable = generator.DeclareLocal(typeof(object[]));
-
-                bool typerefDeclared = false;
-
                 generator.Emit(OpCodes.Ldc_I4, totalArgs);
                 generator.Emit(OpCodes.Newarr, typeof(object));
                 generator.Emit(OpCodes.Stloc_0);
@@ -120,20 +125,15 @@ namespace Jitex.Intercept
 
                 foreach (Type parameterType in parameters)
                 {
-                    Type type = parameterType;
+                    generator.Emit(OpCodes.Ldloc_0);
+                    generator.Emit(OpCodes.Ldc_I4, argIndex);
 
-                    if (!typerefDeclared)
-                    {
-                        lastLocalVariable = generator.DeclareLocal(typeof(TypedReference));
-                        typerefDeclared = true;
-                    }
+                    Type type = parameterType;
 
                     if (type.IsByRef)
                     {
                         generator.Emit(OpCodes.Ldarg_S, argIndex);
-
                         type = type.GetElementType()!;
-                        Debug.Assert(type != null);
                     }
                     else
                     {
@@ -141,12 +141,7 @@ namespace Jitex.Intercept
                     }
 
                     generator.Emit(OpCodes.Mkrefany, type);
-                    generator.Emit(OpCodes.Stloc_1);
-                    generator.Emit(OpCodes.Ldloc_0);
-                    generator.Emit(OpCodes.Ldc_I4, argIndex);
-                    generator.Emit(OpCodes.Ldloca_S, 1);
-                    generator.Emit(OpCodes.Conv_U);
-                    generator.Emit(OpCodes.Ldind_I);
+                    generator.Emit(OpCodes.Call, GetReferenceFromTypedReference);
                     generator.Emit(OpCodes.Box, typeof(IntPtr));
                     generator.Emit(OpCodes.Stelem_Ref);
 
@@ -156,9 +151,11 @@ namespace Jitex.Intercept
             else
             {
                 generator.Emit(OpCodes.Ldnull);
+                generator.Emit(OpCodes.Stloc_0);
             }
 
-            lastLocalVariable = generator.DeclareLocal(typeof(IntPtr));
+            LocalBuilder retVariable = generator.DeclareLocal(typeof(IntPtr));
+            LocalBuilder awaiterVariable = generator.DeclareLocal(typeof(TaskAwaiter<object>));
 
             generator.Emit(OpCodes.Ldc_I8, Method.MethodHandle.Value.ToInt64());
             generator.Emit(OpCodes.Newobj, ConstructorIntPtrLong);
@@ -172,22 +169,42 @@ namespace Jitex.Intercept
 
             generator.Emit(OpCodes.Newobj, ConstructorCallManager);
             generator.Emit(OpCodes.Dup);
-            generator.Emit(OpCodes.Call, InterceptCall);
 
-            if (returnType == typeof(void))
+            if (Method.IsAwaitable())
             {
-                generator.Emit(OpCodes.Pop);
+                Type retTaskType = returnType.GetGenericArguments().First();
+                MethodInfo fromResult = typeof(Task).GetMethod(nameof(Task.FromResult))!.MakeGenericMethod(retTaskType);
+
+                generator.Emit(OpCodes.Call, InterceptCallAsync);
+                generator.Emit(OpCodes.Call, GetAwaiter);
+
+                generator.Emit(OpCodes.Stloc_S, awaiterVariable.LocalIndex);
+                generator.Emit(OpCodes.Ldloca_S, awaiterVariable.LocalIndex);
+                generator.Emit(OpCodes.Call, GetResult);
+                generator.Emit(OpCodes.Stloc_S, retVariable.LocalIndex);
                 generator.Emit(OpCodes.Call, CallDispose);
+                generator.Emit(OpCodes.Ldloc_S, retVariable.LocalIndex);
+                generator.Emit(OpCodes.Call, fromResult);
             }
             else
             {
-                generator.Emit(OpCodes.Stloc_S, lastLocalVariable.LocalIndex);
-                generator.Emit(OpCodes.Call, CallDispose);
-                generator.Emit(OpCodes.Ldloc_S, lastLocalVariable.LocalIndex);
-            }
+                generator.Emit(OpCodes.Call, InterceptCall);
 
-            if (returnType != typeof(void) && returnType.IsValueType)
-                generator.Emit(OpCodes.Unbox_Any, returnType);
+                if (returnType == typeof(void))
+                {
+                    generator.Emit(OpCodes.Pop);
+                    generator.Emit(OpCodes.Call, CallDispose);
+                }
+                else
+                {
+                    generator.Emit(OpCodes.Stloc_S, retVariable.LocalIndex);
+                    generator.Emit(OpCodes.Call, CallDispose);
+                    generator.Emit(OpCodes.Ldloc_S, retVariable.LocalIndex);
+                }
+
+                if (returnType != typeof(void) && returnType.IsValueType)
+                    generator.Emit(OpCodes.Unbox_Any, returnType);
+            }
 
             generator.Emit(OpCodes.Ret);
         }

@@ -13,8 +13,6 @@ namespace Jitex.Utils
         private static readonly MethodInfo GetMethodBase;
         private static readonly Type CanonType;
         private static readonly MethodInfo GetMethodDescriptorInfo;
-
-
         static MethodHelper()
         {
             CanonType = Type.GetType("System.__Canon");

@@ -8,7 +8,7 @@ namespace Jitex.Utils
     /// <summary>
     /// Utilities for type.
     /// </summary>
-    public static class TypeHelper
+    internal static class TypeHelper
     {
         private static readonly IntPtr ObjectTypeHandle;
 
@@ -18,6 +18,16 @@ namespace Jitex.Utils
         }
 
         /// <summary>
+        /// Get reference address from a TypedReference.
+        /// </summary>
+        /// <remarks>
+        /// That is usefull in async methods (where we can't declare TypedReference).
+        /// </remarks>
+        /// <param name="typeRef">Reference to get address.</param>
+        /// <returns>Reference address from TypedReference.</returns>
+        public static unsafe IntPtr GetReferenceFromTypedReference(TypedReference typeRef) => *(IntPtr*) &typeRef;
+
+        /// <summary>
         /// Get reference address from object.
         /// </summary>
         /// <param name="obj">Object to get address.</param>
@@ -25,7 +35,7 @@ namespace Jitex.Utils
         public static unsafe IntPtr GetReferenceFromObject(ref object obj)
         {
             TypedReference typeRef = __makeref(obj);
-            return *(IntPtr*)(&typeRef);
+            return *(IntPtr*)&typeRef;
         }
 
         /// <summary>
@@ -36,7 +46,7 @@ namespace Jitex.Utils
         public static unsafe IntPtr GetReferenceFromObject<T>(ref T obj)
         {
             TypedReference typeRef = __makeref(obj);
-            return *(IntPtr*)(&typeRef);
+            return *(IntPtr*)&typeRef;
         }
 
         /// <summary>

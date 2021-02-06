@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using Jitex.Utils;
+using Jitex.Utils.Extension;
 
 namespace Jitex.Intercept
 {
@@ -74,6 +75,8 @@ namespace Jitex.Intercept
         /// </summary>
         public bool ProceedCall { get; set; } = true;
 
+        public bool IsAwaitable { get; }
+
         /// <summary>
         /// Return value of call.
         /// </summary>
@@ -134,6 +137,7 @@ namespace Jitex.Intercept
         {
             Method = method;
             Call = call;
+            IsAwaitable = method.IsAwaitable();
 
             int startIndex = 0;
 
@@ -179,7 +183,6 @@ namespace Jitex.Intercept
             else
             {
                 object returnValue = Call.DynamicInvoke(ParametersCall);
-
                 if (returnValue is IntPtr returnAddress)
                 {
                     _returnValue = new Parameter(returnAddress, _returnType!, isReturnAddress: true)
@@ -204,7 +207,59 @@ namespace Jitex.Intercept
             }
 
             object returnValue = Call.DynamicInvoke(ParametersCall);
+            ProceedCall = false;
+            return CreateReturnValue(ref returnValue);
+        }
 
+        public async Task<object?> ContinueAsync()
+        {
+            if (!IsAwaitable)
+                return Continue();
+
+            if (_returnType == typeof(void))
+            {
+                await ((Task)Call.DynamicInvoke(ParametersCall)).ConfigureAwait(false);
+                ProceedCall = false;
+                return null;
+            }
+
+            object returnValue = await ((Task<object>)Call.DynamicInvoke(ParametersCall)).ConfigureAwait(false);
+            ProceedCall = false;
+            return CreateReturnValue(ref returnValue);
+        }
+
+        /// <summary>
+        /// Continue original call and retrieve result.
+        /// </summary>
+        /// <typeparam name="TResult">Type expected from result.</typeparam>
+        /// <returns>Result from original call (Returns default on void or constructor).</returns>
+        public TResult? Continue<TResult>()
+        {
+            object? returnValue = Continue();
+
+            if (returnValue == null)
+                return default;
+
+            return (TResult?)returnValue;
+        }
+
+        /// <summary>
+        /// Continue original call and retrieve result.
+        /// </summary>
+        /// <typeparam name="TResult">Type expected from result.</typeparam>
+        /// <returns>Result from original call (Returns default on void or constructor).</returns>
+        public async ValueTask<TResult?> ContinueAsync<TResult>()
+        {
+            object? returnValue = await ContinueAsync();
+
+            if (returnValue == null)
+                return default;
+
+            return (TResult?)returnValue;
+        }
+
+        private object CreateReturnValue(ref object returnValue)
+        {
             if (Method is MethodInfo methodInfo)
             {
                 Type returnType = methodInfo.ReturnType;
@@ -237,23 +292,7 @@ namespace Jitex.Intercept
                 return returnValue;
             }
 
-            //It's a constructor
             return default;
-        }
-
-        /// <summary>
-        /// Continue original call and retrieve result.
-        /// </summary>
-        /// <typeparam name="TResult">Type expected from result.</typeparam>
-        /// <returns>Result from original call (Returns default on void or constructor).</returns>
-        public TResult? Continue<TResult>()
-        {
-            object? returnValue = Continue();
-
-            if (returnValue == null)
-                return default;
-
-            return (TResult?)returnValue;
         }
 
         /// <summary>
