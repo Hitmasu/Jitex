@@ -8,7 +8,7 @@ namespace Jitex.Utils
     /// <summary>
     /// Utilities for type.
     /// </summary>
-    internal static class TypeHelper
+    public static class TypeHelper
     {
         private static readonly IntPtr ObjectTypeHandle;
 
@@ -25,7 +25,7 @@ namespace Jitex.Utils
         /// </remarks>
         /// <param name="typeRef">Reference to get address.</param>
         /// <returns>Reference address from TypedReference.</returns>
-        public static unsafe IntPtr GetReferenceFromTypedReference(TypedReference typeRef) => *(IntPtr*) &typeRef;
+        public static unsafe IntPtr GetReferenceFromTypedReference(TypedReference typeRef) => *(IntPtr*)&typeRef;
 
         /// <summary>
         /// Get reference address from object.
@@ -49,15 +49,31 @@ namespace Jitex.Utils
             return *(IntPtr*)&typeRef;
         }
 
+        public static object GetObjectFromReference(IntPtr address)
+        {
+            return GetObjectFromReference(address, ObjectTypeHandle);
+        }
+
         /// <summary>
         /// Get object from a reference address.
         /// </summary>
         /// <param name="address">Reference address.</param>
         /// <returns>Object from reference.</returns>
-        ///
-        ///Created by: IllidanS4
-        ///https://github.com/IllidanS4/SharpUtils/blob/a3b4da490537e361e6a5debc873c303023d83bf1/Unsafe/Pointer.cs#L58
-        public static object GetObjectFromReference(IntPtr address)
+        public static T GetObjectFromReference<T>(IntPtr address)
+        {
+            return (T)GetObjectFromReference(address, typeof(T).TypeHandle.Value);
+        }
+
+        /// <summary>
+        /// Get object from a reference address.
+        /// </summary>
+        /// <param name="address">Reference address.</param>
+        /// <param name="typeHandle">Type handle.</param>
+        /// <returns>Object from reference.</returns>
+        /// 
+        /// Created by: IllidanS4
+        /// https://github.com/IllidanS4/SharpUtils/blob/a3b4da490537e361e6a5debc873c303023d83bf1/Unsafe/Pointer.cs#L58
+        public static object GetObjectFromReference(IntPtr address, IntPtr typeHandle)
         {
             TypedReference tr = default;
             Span<IntPtr> spanTr;
@@ -69,8 +85,37 @@ namespace Jitex.Utils
 
             spanTr[0] = address;
             spanTr[1] = ObjectTypeHandle;
-
+            var l =  __refvalue(tr, object);
             return __refvalue(tr, object);
+        }
+
+        public static Type GetTypeFromHandle(IntPtr handle)
+        {
+            TypedReference tr = default;
+            Span<IntPtr> spanTr;
+
+            unsafe
+            {
+                spanTr = new Span<IntPtr>(&tr, sizeof(TypedReference));
+            }
+
+            spanTr[1] = handle;
+
+            return __reftype(tr);
+        }
+
+        /// <summary>
+        /// Get real type handle from type.
+        /// </summary>
+        /// <remarks>
+        /// Some value types returned from method, has type different from MethodInfo.ReturnType.
+        /// Eg.: A method which return a Task, the value returned is a Task<TaskVoidResult>.
+        /// </remarks>
+        /// <param name="type">Type to get handle.</param>
+        /// <returns></returns>
+        private static IntPtr GetRealTypeHandle(Type type)
+        {
+            return type.TypeHandle.Value;
         }
 
         public static IntPtr GetValueAddress(IntPtr address, Type type)

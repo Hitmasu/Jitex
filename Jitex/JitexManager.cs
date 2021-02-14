@@ -135,29 +135,34 @@ namespace Jitex
             return ModulesLoaded.TryGetValue(typeModule, out JitexModule module) && module.IsLoaded;
         }
 
-        public static void AddInterceptor(InterceptHandler.InterceptorAsyncHandler interceptorCallAsync)
+        public static void AddInterceptor(InterceptHandler.InterceptorHandler interceptorCall)
         {
-            InterceptManager.AddInterceptorCall(interceptorCallAsync);
+            lock (CallInterceptorLock)
+                InterceptManager.AddInterceptorCall(interceptorCall);
         }
 
-        public static void RemoveInterceptor(InterceptHandler.InterceptorAsyncHandler interceptorCallAsync)
+        public static void RemoveInterceptor(InterceptHandler.InterceptorHandler interceptorCall)
         {
-            InterceptManager.RemoveInterceptorCall(interceptorCallAsync);
+            lock (CallInterceptorLock)
+                InterceptManager.RemoveInterceptorCall(interceptorCall);
         }
 
-        public static bool HasInterceptor(InterceptHandler.InterceptorAsyncHandler interceptorCallAsync)
+        public static bool HasInterceptor(InterceptHandler.InterceptorHandler interceptorCall)
         {
-            return InterceptManager.HasInteceptorCall(interceptorCallAsync);
+            lock (CallInterceptorLock)
+                return InterceptManager.HasInteceptorCall(interceptorCall);
         }
 
         public static void EnableIntercept(System.Reflection.MethodBase method)
         {
-            InterceptManager.EnableIntercept(method);
+            lock (CallInterceptorLock)
+                InterceptManager.EnableIntercept(method);
         }
 
         public static void DisableIntercept(System.Reflection.MethodBase method)
         {
-            InterceptManager.RemoveIntercept(method);
+            lock (CallInterceptorLock)
+                InterceptManager.RemoveIntercept(method);
         }
 
         /// <summary>

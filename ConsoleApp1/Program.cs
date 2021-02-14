@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Jitex;
@@ -11,46 +12,24 @@ using Jitex.Utils;
 
 namespace ConsoleApp1
 {
-
-    public class InterceptPerson
-    {
-        private string _name;
-        public int Age { get; set; }
-
-        public InterceptPerson()
-        {
-
-        }
-        public InterceptPerson(string name)
-        {
-            _name = name;
-        }
-
-        public ref string GetName()
-        {
-            return ref _name;
-        }
-    }
-
     class Program
     {
         static async Task Main()
         {
             JitexManager.AddMethodResolver(MethodResolver);
             JitexManager.AddInterceptor(InterceptorAsyncCall);
-            await Teste(10).ConfigureAwait(false);
-            Debugger.Break();
+            await Teste(10);
         }
 
         private static async ValueTask InterceptorAsyncCall(CallContext context)
         {
+            context.Parameters!.SetParameterValue(0,999);
             await context.ContinueAsync();
-            Debugger.Break();
         }
 
-        public static async Task<object> Teste(int a)
+        public static async Task Teste(int a)
         {
-            return Task.FromResult(new object());
+            Console.WriteLine(a);
         }
 
         private static void MethodResolver(MethodContext context)

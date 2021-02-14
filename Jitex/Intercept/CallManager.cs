@@ -38,9 +38,9 @@ namespace Jitex.Intercept
             _context = new CallContext(cache.Method, cache.Delegate, parameters);
         }
 
-        public async ValueTask<IntPtr> InterceptCall()
+        public async ValueTask<IntPtr> InterceptCallAsync()
         {
-            foreach (InterceptHandler.InterceptorAsyncHandler interceptor in InterceptManager.GetInterceptorsAsync())
+            foreach (InterceptHandler.InterceptorHandler interceptor in InterceptManager.GetInterceptorsAsync())
                 await interceptor(_context).ConfigureAwait(false);
 
             if (_context.ProceedCall)

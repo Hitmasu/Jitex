@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Jitex.Utils;
@@ -216,16 +218,17 @@ namespace Jitex.Intercept
             if (!IsAwaitable)
                 return Continue();
 
-            if (_returnType == typeof(void))
+            Task task = Continue<Task>()!;
+            ProceedCall = false;
+
+            if (_returnType.IsGenericType)
             {
-                await ((Task)Call.DynamicInvoke(ParametersCall)).ConfigureAwait(false);
-                ProceedCall = false;
-                return null;
+                object result = await ((Task<object>)task).ConfigureAwait(false);
+                return result;
             }
 
-            object returnValue = await ((Task<object>)Call.DynamicInvoke(ParametersCall)).ConfigureAwait(false);
-            ProceedCall = false;
-            return CreateReturnValue(ref returnValue);
+            await task.ConfigureAwait(false);
+            return null;
         }
 
         /// <summary>
@@ -268,14 +271,12 @@ namespace Jitex.Intercept
                     return default;
 
                 if (returnType.IsValueType)
-                {
                     return returnValue;
-                }
 
                 IntPtr ptrReturn = (IntPtr)returnValue; //Address of instance/Value is returned.
                 IntPtr refReturn;
 
-                if (Marshal.ReadIntPtr(ptrReturn) == methodInfo.ReturnType.TypeHandle.Value)
+                if (returnType == typeof(Task) || Marshal.ReadIntPtr(ptrReturn) == returnType.TypeHandle.Value)
                 {
                     unsafe
                     {
