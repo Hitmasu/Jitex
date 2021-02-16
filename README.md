@@ -330,7 +330,7 @@ Replace methods was an idea to increase performance in .NET Applications. Search
 
 ## Support
 
-[![](.\Support\jetbrains.png)](https://www.jetbrains.com/?from=Jitex)
+[![](/Support/jetbrains.svg)](https://www.jetbrains.com/?from=Jitex)
 
 
 
