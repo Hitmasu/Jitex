@@ -1,11 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Reflection;
-using System.Threading.Tasks;
-using Jitex.Exceptions;
+﻿using Jitex.Exceptions;
 using Jitex.JIT.Context;
 using Jitex.Utils;
 using Jitex.Utils.Comparer;
+using System;
+using System.Collections.Generic;
+using System.Reflection;
+using System.Threading.Tasks;
 
 namespace Jitex.Intercept
 {
@@ -38,15 +38,29 @@ namespace Jitex.Intercept
             _context = new CallContext(cache.Method, cache.Delegate, parameters);
         }
 
-        public async ValueTask<IntPtr> InterceptCallAsync()
+        public async Task<IntPtr> InterceptCallAsync()
         {
             foreach (InterceptHandler.InterceptorHandler interceptor in InterceptManager.GetInterceptorsAsync())
                 await interceptor(_context).ConfigureAwait(false);
 
             if (_context.ProceedCall)
-                _context.ContinueFlow();
+                await _context.ContinueFlowAsync().ConfigureAwait(false);
 
-            return _context.HasReturn ? _context.ReturnAddress : IntPtr.Zero;
+            return _context.HasReturn ? _context.ReturnAddress + 8 : IntPtr.Zero;
+        }
+
+        public async Task<TResult?> InterceptCallAsync<TResult>()
+        {
+            foreach (InterceptHandler.InterceptorHandler interceptor in InterceptManager.GetInterceptorsAsync())
+                await interceptor(_context).ConfigureAwait(false);
+
+            if (_context.ProceedCall)
+                await _context.ContinueFlowAsync().ConfigureAwait(false);
+
+            if (_context.HasReturn && _context.ReturnValue != null)
+                return (TResult)_context.ReturnValue;
+
+            return default;
         }
 
         public void Dispose()

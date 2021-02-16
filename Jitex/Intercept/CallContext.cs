@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Jitex.Utils;
@@ -19,6 +17,7 @@ namespace Jitex.Intercept
     /// </remarks>
     public class CallContext : IDisposable
     {
+        private readonly int _sizeType;
         private readonly Type? _returnType;
         private Parameter? _returnValue;
         private Parameter? _instanceValue;
@@ -170,7 +169,13 @@ namespace Jitex.Intercept
             Parameters = new Parameters(parametersInfo);
 
             if (method is MethodInfo methodInfo)
+            {
                 _returnType = methodInfo.ReturnType;
+
+                if (_returnType.IsValueType)
+                    _sizeType = Marshal.SizeOf(_returnType);
+            }
+
         }
 
         /// <summary>
@@ -185,6 +190,61 @@ namespace Jitex.Intercept
             else
             {
                 object returnValue = Call.DynamicInvoke(ParametersCall);
+
+                if (returnValue is IntPtr returnAddress)
+                {
+                    if (_returnType!.IsValueType)
+                    {
+                        if (_sizeType <= IntPtr.Size)
+                        {
+                            IntPtr reference = TypeHelper.GetReferenceFromTypedReference(__makeref(returnValue));
+                            IntPtr valueAddress;
+
+                            unsafe
+                            {
+                                valueAddress = *(IntPtr*)reference;
+                                valueAddress += IntPtr.Size;
+                            }
+
+                            returnAddress = valueAddress;
+                        }
+                        else
+                        {
+                            returnAddress += IntPtr.Size;
+                        }
+                    }
+
+                    _returnValue = new Parameter(returnAddress, _returnType, isReturnAddress: true)
+                    {
+                        IsReturnAddress = true
+                    };
+                }
+                else
+                {
+                    ReturnValue = returnValue;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Continue original call.
+        /// </summary>
+        internal async ValueTask ContinueFlowAsync()
+        {
+            if (!IsAwaitable)
+            {
+                ContinueFlow();
+                return;
+            }
+
+            if (_returnType == typeof(Task))
+            {
+                await (Task)Call.DynamicInvoke(ParametersCall);
+            }
+            else
+            {
+                object returnValue = (await ContinueAsync().ConfigureAwait(false))!;
+
                 if (returnValue is IntPtr returnAddress)
                 {
                     _returnValue = new Parameter(returnAddress, _returnType!, isReturnAddress: true)
@@ -221,10 +281,13 @@ namespace Jitex.Intercept
             Task task = Continue<Task>()!;
             ProceedCall = false;
 
-            if (_returnType.IsGenericType)
+            if (_returnType!.IsGenericType)
             {
-                object result = await ((Task<object>)task).ConfigureAwait(false);
-                return result;
+                await task.ConfigureAwait(false);
+
+                Type taskGeneric = typeof(Task<>).MakeGenericType(_returnType.GetGenericArguments().First());
+                PropertyInfo getResult = taskGeneric.GetProperty("Result")!;
+                return getResult.GetValue(task);
             }
 
             await task.ConfigureAwait(false);
@@ -289,7 +352,6 @@ namespace Jitex.Intercept
                 }
 
                 returnValue = TypeHelper.GetObjectFromReference(refReturn);
-
                 return returnValue;
             }
 

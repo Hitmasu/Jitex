@@ -104,20 +104,6 @@ namespace Jitex.Utils
             return __reftype(tr);
         }
 
-        /// <summary>
-        /// Get real type handle from type.
-        /// </summary>
-        /// <remarks>
-        /// Some value types returned from method, has type different from MethodInfo.ReturnType.
-        /// Eg.: A method which return a Task, the value returned is a Task<TaskVoidResult>.
-        /// </remarks>
-        /// <param name="type">Type to get handle.</param>
-        /// <returns></returns>
-        private static IntPtr GetRealTypeHandle(Type type)
-        {
-            return type.TypeHandle.Value;
-        }
-
         public static IntPtr GetValueAddress(IntPtr address, Type type)
         {
             Type elementType;

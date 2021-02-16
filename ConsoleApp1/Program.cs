@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
-using System.Reflection;
-using System.Runtime.CompilerServices;
+using System.Drawing;
 using System.Runtime.InteropServices;
-using System.Threading;
 using System.Threading.Tasks;
 using Jitex;
 using Jitex.Intercept;
@@ -12,24 +10,45 @@ using Jitex.Utils;
 
 namespace ConsoleApp1
 {
+    struct A
+    {
+        public int a;
+        public int b;
+        public int c;
+        public int d;
+
+        public A(int a, int b)
+        {
+            this.a = a;
+            this.b = b;
+            c = 10;
+            d = 0;
+        }
+    }
+
+    class Person
+    {
+        public string Name { get; set; }
+    }
+
     class Program
     {
         static async Task Main()
         {
             JitexManager.AddMethodResolver(MethodResolver);
             JitexManager.AddInterceptor(InterceptorAsyncCall);
-            await Teste(10);
+            var apx = await Teste();
+            Debugger.Break();
         }
 
         private static async ValueTask InterceptorAsyncCall(CallContext context)
         {
-            context.Parameters!.SetParameterValue(0,999);
-            await context.ContinueAsync();
+            
         }
 
-        public static async Task Teste(int a)
+        public static async Task<Person> Teste()
         {
-            Console.WriteLine(a);
+            return ;
         }
 
         private static void MethodResolver(MethodContext context)

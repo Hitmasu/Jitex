@@ -7,6 +7,7 @@ using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Jitex.Utils;
 using Jitex.Utils.Extension;
+using IntPtr = System.IntPtr;
 
 namespace Jitex.Intercept
 {
@@ -23,8 +24,8 @@ namespace Jitex.Intercept
         public bool HasReturn { get; private set; }
 
         private static readonly MethodInfo InterceptCallAsync;
-        private static readonly MethodInfo GetAwaiterGeneric;
-        private static readonly MethodInfo GetResultGeneric;
+        private static readonly MethodInfo InterceptAsyncCallAsync;
+        private static readonly MethodInfo CompletedTask;
         private static readonly MethodInfo CallDispose;
         private static readonly MethodInfo GetReferenceFromTypedReference;
         private static readonly ConstructorInfo ObjectCtor;
@@ -34,10 +35,10 @@ namespace Jitex.Intercept
         static InterceptBuilder()
         {
             ObjectCtor = typeof(object).GetConstructor(Type.EmptyTypes)!;
-            GetAwaiterGeneric = typeof(Task<object>).GetMethod(nameof(Task<object>.GetAwaiter), BindingFlags.Public | BindingFlags.Instance)!;
-            GetResultGeneric = typeof(TaskAwaiter<object>).GetMethod(nameof(TaskAwaiter<object>.GetResult), BindingFlags.Public | BindingFlags.Instance)!;
+            CompletedTask = typeof(Task).GetProperty(nameof(Task.CompletedTask))!.GetGetMethod();
             ConstructorCallManager = typeof(CallManager).GetConstructor(new[] { typeof(IntPtr), typeof(object[]).MakeByRefType(), typeof(bool) })!;
-            InterceptCallAsync = typeof(CallManager).GetMethod(nameof(CallManager.InterceptCallAsync), BindingFlags.Public | BindingFlags.Instance)!;
+            InterceptCallAsync = typeof(CallManager).GetMethods(BindingFlags.Public | BindingFlags.Instance).First(w => w.Name == nameof(CallManager.InterceptCallAsync) && !w.IsGenericMethod);
+            InterceptAsyncCallAsync = typeof(CallManager).GetMethods(BindingFlags.Public | BindingFlags.Instance).First(w => w.Name == nameof(CallManager.InterceptCallAsync) && w.IsGenericMethod);
             ConstructorIntPtrLong = typeof(IntPtr).GetConstructor(new[] { typeof(long) })!;
             CallDispose = typeof(CallManager).GetMethod(nameof(CallManager.Dispose), BindingFlags.Public | BindingFlags.Instance)!;
             GetReferenceFromTypedReference = typeof(TypeHelper).GetMethod(nameof(TypeHelper.GetReferenceFromTypedReference))!;
@@ -65,7 +66,7 @@ namespace Jitex.Intercept
         {
             MethodInfo methodInfo = (MethodInfo)Method;
 
-            HasReturn = methodInfo.ReturnType == typeof(void) || methodInfo.ReturnType == typeof(Task) || methodInfo.ReturnType == typeof(ValueTask);
+            HasReturn = !(methodInfo.ReturnType == typeof(void) || methodInfo.ReturnType == typeof(Task) || methodInfo.ReturnType == typeof(ValueTask));
 
             List<Type> parameters = new List<Type>();
 
@@ -105,6 +106,7 @@ namespace Jitex.Intercept
         /// </remarks>
         private void BuildBody(ILGenerator generator, IEnumerable<Type> parameters, Type returnType)
         {
+            bool isAwaitable = Method.IsAwaitable();
             int totalArgs = parameters.Count();
 
             if (Method.IsConstructor && !Method.IsStatic)
@@ -114,13 +116,12 @@ namespace Jitex.Intercept
             }
 
             generator.DeclareLocal(typeof(object[]));
+            generator.Emit(OpCodes.Ldc_I4, totalArgs);
+            generator.Emit(OpCodes.Newarr, typeof(object));
+            generator.Emit(OpCodes.Stloc_0);
 
             if (totalArgs > 0)
             {
-                generator.Emit(OpCodes.Ldc_I4, totalArgs);
-                generator.Emit(OpCodes.Newarr, typeof(object));
-                generator.Emit(OpCodes.Stloc_0);
-
                 int argIndex = 0;
 
                 foreach (Type parameterType in parameters)
@@ -148,13 +149,18 @@ namespace Jitex.Intercept
                     argIndex++;
                 }
             }
-            else
-            {
-                generator.Emit(OpCodes.Ldnull);
-                generator.Emit(OpCodes.Stloc_0);
-            }
 
-            LocalBuilder awaiterVariable = generator.DeclareLocal(GetRetType(returnType));
+            Type retType;
+
+            if (isAwaitable && returnType.IsGenericType)
+                retType = returnType.GetGenericArguments().First();
+            else
+                retType = returnType;
+
+            MethodInfo getAwaiter = typeof(Task<>).MakeGenericType(retType).GetMethod(nameof(Task<object>.GetAwaiter), BindingFlags.Public | BindingFlags.Instance)!;
+            MethodInfo getResult = typeof(TaskAwaiter<>).MakeGenericType(retType).GetMethod(nameof(TaskAwaiter<object>.GetResult), BindingFlags.Public | BindingFlags.Instance)!;
+
+            LocalBuilder awaiterVariable = generator.DeclareLocal(typeof(TaskAwaiter<>).MakeGenericType(retType));
 
             generator.Emit(OpCodes.Ldc_I8, Method.MethodHandle.Value.ToInt64());
             generator.Emit(OpCodes.Newobj, ConstructorIntPtrLong);
@@ -169,70 +175,51 @@ namespace Jitex.Intercept
             generator.Emit(OpCodes.Newobj, ConstructorCallManager);
             generator.Emit(OpCodes.Dup);
 
-            //if (Method.IsAwaitable())
-            //{
+            if (isAwaitable)
+            {
+                MethodInfo interceptor = InterceptAsyncCallAsync.MakeGenericMethod(retType);
+                generator.Emit(OpCodes.Call, interceptor);
+            }
+            else
+            {
+                generator.Emit(OpCodes.Call, InterceptCallAsync);
+            }
 
-            generator.Emit(OpCodes.Call, InterceptCallAsync);
-
-            generator.Emit(OpCodes.Call, GetAwaiterGeneric);
-            generator.Emit(OpCodes.Stloc_S, awaiterVariable.LocalIndex);
+            generator.Emit(OpCodes.Call, getAwaiter);
+            generator.Emit(OpCodes.Stloc, awaiterVariable.LocalIndex);
             generator.Emit(OpCodes.Ldloca_S, awaiterVariable.LocalIndex);
-
-            generator.Emit(OpCodes.Call, GetResultGeneric);
+            generator.Emit(OpCodes.Call, getResult);
 
             if (HasReturn)
             {
-                LocalBuilder retVariable = generator.DeclareLocal(typeof(IntPtr));
-                generator.Emit(OpCodes.Stloc_S, retVariable.LocalIndex);
-                generator.Emit(OpCodes.Call, CallDispose);
-                generator.Emit(OpCodes.Ldloc_S, retVariable.LocalIndex);
+                LocalBuilder retVariable;
+
+                if (isAwaitable)
+                {
+                    MethodInfo fromResult = typeof(Task).GetMethod(nameof(Task.FromResult))!.MakeGenericMethod(retType);
+                    retVariable = generator.DeclareLocal(retType);
+
+                    generator.Emit(OpCodes.Stloc_S, retVariable.LocalIndex);
+                    generator.Emit(OpCodes.Call, CallDispose);
+                    generator.Emit(OpCodes.Ldloc_S, retVariable.LocalIndex);
+                    generator.Emit(OpCodes.Call, fromResult);
+                }
+                else
+                {
+                    retVariable = generator.DeclareLocal(typeof(IntPtr));
+                    generator.Emit(OpCodes.Stloc_S, retVariable.LocalIndex);
+                    generator.Emit(OpCodes.Call, CallDispose);
+                    generator.Emit(OpCodes.Ldloc_S, retVariable.LocalIndex);
+                }
             }
             else
             {
                 generator.Emit(OpCodes.Pop);
                 generator.Emit(OpCodes.Call, CallDispose);
+                generator.Emit(OpCodes.Call, CompletedTask);
             }
 
-            //if (HasReturn)
-            //{
-            //    Type retTaskType = returnType.GetGenericArguments().First();
-            //    MethodInfo fromResult = typeof(Task).GetMethod(nameof(Task.FromResult))!.MakeGenericMethod(retTaskType);
-            //    generator.Emit(OpCodes.Call, fromResult);
-            //}
-
-            //}
-            //else
-            //{
-            //    generator.Emit(OpCodes.Call, InterceptCall);
-
-            //    if (returnType == typeof(void))
-            //    {
-            //        generator.Emit(OpCodes.Pop);
-            //        generator.Emit(OpCodes.Call, CallDispose);
-            //    }
-            //    else
-            //    {
-            //        generator.Emit(OpCodes.Stloc_S, retVariable.LocalIndex);
-            //        generator.Emit(OpCodes.Call, CallDispose);
-            //        generator.Emit(OpCodes.Ldloc_S, retVariable.LocalIndex);
-            //    }
-
-            //    if (returnType != typeof(void) && returnType.IsValueType)
-            //        generator.Emit(OpCodes.Unbox_Any, returnType);
-            //}
-
             generator.Emit(OpCodes.Ret);
-        }
-
-        public static Type GetRetType(Type type)
-        {
-            if (type == typeof(Task) || type == typeof(ValueTask))
-                return typeof(Task);
-
-            if (type.IsGenericType && (type.GetGenericTypeDefinition() == typeof(Task<>) || type.GetGenericTypeDefinition() == typeof(ValueTask)))
-                return type.GetGenericArguments().First();
-
-            return type;
         }
     }
 }
