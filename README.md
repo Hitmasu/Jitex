@@ -328,6 +328,10 @@ app.UseModule(typeof(ModuleJitex);
 
 Replace methods was an idea to increase performance in .NET Applications. Searching a way to do that, i've found this hook implementation from @xoofx [Writing a Managed JIT in C# with CoreCLR](https://xoofx.com/blog/2018/04/12/writing-managed-jit-in-csharp-with-coreclr/), which became core of Jitex.
 
+## Support
+
+[![](.\Support\jetbrains.svg)](https://www.jetbrains.com/?from=Jitex)
+
 
 
 ###### *I'm trying be better in english language too, so probably you will see some grammatical errors... Feel free to notify me.*
