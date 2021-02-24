@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
-using System.Drawing;
-using System.Runtime.InteropServices;
+using System.Reflection;
 using System.Threading.Tasks;
 using Jitex;
 using Jitex.Intercept;
@@ -26,7 +25,21 @@ namespace ConsoleApp1
         }
     }
 
-    class Person
+    public struct B<T>
+    {
+        public T XYUZ;
+        public T a;
+        public int b;
+
+        public B(T _a, int ba)
+        {
+            a = _a;
+            XYUZ = a;
+            b = 0x0A;
+        }
+    }
+
+    public class Person
     {
         public string Name { get; set; }
     }
@@ -36,19 +49,20 @@ namespace ConsoleApp1
         static async Task Main()
         {
             JitexManager.AddMethodResolver(MethodResolver);
-            JitexManager.AddInterceptor(InterceptorAsyncCall);
-            var apx = await Teste();
-            Debugger.Break();
+            JitexManager.AddInterceptor(InteceptorCallAsync);
+            Person person = await Teste();
+            Console.WriteLine(person.Name);
+            Console.ReadKey();
         }
 
-        private static async ValueTask InterceptorAsyncCall(CallContext context)
+        private static async ValueTask InteceptorCallAsync(CallContext context)
         {
-            
+            context.ReturnValue = new Person { Name = "XYZ" };
         }
 
-        public static async Task<Person> Teste()
+        public static async ValueTask<Person> Teste()
         {
-            return ;
+            return new Person() { Name = "Flávio" };
         }
 
         private static void MethodResolver(MethodContext context)

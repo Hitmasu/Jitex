@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Jitex.Utils;
@@ -172,10 +173,9 @@ namespace Jitex.Intercept
             {
                 _returnType = methodInfo.ReturnType;
 
-                if (_returnType.IsValueType)
-                    _sizeType = Marshal.SizeOf(_returnType);
+                if (TypeHelper.IsStruct(_returnType))
+                    _sizeType = TypeHelper.SizeOf(_returnType);
             }
-
         }
 
         /// <summary>
@@ -193,11 +193,11 @@ namespace Jitex.Intercept
 
                 if (returnValue is IntPtr returnAddress)
                 {
-                    if (_returnType!.IsValueType)
+                    if (TypeHelper.IsStruct(_returnType!))
                     {
                         if (_sizeType <= IntPtr.Size)
                         {
-                            IntPtr reference = TypeHelper.GetReferenceFromTypedReference(__makeref(returnValue));
+                            IntPtr reference = MarshalHelper.GetReferenceFromTypedReference(__makeref(returnValue));
                             IntPtr valueAddress;
 
                             unsafe
@@ -278,7 +278,21 @@ namespace Jitex.Intercept
             if (!IsAwaitable)
                 return Continue();
 
-            Task task = Continue<Task>()!;
+            object returnValue = Continue()!;
+
+            Task task;
+
+            if (returnValue is Task value)
+            {
+                task = value;
+            }
+            else
+            {
+                Type taskGeneric = typeof(ValueTask<>).MakeGenericType(_returnType.GetGenericArguments().First());
+                MethodInfo asTask = taskGeneric.GetMethod("AsTask", BindingFlags.Public | BindingFlags.Instance);
+                task = (Task)asTask.Invoke(returnValue, null);
+            }
+
             ProceedCall = false;
 
             if (_returnType!.IsGenericType)
@@ -324,22 +338,28 @@ namespace Jitex.Intercept
             return (TResult?)returnValue;
         }
 
+
         private object CreateReturnValue(ref object returnValue)
         {
-            if (Method is MethodInfo methodInfo)
+            if (Method is MethodInfo)
             {
-                Type returnType = methodInfo.ReturnType;
-
-                if (returnType == typeof(void))
+                if (_returnType == typeof(void))
                     return default;
 
-                if (returnType.IsValueType)
+                if (TypeHelper.IsStruct(_returnType))
+                {
+                    if (returnValue is IntPtr address)
+                    {
+                        return MarshalHelper.GetObjectFromAddress(address, _returnType);
+                    }
+
                     return returnValue;
+                }
 
                 IntPtr ptrReturn = (IntPtr)returnValue; //Address of instance/Value is returned.
                 IntPtr refReturn;
 
-                if (returnType == typeof(Task) || Marshal.ReadIntPtr(ptrReturn) == returnType.TypeHandle.Value)
+                if (_returnType.IsAwaitable() || Marshal.ReadIntPtr(ptrReturn) == _returnType.TypeHandle.Value)
                 {
                     unsafe
                     {
@@ -351,7 +371,8 @@ namespace Jitex.Intercept
                     refReturn = ptrReturn;
                 }
 
-                returnValue = TypeHelper.GetObjectFromReference(refReturn);
+                returnValue = MarshalHelper.GetObjectFromAddress(refReturn, _returnType);
+
                 return returnValue;
             }
 

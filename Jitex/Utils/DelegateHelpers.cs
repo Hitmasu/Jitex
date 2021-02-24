@@ -11,7 +11,7 @@ namespace Jitex.Utils
     /// <summary>
     /// Helpers to manage delegate
     /// </summary>
-    internal static class DelegateHelper
+    public static class DelegateHelper
     {
         private static readonly MethodInfo MakeNewCustomDelegate;
 

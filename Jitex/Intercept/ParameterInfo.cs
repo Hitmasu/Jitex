@@ -6,6 +6,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Jitex.Utils;
+using Jitex.Utils.Extension;
 
 namespace Jitex.Intercept
 {
@@ -274,7 +275,7 @@ namespace Jitex.Intercept
                 else if (ElementType.IsValueType)
                     _value = Marshal.PtrToStructure(address, ElementType);
                 else
-                    _value = TypeHelper.GetObjectFromReference(address);
+                    _value = MarshalHelper.GetObjectFromAddress(address, ElementType);
             }
         }
 
@@ -305,7 +306,7 @@ namespace Jitex.Intercept
         internal void SetValue(ref object value)
         {
             _value = value;
-            IntPtr address = TypeHelper.GetReferenceFromObject(ref _value);
+            IntPtr address = MarshalHelper.GetReferenceFromObject(ref _value);
             SetAddress(address);
         }
 
@@ -314,7 +315,7 @@ namespace Jitex.Intercept
             SetAddress(address);
 
             if (readValue)
-                _value = TypeHelper.GetObjectFromReference(address);
+                _value = MarshalHelper.GetObjectFromAddress(address,ElementType);
         }
 
         /// <summary>
@@ -335,7 +336,7 @@ namespace Jitex.Intercept
                 if (_value == null)
                     return IntPtr.Zero;
 
-                address = TypeHelper.GetReferenceFromObject(ref _value);
+                address = MarshalHelper.GetReferenceFromObject(ref _value);
             }
             else if (IsReturnAddress)
             {
@@ -351,7 +352,7 @@ namespace Jitex.Intercept
                 address = _address;
             }
 
-            return TypeHelper.GetValueAddress(address, Type);
+            return Type.GetValueAddress(address);
         }
 
         /// <summary>
