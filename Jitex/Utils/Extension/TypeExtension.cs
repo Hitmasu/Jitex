@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 
 namespace Jitex.Utils.Extension
 {
-    static class TypeExtension
+    internal static class TypeExtension
     {
         public static bool IsAwaitable(this Type type)
         {
@@ -14,10 +14,28 @@ namespace Jitex.Utils.Extension
             return type.IsTask() || type.IsValueTask();
         }
 
-        public static bool IsTask(this Type type) => type == typeof(Task<>) || type == typeof(Task);
+        public static bool IsTask(this Type type)
+        {
+            if (type == typeof(Task))
+                return true;
 
-        public static bool IsValueTask(this Type type) => type == typeof(ValueTask) || type == typeof(ValueTask<>);
-        
+            if (!type.IsGenericType)
+                return false;
+
+            return type.GetGenericTypeDefinition() == typeof(Task<>);
+        }
+
+        public static bool IsValueTask(this Type type)
+        {
+            if (type == typeof(ValueTask))
+                return true;
+
+            if (!type.IsGenericType)
+                return false;
+
+            return type.GetGenericTypeDefinition() == typeof(ValueTask<>);
+        }
+
         public static IntPtr GetValueAddress(this Type type, IntPtr address)
         {
             Type elementType;

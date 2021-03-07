@@ -13,20 +13,45 @@ namespace Jitex.Utils
     /// </summary>
     public static class TypeHelper
     {
+        private static readonly IDictionary<Type, bool> BlittableCache = new Dictionary<Type, bool>();
         private static readonly IDictionary<Type, int> CacheSizeOf = new Dictionary<Type, int>();
-        private static readonly Func<object, bool> IsPinnable;
+        private static readonly Func<object, bool>? IsPinnable;
 
         static TypeHelper()
         {
-            MethodInfo isBlittable = typeof(Marshal).GetMethod("IsPinnable", BindingFlags.Static | BindingFlags.NonPublic);
-            IsPinnable = (Func<object, bool>)isBlittable.CreateDelegate(typeof(Func<object, bool>));
+            MethodInfo? isBlittable = typeof(Marshal).GetMethod("IsPinnable", BindingFlags.Static | BindingFlags.NonPublic);
+
+            if (isBlittable != null)
+                IsPinnable = (Func<object, bool>)isBlittable.CreateDelegate(typeof(Func<object, bool>));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsBlittable(Type type)
         {
+            if (BlittableCache.TryGetValue(type, out bool isBlittable))
+                return isBlittable;
+
             object uninitializedObject = FormatterServices.GetUninitializedObject(type);
-            return IsPinnable(uninitializedObject);
+
+            if (IsPinnable != null)
+            {
+                isBlittable = IsPinnable(uninitializedObject);
+            }
+            else
+            {
+                try
+                {
+                    GCHandle.Alloc(uninitializedObject, GCHandleType.Pinned).Free();
+                    isBlittable = true;
+                }
+                catch
+                {
+                    isBlittable = false;
+                }
+            }
+
+            BlittableCache.Add(type, isBlittable);
+            return isBlittable;
         }
 
         public static int SizeOf(Type type)

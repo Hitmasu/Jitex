@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Runtime.Serialization;
 using System.Threading.Tasks;
 using Jitex;
 using Jitex.Intercept;
@@ -50,19 +53,19 @@ namespace ConsoleApp1
         {
             JitexManager.AddMethodResolver(MethodResolver);
             JitexManager.AddInterceptor(InteceptorCallAsync);
-            Person person = await Teste();
-            Console.WriteLine(person.Name);
+            await Teste();
+            Console.WriteLine("Called!");
             Console.ReadKey();
         }
 
         private static async ValueTask InteceptorCallAsync(CallContext context)
         {
-            context.ReturnValue = new Person { Name = "XYZ" };
+            Console.WriteLine("Method intercepted");
         }
 
-        public static async ValueTask<Person> Teste()
+        public static async ValueTask Teste()
         {
-            return new Person() { Name = "Flávio" };
+            Console.WriteLine("method called");
         }
 
         private static void MethodResolver(MethodContext context)

@@ -18,7 +18,7 @@ namespace Jitex.Tests.Context
 
         public string Name { get; set; }
         public int Age { get; set; }
-
+        
         [MethodImpl(MethodImplOptions.NoInlining)]
 
         public int GetAgeAfter10Years()

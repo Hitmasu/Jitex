@@ -5,6 +5,7 @@ using System.Drawing;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 using Jitex.Intercept;
 using Jitex.JIT.Context;
 using Jitex.Tests.Context;
@@ -270,8 +271,8 @@ namespace Jitex.Tests.Intercept
 
             unsafe
             {
-                resultAddr = *(IntPtr*)&resultRef;
-                pointAddr = *(IntPtr*)&pointRef;
+                resultAddr = *(IntPtr*) &resultRef;
+                pointAddr = *(IntPtr*) &pointRef;
             }
 
             Assert.Equal(_point, result);
@@ -304,8 +305,8 @@ namespace Jitex.Tests.Intercept
 
             unsafe
             {
-                resultAddr = *(IntPtr*)&resultRef;
-                personAddr = *(IntPtr*)&personRef;
+                resultAddr = *(IntPtr*) &resultRef;
+                personAddr = *(IntPtr*) &personRef;
             }
 
             Assert.Equal(name, _person.Name);
@@ -369,8 +370,59 @@ namespace Jitex.Tests.Intercept
             MethodsCalled.TryRemove(nameof(ModifyRefClassReturn), out _);
         }
 
+        [Fact]
+        public async Task TaskAsyncNonGeneric()
+        {
+            await SimpleCallTaskAsync().ConfigureAwait(false);
+
+            Assert.True(HasCalled(nameof(SimpleCallTaskAsync)), "Call not continued!");
+            Assert.True(HasIntercepted(nameof(SimpleCallTaskAsync)), "Method not intercepted!");
+
+            Assert.True(CountCalls(nameof(SimpleCallTaskAsync)) == 1, "Called more than expected!");
+            Assert.True(CountIntercept(nameof(SimpleCallTaskAsync)) == 1, "Intercepted more than expected!");
+
+            CallsIntercepted.TryRemove(nameof(TaskAsyncNonGeneric), out _);
+            MethodsCalled.TryRemove(nameof(TaskAsyncNonGeneric), out _);
+        }
+        
+        [Fact]
+        public async Task ValueTaskAsyncNonGeneric()
+        {
+            await SimpleCallValueTaskAsync().ConfigureAwait(false);
+
+            Assert.True(HasCalled(nameof(SimpleCallValueTaskAsync)), "Call not continued!");
+            Assert.True(HasIntercepted(nameof(SimpleCallValueTaskAsync)), "Method not intercepted!");
+
+            Assert.True(CountCalls(nameof(SimpleCallValueTaskAsync)) == 1, "Called more than expected!");
+            Assert.True(CountIntercept(nameof(SimpleCallValueTaskAsync)) == 1, "Intercepted more than expected!");
+
+            CallsIntercepted.TryRemove(nameof(ValueTaskAsyncNonGeneric), out _);
+            MethodsCalled.TryRemove(nameof(ValueTaskAsyncNonGeneric), out _);
+        }
+
+        [Theory]
+        [InlineData(7, 9)]
+        [InlineData(-1, 20)]
+        [InlineData(2000, 7000)]
+        public async Task TaskAsyncGenericWithParameters(int n1, int n2)
+        {
+            int result = await SumTaskAsync(n1, n2).ConfigureAwait(false);
+
+            Assert.Equal(n1 + n2, result);
+
+            Assert.True(HasCalled(nameof(SumTaskAsync)), "Call not continued!");
+            Assert.True(HasIntercepted(nameof(SumTaskAsync)), "Method not intercepted!");
+
+            Assert.True(CountCalls(nameof(SumTaskAsync)) == 1, "Called more than expected!");
+            Assert.True(CountIntercept(nameof(SumTaskAsync)) == 1, "Intercepted more than expected!");
+
+            CallsIntercepted.TryRemove(nameof(TaskAsyncGenericWithParameters), out _);
+            MethodsCalled.TryRemove(nameof(TaskAsyncGenericWithParameters), out _);
+        }
+
         private static string ReverseText(string text) => new(text.Reverse().ToArray());
 
+        [InterceptCall]
         [MethodImpl(MethodImplOptions.NoInlining)]
         private int SimpleSum(int n1, int n2)
         {
@@ -378,6 +430,7 @@ namespace Jitex.Tests.Intercept
             return n1 + n2;
         }
 
+        [InterceptCall]
         [MethodImpl(MethodImplOptions.NoInlining)]
         private int SimpleSumRef(ref int n1, ref int n2)
         {
@@ -385,6 +438,7 @@ namespace Jitex.Tests.Intercept
             return n1 + n2;
         }
 
+        [InterceptCall]
         [MethodImpl(MethodImplOptions.NoInlining)]
         private ref Point CreatePoint(int x, int y)
         {
@@ -393,6 +447,7 @@ namespace Jitex.Tests.Intercept
             return ref _point;
         }
 
+        [InterceptCall]
         [MethodImpl(MethodImplOptions.NoInlining)]
         private ref InterceptPerson CreatePerson(string name, int age)
         {
@@ -401,6 +456,7 @@ namespace Jitex.Tests.Intercept
             return ref _person;
         }
 
+        [InterceptCall]
         [MethodImpl(MethodImplOptions.NoInlining)]
         private void SimpleSumOut(ref int n1, ref int n2, out int result)
         {
@@ -408,6 +464,7 @@ namespace Jitex.Tests.Intercept
             result = n1 + n2;
         }
 
+        [InterceptCall]
         [MethodImpl(MethodImplOptions.NoInlining)]
         private int SumAge(InterceptPerson person)
         {
@@ -415,6 +472,7 @@ namespace Jitex.Tests.Intercept
             return person.Age + 10;
         }
 
+        [InterceptCall]
         [MethodImpl(MethodImplOptions.NoInlining)]
         private Point CreatePoint(Point point)
         {
@@ -422,6 +480,7 @@ namespace Jitex.Tests.Intercept
             return new Point(point.X, point.Y);
         }
 
+        [InterceptCall]
         [MethodImpl(MethodImplOptions.NoInlining)]
         private InterceptPerson MakeNewPerson(InterceptPerson person1)
         {
@@ -429,6 +488,7 @@ namespace Jitex.Tests.Intercept
             return new InterceptPerson(person1.Name, person1.Age);
         }
 
+        [InterceptCall]
         [MethodImpl(MethodImplOptions.NoInlining)]
         private InterceptPerson SimpleCall(ref int valueType, ref InterceptPerson objType)
         {
@@ -436,7 +496,31 @@ namespace Jitex.Tests.Intercept
             return new InterceptPerson(objType.Name, valueType);
         }
 
-        private static void InterceptorCall(CallContext context)
+        [InterceptCall]
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private async Task SimpleCallTaskAsync()
+        {
+            await Task.Delay(10);
+            AddMethodCall(nameof(SimpleCallTaskAsync), caller: nameof(TaskAsyncNonGeneric));
+        }
+
+        [InterceptCall]
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private async ValueTask SimpleCallValueTaskAsync()
+        {
+            await Task.Delay(10);
+            AddMethodCall(nameof(SimpleCallValueTaskAsync), caller: nameof(ValueTaskAsyncNonGeneric));
+        }
+
+        [InterceptCall]
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private async Task<int> SumTaskAsync(int n1, int n2)
+        {
+            AddMethodCall(nameof(SumTaskAsync), caller: nameof(TaskAsyncGenericWithParameters));
+            return await Task.FromResult(n1 + n2);
+        }
+
+        private static async ValueTask InterceptorCall(CallContext context)
         {
             AddMethodCall(context.Method.Name, true);
 
@@ -456,7 +540,7 @@ namespace Jitex.Tests.Intercept
             }
             else if (testSource.Name == nameof(ModifyInstanceTest) && context.Method.Name == nameof(InterceptPerson.GetAgeAfter10Years))
             {
-                InterceptPerson interceptPerson = (InterceptPerson)context.Instance;
+                InterceptPerson interceptPerson = (InterceptPerson) context.Instance;
                 InterceptPerson newPerson = interceptPerson with
                 {
                     Age = interceptPerson.Age - 20
@@ -533,23 +617,16 @@ namespace Jitex.Tests.Intercept
 
         private static void MethodResolver(MethodContext context)
         {
-            if (context.Method.Name == nameof(SimpleSum) ||
-                context.Method.Name == nameof(InterceptPerson.GetAgeAfter10Years) ||
-                context.Method.Name == nameof(SumAge) ||
-                context.Method.Name == nameof(MakeNewPerson) ||
-                context.Method.Name == nameof(SimpleCall) ||
-                context.Method.Name == nameof(SimpleSumRef) ||
-                context.Method.Name == nameof(SimpleSumOut) ||
-                context.Method.Name == nameof(CreatePoint) ||
-                context.Method.Name == nameof(CreatePerson)
-            )
-            {
+            if (context.Method.GetCustomAttribute<InterceptCallAttribute>() != null || context.Method.Name == nameof(InterceptPerson.GetAgeAfter10Years))
                 context.InterceptCall();
-            }
-
         }
 
         #region Utils
+
+        [AttributeUsage(AttributeTargets.Method)]
+        internal class InterceptCallAttribute : Attribute
+        {
+        }
 
         private static int CountCalls(string methodName, [CallerMemberName] string caller = "")
         {
@@ -583,17 +660,19 @@ namespace Jitex.Tests.Intercept
             return false;
         }
 
-        private static void AddMethodCall(string method, bool isIntercepted = false)
+        private static void AddMethodCall(string method, bool isIntercepted = false, string caller = "")
         {
             ConcurrentDictionary<string, ConcurrentBag<string>> calls = isIntercepted ? CallsIntercepted : MethodsCalled;
 
             MethodBase testSource = GetSourceTest();
-            string caller = testSource.Name;
+
+            if (testSource != null)
+                caller = testSource.Name;
 
             if (calls.TryGetValue(caller, out ConcurrentBag<string> methods))
                 methods.Add(method);
             else
-                calls.TryAdd(caller, new ConcurrentBag<string> { method });
+                calls.TryAdd(caller, new ConcurrentBag<string> {method});
         }
 
         private static MethodBase GetSourceTest()
@@ -601,7 +680,7 @@ namespace Jitex.Tests.Intercept
             StackTrace trace = new();
             return trace.GetFrames()
                 .Select(w => w.GetMethod())
-                .FirstOrDefault(w => w.GetCustomAttribute<FactAttribute>() != null);
+                .FirstOrDefault(w => w.GetCustomAttribute<FactAttribute>() != null || w.GetCustomAttribute<TheoryAttribute>() != null);
         }
 
         #endregion

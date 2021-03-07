@@ -46,7 +46,7 @@ namespace Jitex.Intercept
             if (_context.ProceedCall)
                 await _context.ContinueFlowAsync().ConfigureAwait(false);
 
-            return _context.HasReturn ? _context.ReturnAddress + 8 : IntPtr.Zero;
+            return _context.HasReturn ? _context.ReturnAddress : IntPtr.Zero;
         }
 
         public async Task<TResult?> InterceptCallAsync<TResult>()

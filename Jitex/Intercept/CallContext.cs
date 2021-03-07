@@ -237,25 +237,18 @@ namespace Jitex.Intercept
                 return;
             }
 
-            if (_returnType == typeof(Task))
+            object returnValue = (await ContinueAsync().ConfigureAwait(false))!;
+
+            if (returnValue is IntPtr returnAddress)
             {
-                await (Task)Call.DynamicInvoke(ParametersCall);
+                _returnValue = new Parameter(returnAddress, _returnType!, isReturnAddress: true)
+                {
+                    IsReturnAddress = true
+                };
             }
             else
             {
-                object returnValue = (await ContinueAsync().ConfigureAwait(false))!;
-
-                if (returnValue is IntPtr returnAddress)
-                {
-                    _returnValue = new Parameter(returnAddress, _returnType!, isReturnAddress: true)
-                    {
-                        IsReturnAddress = true
-                    };
-                }
-                else
-                {
-                    ReturnValue = returnValue;
-                }
+                ReturnValue = returnValue;
             }
         }
 
@@ -270,7 +263,8 @@ namespace Jitex.Intercept
 
             object returnValue = Call.DynamicInvoke(ParametersCall);
             ProceedCall = false;
-            return CreateReturnValue(ref returnValue);
+            ReturnValue = CreateReturnValue(ref returnValue);
+            return ReturnValue;
         }
 
         public async Task<object?> ContinueAsync()
@@ -279,33 +273,34 @@ namespace Jitex.Intercept
                 return Continue();
 
             object returnValue = Continue()!;
+            ProceedCall = false;
 
-            Task task;
+            Task task = default!;
 
             if (returnValue is Task value)
             {
                 task = value;
             }
-            else
+            else if (returnValue is ValueTask valueTask)
             {
-                Type taskGeneric = typeof(ValueTask<>).MakeGenericType(_returnType.GetGenericArguments().First());
-                MethodInfo asTask = taskGeneric.GetMethod("AsTask", BindingFlags.Public | BindingFlags.Instance);
+                task = valueTask.AsTask();
+            }
+            else if (_returnType!.IsValueTask()) //Check if is a ValueTask<T>
+            {
+                Type valueTaskType = typeof(ValueTask<>).MakeGenericType(_returnType.GetGenericArguments().First());
+                MethodInfo asTask = valueTaskType.GetMethod("AsTask", BindingFlags.Public | BindingFlags.Instance);
                 task = (Task)asTask.Invoke(returnValue, null);
             }
 
-            ProceedCall = false;
-
-            if (_returnType!.IsGenericType)
-            {
-                await task.ConfigureAwait(false);
-
-                Type taskGeneric = typeof(Task<>).MakeGenericType(_returnType.GetGenericArguments().First());
-                PropertyInfo getResult = taskGeneric.GetProperty("Result")!;
-                return getResult.GetValue(task);
-            }
-
             await task.ConfigureAwait(false);
-            return null;
+
+            if (!_returnType!.IsGenericType)
+                return null;
+
+            Type taskGeneric = typeof(Task<>).MakeGenericType(_returnType.GetGenericArguments().First());
+            PropertyInfo getResult = taskGeneric.GetProperty("Result")!;
+            return getResult.GetValue(task);
+
         }
 
         /// <summary>
