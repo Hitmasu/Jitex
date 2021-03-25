@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Reflection.Emit;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using IntPtr = System.IntPtr;
 
 namespace Jitex.Utils
@@ -20,17 +22,9 @@ namespace Jitex.Utils
             MakeNewCustomDelegate = typeof(Expression).Assembly.GetType("System.Linq.Expressions.Compiler.DelegateHelpers").GetMethod("MakeNewCustomDelegate", BindingFlags.NonPublic | BindingFlags.Static);
         }
 
-        /// <summary>
-        /// Create a Type Non Generic delegate.
-        /// </summary>
-        /// <remarks>
-        /// https://stackoverflow.com/a/26700515
-        /// </remarks>
-        /// <param name="method"></param>
-        /// <returns></returns>
-        private static Type CreateTypeDelegate(MethodBase method)
+        public static IList<Type> CreateParameters(MethodBase method)
         {
-            List<Type> parameters = new List<Type>();
+            IList<Type> parameters = new List<Type>();
 
             if (!method.IsStatic)
                 parameters.Add(typeof(IntPtr));
@@ -46,29 +40,67 @@ namespace Jitex.Utils
                     parameters.Add(typeof(IntPtr));
             }
 
+            return parameters;
+        }
+
+        public static Delegate BuildDelegate(IntPtr addressMethod, MethodBase method)
+        {
+            IList<Type> parameters = CreateParameters(method);
+            Type[] parametersArr = parameters.ToArray();
+
+            Type retType;
+            Type boxType = default;
             if (method is ConstructorInfo)
             {
-                parameters.Add(typeof(void));
+                retType = typeof(void);
             }
             else
             {
-                MethodInfo methodInfo = (MethodInfo)method;
+                MethodInfo methodInfo = (MethodInfo) method;
 
                 if (methodInfo.ReturnType == typeof(void))
-                    parameters.Add(typeof(void));
+                {
+                    retType = typeof(void);
+                }
                 else if (!methodInfo.ReturnType.IsPrimitive)
-                    parameters.Add(typeof(IntPtr));
+                {
+                    boxType = typeof(IntPtr);
+                    retType = typeof(object);
+                }
                 else
-                    parameters.Add(methodInfo.ReturnType);
+                {
+                    boxType = methodInfo.ReturnType;
+                    retType = typeof(object);
+                }
             }
 
-            return (Type)MakeNewCustomDelegate.Invoke(null, new object[] { parameters.ToArray() });
+            DynamicMethod dm = new($"{method.Name}Original", retType, parametersArr, method.DeclaringType, true);
+            ILGenerator generator = dm.GetILGenerator();
+
+            for (int i = 0; i < parameters.Count; i++)
+                generator.Emit(OpCodes.Ldarg, i);
+
+            generator.Emit(OpCodes.Ldc_I8, addressMethod.ToInt64());
+            generator.Emit(OpCodes.Conv_I);
+            generator.EmitCalli(OpCodes.Calli, CallingConventions.Standard, retType, parametersArr, null);
+
+            if (retType == typeof(void))
+                generator.Emit(OpCodes.Pop);
+            else
+                generator.Emit(OpCodes.Box, boxType);
+
+            generator.Emit(OpCodes.Ret);
+
+            parameters.Add(retType);
+            Type funcType = Expression.GetFuncType(parameters.ToArray());
+            return dm.CreateDelegate(funcType);
         }
 
         public static Delegate CreateDelegate(IntPtr address, MethodBase method)
         {
-            Type delegateType = CreateTypeDelegate(method);
-            return Marshal.GetDelegateForFunctionPointer(address, delegateType);
+            return BuildDelegate(address, method);
+            //Type delegateType = CreateTypeDelegate(method);
+            //return Marshal.GetDelegateForFunctionPointer(address, delegateType);
         }
     }
 }

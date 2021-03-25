@@ -204,6 +204,7 @@ namespace Jitex.JIT.Context
             byte[] nativeCode = DetourHelper.CreateDetour(interceptMethod);
             InterceptContext = new InterceptContext(Method, nativeCode);
 
+            IsResolved = true;
             Mode = ResolveMode.Intercept;
         }
     }

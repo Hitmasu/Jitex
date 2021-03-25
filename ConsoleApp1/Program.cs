@@ -1,14 +1,11 @@
 ﻿using System;
-using System.Diagnostics;
-using System.Reflection;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Runtime.Serialization;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Jitex;
 using Jitex.Intercept;
 using Jitex.JIT.Context;
-using Jitex.Utils;
+using Console = System.Console;
 
 namespace ConsoleApp1
 {
@@ -45,6 +42,14 @@ namespace ConsoleApp1
     public class Person
     {
         public string Name { get; set; }
+        public int Idade { get; set; }
+
+        public ValueTask Teste()
+        {
+            Console.WriteLine("Nome: " + Name);
+            Console.WriteLine("Idade: " + Idade);
+            return new ValueTask();
+        }
     }
 
     class Program
@@ -53,24 +58,22 @@ namespace ConsoleApp1
         {
             JitexManager.AddMethodResolver(MethodResolver);
             JitexManager.AddInterceptor(InteceptorCallAsync);
-            await Teste();
-            Console.WriteLine("Called!");
-            Console.ReadKey();
+
+            Person p = new Person {Name = "Flávio", Idade = 99};
+            await p.Teste().ConfigureAwait(false);
+
+            await Task.Delay(-1);
         }
 
         private static async ValueTask InteceptorCallAsync(CallContext context)
         {
+            //context.Continue();
             Console.WriteLine("Method intercepted");
-        }
-
-        public static async ValueTask Teste()
-        {
-            Console.WriteLine("method called");
         }
 
         private static void MethodResolver(MethodContext context)
         {
-            if (context.Method.Name == nameof(Teste))
+            if (context.Method.Name == nameof(Person.Teste))
                 context.InterceptCall();
         }
     }

@@ -41,9 +41,6 @@ namespace Jitex.Utils
         {
             if (TypeHelper.IsStruct(type))
             {
-                if (TypeHelper.IsBlittable(type))
-                    return Marshal.PtrToStructure(address, type);
-
                 return GetStructFromAddress(address, type);
             }
 

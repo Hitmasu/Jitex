@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Jitex.Utils;
@@ -28,7 +27,14 @@ namespace Jitex.Intercept
         /// </summary>
         private readonly Parameter? _methodHandle;
 
+        /// <summary>
+        /// Return case method has instance parameter.
+        /// </summary>
         public bool HasInstance => !Method.IsConstructor && !Method.IsStatic;
+
+        /// <summary>
+        /// Return case method has return (no void).
+        /// </summary>
         public bool HasReturn => _returnType != typeof(void);
 
         /// <summary>
@@ -91,7 +97,9 @@ namespace Jitex.Intercept
                 _returnValue?.Dispose();
 
                 if (value != null)
-                    _returnValue = new Parameter(ref value, ((MethodInfo)Method).ReturnType);
+                    _returnValue = new Parameter(ref value, ((MethodInfo) Method).ReturnType);
+                else
+                    _returnValue = null;
 
                 ProceedCall = false;
             }
@@ -141,6 +149,14 @@ namespace Jitex.Intercept
             Call = call;
             IsAwaitable = method.IsAwaitable();
 
+            if (method is MethodInfo methodInfo)
+            {
+                _returnType = methodInfo.ReturnType;
+
+                if (TypeHelper.IsStruct(_returnType))
+                    _sizeType = TypeHelper.SizeOf(_returnType);
+            }
+
             int startIndex = 0;
 
             if (Method.IsGenericMethod)
@@ -152,6 +168,10 @@ namespace Jitex.Intercept
             if (HasInstance)
             {
                 IntPtr instanceAddress = (IntPtr)parameters[startIndex++];
+
+                if (HasReturn && _returnType!.IsValueTask())
+                    instanceAddress -= IntPtr.Size;
+
                 _instanceValue = new Parameter(instanceAddress, Method.DeclaringType!);
             }
 
@@ -168,14 +188,6 @@ namespace Jitex.Intercept
             }
 
             Parameters = new Parameters(parametersInfo);
-
-            if (method is MethodInfo methodInfo)
-            {
-                _returnType = methodInfo.ReturnType;
-
-                if (TypeHelper.IsStruct(_returnType))
-                    _sizeType = TypeHelper.SizeOf(_returnType);
-            }
         }
 
         /// <summary>
@@ -229,7 +241,7 @@ namespace Jitex.Intercept
         /// <summary>
         /// Continue original call.
         /// </summary>
-        internal async ValueTask ContinueFlowAsync()
+        internal async Task ContinueFlowAsync()
         {
             if (!IsAwaitable)
             {
@@ -384,10 +396,10 @@ namespace Jitex.Intercept
 
         public void Dispose()
         {
-            _returnValue?.Dispose();
-            _instanceValue?.Dispose();
-            _methodHandle?.Dispose();
-            Parameters?.Dispose();
+            // _returnValue?.Dispose();
+            // _instanceValue?.Dispose();
+            // _methodHandle?.Dispose();
+            // Parameters?.Dispose();
         }
     }
 }

@@ -375,8 +375,8 @@ namespace Jitex.Intercept
 
         public void Dispose()
         {
-            _address = IntPtr.Zero;
-            _addressValue = IntPtr.Zero;
+            // _address = IntPtr.Zero;
+            // _addressValue = IntPtr.Zero;
         }
     }
 }

@@ -19,7 +19,7 @@ namespace Jitex.Intercept
         public CallManager(IntPtr handle, in object[] parameters, bool isGeneric)
         {
             if (isGeneric)
-                handle = (IntPtr)parameters[0];
+                handle = (IntPtr) parameters[0];
 
             if (!Cache.TryGetValue(handle, out CallCache cache))
             {
@@ -58,14 +58,14 @@ namespace Jitex.Intercept
                 await _context.ContinueFlowAsync().ConfigureAwait(false);
 
             if (_context.HasReturn && _context.ReturnValue != null)
-                return (TResult)_context.ReturnValue;
+                return (TResult) _context.ReturnValue;
 
             return default;
         }
 
         public void Dispose()
         {
-            _context.Dispose();
+            // _context.Dispose();
         }
 
         private class CallCache

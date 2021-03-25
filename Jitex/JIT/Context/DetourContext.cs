@@ -62,8 +62,11 @@ namespace Jitex.JIT.Context
         {
             if (Mode == DetourMode.DirectCall)
                 throw new InvalidOperationException("Detour as DirectCall cannot be detoured!");
-
+            
+            //Create backup of original instructions
             Marshal.Copy(NativeAddress, OriginalNativeCode, 0, Trampoline.Size);
+
+            //Write trampoline
             Marshal.Copy(NativeCode!, 0, NativeAddress, NativeCode!.Length);
             IsDetoured = true;
         }
