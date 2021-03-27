@@ -24,6 +24,7 @@
 
 	<ItemGroup>
 		<PackageReference Include="Lokad.ILPack" Version="0.1.5" />
+		<PackageReference Include="System.Threading.Tasks.Extensions" Version="4.5.4" />
 	</ItemGroup>
 
 </Project>

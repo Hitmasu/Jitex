@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Reflection;
 using System.Reflection.Emit;
-using Jitex.Builder.Exceptions;
 using Jitex.Builder.IL.Resolver;
 using Jitex.Builder.Utils.Extensions;
 
@@ -31,12 +30,12 @@ namespace Jitex.Builder.IL
         /// <summary>
         /// Generic class arguments used in instructions.
         /// </summary>
-        private readonly Type[] _genericTypeArguments;
+        private readonly Type[]? _genericTypeArguments;
 
         /// <summary>
         /// Generic method arguments used in instructions.
         /// </summary>
-        private readonly Type[] _genericMethodArguments;
+        private readonly Type[]? _genericMethodArguments;
 
         /// <summary>
         /// Read IL from method.
@@ -49,13 +48,17 @@ namespace Jitex.Builder.IL
 
             _il = methodILBase.GetILBytes();
 
-            _genericTypeArguments = methodILBase.DeclaringType.GenericTypeArguments;
-            _genericMethodArguments = methodILBase.GetGenericArguments();
-
             if (methodILBase is DynamicMethod dynamicMethod)
+            {
                 _resolver = new DynamicMethodTokenResolver(dynamicMethod);
+            }
             else
+            {
+                _genericTypeArguments = methodILBase.DeclaringType!.GenericTypeArguments;
+                _genericMethodArguments = methodILBase.GetGenericArguments();
+
                 _resolver = new ModuleTokenResolver(methodILBase.Module);
+            }
         }
 
         /// <summary>
@@ -65,7 +68,7 @@ namespace Jitex.Builder.IL
         /// <param name="module">Module from IL.</param>
         /// <param name="genericTypeArguments">Generic class arguments used in instructions.</param>
         /// <param name="genericMethodArguments">Generic method arguments used in instructions.</param>
-        public ILReader(byte[] il, Module module, Type[] genericTypeArguments = null, Type[] genericMethodArguments = null)
+        public ILReader(byte[] il, Module module, Type[]? genericTypeArguments = null, Type[]? genericMethodArguments = null)
         {
             _il = il;
 
@@ -118,12 +121,12 @@ namespace Jitex.Builder.IL
             /// <summary>
             /// Generic class arguments used in instructions.
             /// </summary>
-            private readonly Type[] _genericTypeArguments;
+            private readonly Type[]? _genericTypeArguments;
 
             /// <summary>
             /// Generic method arguments used in instructions.
             /// </summary>
-            private readonly Type[] _genericMethodArguments;
+            private readonly Type[]? _genericMethodArguments;
 
             /// <summary>
             ///     Current operation.
@@ -142,7 +145,7 @@ namespace Jitex.Builder.IL
             /// <param name="resolver">Module to resolver tokens.</param>
             /// <param name="genericTypeArguments">Generic class arguments used in instructions.</param>
             /// <param name="genericMethodArguments">Generic method arguments used in instructions.</param>
-            public ILEnumerator(byte[] il, ITokenResolver resolver, Type[] genericTypeArguments, Type[] genericMethodArguments)
+            public ILEnumerator(byte[] il, ITokenResolver resolver, Type[]? genericTypeArguments, Type[]? genericMethodArguments)
             {
                 _il = il;
                 _resolver = resolver;
@@ -166,7 +169,7 @@ namespace Jitex.Builder.IL
             /// <returns>The next operation.</returns>
             private Operation ReadNextOperation()
             {
-                Operation operation = null;
+                Operation operation;
 
                 int ilIndex = _position;
 
@@ -230,6 +233,7 @@ namespace Jitex.Builder.IL
                         break;
 
                     case OperandType.InlineVar:
+                        operation = new Operation(opCode, null);
                         _position += 2;
                         break;
 
@@ -411,7 +415,7 @@ namespace Jitex.Builder.IL
             /// <returns><see cref="int" /> value.</returns>
             private int ReadInt32()
             {
-                int value = BitConverter.ToInt32(_il,_position);
+                int value = BitConverter.ToInt32(_il, _position);
                 _position += 4;
                 return value;
             }

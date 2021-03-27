@@ -20,6 +20,16 @@ namespace Jitex.Builder.Method
         private byte[] _il;
 
         /// <summary>
+        /// If method is from a DynamicMethod.
+        /// </summary>
+        public bool IsDynamicMethod { get; }
+
+        /// <summary>
+        /// Original method.
+        /// </summary>
+        public MethodBase Method { get; }
+
+        /// <summary>
         /// Module from body.
         /// </summary>
         public Module Module { get; }
@@ -27,12 +37,12 @@ namespace Jitex.Builder.Method
         /// <summary>
         /// Generic class arguments used in body.
         /// </summary>
-        public Type[] GenericTypeArguments { get; set; }
+        public Type[]? GenericTypeArguments { get; set; }
 
         /// <summary>
         /// Generic 
         /// </summary>
-        public Type[] GenericMethodArguments { get; set; }
+        public Type[]? GenericMethodArguments { get; set; }
 
         /// <summary>
         /// IL from body.
@@ -74,6 +84,7 @@ namespace Jitex.Builder.Method
         /// <param name="readIl">Read il on constructor.</param>
         public MethodBody(MethodBase methodBase)
         {
+            Method = methodBase;
             Module = methodBase.Module;
 
             if (!(methodBase is DynamicMethod))
@@ -89,7 +100,10 @@ namespace Jitex.Builder.Method
                 IL = methodBase.GetILBytes();
             }
             else
+            {
                 _il = methodBase.GetILBytes();
+                IsDynamicMethod = true;
+            }
         }
 
         /// <summary>
@@ -100,7 +114,7 @@ namespace Jitex.Builder.Method
         /// <param name="genericTypeArguments">Generic class arguments used in body.</param>
         /// <param name="genericMethodArguments">Generic method arguments used in body.</param>
         /// <param name="variables">Local variables.</param>
-        public MethodBody(IEnumerable<byte> il, Module module, Type[] genericTypeArguments = null, Type[] genericMethodArguments = null, params Type[] variables)
+        public MethodBody(IEnumerable<byte> il, Module? module, Type[] genericTypeArguments = null, Type[] genericMethodArguments = null, params Type[] variables)
         {
             Module = module;
             LocalVariables = variables.Select(s => new LocalVariableInfo(s)).ToList();
@@ -118,13 +132,8 @@ namespace Jitex.Builder.Method
         /// <param name="module">Module from IL.</param>
         /// <param name="genericTypeArguments">Generic class arguments used in body.</param>
         /// <param name="genericMethodArguments">Generic method arguments used in body.</param>
-        public MethodBody(byte[] il, Module module, Type[] genericTypeArguments = null, Type[] genericMethodArguments = null)
+        public MethodBody(IEnumerable<byte> il, Module? module, Type[] genericTypeArguments = null, Type[] genericMethodArguments = null) : this(il, module, genericTypeArguments, genericMethodArguments, new Type[0])
         {
-            Module = module;
-            GenericTypeArguments = genericTypeArguments;
-            GenericMethodArguments = genericMethodArguments;
-
-            IL = il;
         }
 
         /// <summary>
@@ -133,12 +142,8 @@ namespace Jitex.Builder.Method
         /// <param name="il">IL instructions.</param>
         /// <param name="module">Module from IL.</param>
         /// <param name="variables">Local variables.</param>
-        public MethodBody(IEnumerable<byte> il, Module module, params Type[] variables)
+        public MethodBody(IEnumerable<byte> il, Module? module, params Type[] variables) : this(il, module, null, null, variables)
         {
-            Module = module;
-            LocalVariables = variables.Select(s => new LocalVariableInfo(s)).ToList();
-
-            IL = il.ToArray();
         }
 
         /// <summary>
@@ -146,10 +151,8 @@ namespace Jitex.Builder.Method
         /// </summary>
         /// <param name="il">IL instructions.</param>
         /// <param name="variables">Local variables.</param>
-        public MethodBody(IEnumerable<byte> il, params Type[] variables)
+        public MethodBody(IEnumerable<byte> il, params Type[] variables) : this(il, null, variables)
         {
-            LocalVariables = variables.Select(s => new LocalVariableInfo(s)).ToList();
-            _il = il.ToArray();
         }
 
         /// <summary>
@@ -169,6 +172,9 @@ namespace Jitex.Builder.Method
         /// <returns>Operations from body.</returns>
         public IEnumerable<Operation> ReadIL()
         {
+            if (Method != null)
+                return new ILReader(Method);
+
             return new ILReader(IL, Module, GenericTypeArguments, GenericMethodArguments);
         }
 
@@ -281,14 +287,14 @@ namespace Jitex.Builder.Method
 
                 if (variable.Type.IsGenericType && !isGenericDefined)
                 {
-                    blob.WriteByte((byte) CorElementType.ELEMENT_TYPE_GENERICINST);
+                    blob.WriteByte((byte)CorElementType.ELEMENT_TYPE_GENERICINST);
                     blob.WriteByte((byte)LocalVariableInfo.DetectCorElementType(variable.Type));
 
                     int typeInfo = GetTypeInfo(variable.Type, metadataInfo);
-                    blob.WriteByte((byte) typeInfo);
+                    blob.WriteByte((byte)typeInfo);
 
                     int countGenericVariables = LocalVariables.Count(w => w.Type.IsGenericType);
-                    blob.WriteByte((byte) countGenericVariables);
+                    blob.WriteByte((byte)countGenericVariables);
 
                     isGenericDefined = true;
                 }
@@ -297,7 +303,7 @@ namespace Jitex.Builder.Method
 
                 if (elementType == CorElementType.ELEMENT_TYPE_SZARRAY)
                 {
-                    blob.WriteByte((byte) elementType);
+                    blob.WriteByte((byte)elementType);
                     elementType = LocalVariableInfo.DetectCorElementType(variable.Type.GetElementType()!);
                 }
 
@@ -320,7 +326,7 @@ namespace Jitex.Builder.Method
                 }
                 else
                 {
-                    blob.WriteByte((byte) elementType);
+                    blob.WriteByte((byte)elementType);
                 }
             }
 

@@ -2,7 +2,7 @@
 
 namespace Jitex.Builder.Utils.Extensions
 {
-    internal static class DynamicMethodExtensions
+    public static class DynamicMethodExtensions
     {
         public static byte[] GetILBytes(this DynamicMethod dynamicMethod)
         {
