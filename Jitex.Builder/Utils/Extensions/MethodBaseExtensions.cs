@@ -3,7 +3,7 @@ using System.Reflection.Emit;
 
 namespace Jitex.Builder.Utils.Extensions
 {
-    public static class MethodBaseExtensions
+    internal static class MethodBaseExtensions
     {
         public static byte[] GetILBytes(this MethodBase methodBase)
         {

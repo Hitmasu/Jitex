@@ -1,10 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+using System.Drawing;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Jitex;
 using Jitex.Intercept;
 using Jitex.JIT.Context;
+using Jitex.Utils;
 using Console = System.Console;
 
 namespace ConsoleApp1
@@ -54,19 +55,28 @@ namespace ConsoleApp1
 
     class Program
     {
+        private static Point point = new Point(1,2);
+
+        // private static async ValueTask Teste()
+        // {
+        //     return;
+        // }
+
         static async Task Main()
         {
             JitexManager.AddMethodResolver(MethodResolver);
             JitexManager.AddInterceptor(InteceptorCallAsync);
 
-            Person p = new Person {Name = "Flávio", Idade = 99};
-            await p.Teste().ConfigureAwait(false);
-
+            Person p = new Person();
+            p.Teste();
+            // var lp = p.Teste();
+            // await lp;
             await Task.Delay(-1);
         }
 
         private static async ValueTask InteceptorCallAsync(CallContext context)
         {
+            context.DisableIntercept();
             //context.Continue();
             Console.WriteLine("Method intercepted");
         }

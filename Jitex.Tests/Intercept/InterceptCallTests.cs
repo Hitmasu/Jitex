@@ -18,7 +18,6 @@ namespace Jitex.Tests.Intercept
     {
         private Point _point;
         private InterceptPerson _person;
-        public string Name { get; set; }
 
         private static readonly ConcurrentDictionary<string, ConcurrentBag<string>> CallsIntercepted = new();
         private static readonly ConcurrentDictionary<string, ConcurrentBag<string>> MethodsCalled = new();
@@ -389,17 +388,16 @@ namespace Jitex.Tests.Intercept
         [Fact]
         public async Task ValueTaskAsyncNonGeneric()
         {
-            Name = "Flávio";
             await SimpleCallValueTaskAsync().ConfigureAwait(false);
-            //
-            // Assert.True(HasCalled(nameof(SimpleCallValueTaskAsync)), "Call not continued!");
-            // Assert.True(HasIntercepted(nameof(SimpleCallValueTaskAsync)), "Method not intercepted!");
-            //
-            // Assert.True(CountCalls(nameof(SimpleCallValueTaskAsync)) == 1, "Called more than expected!");
-            // Assert.True(CountIntercept(nameof(SimpleCallValueTaskAsync)) == 1, "Intercepted more than expected!");
-            //
-            // CallsIntercepted.TryRemove(nameof(ValueTaskAsyncNonGeneric), out _);
-            // MethodsCalled.TryRemove(nameof(ValueTaskAsyncNonGeneric), out _);
+            
+             Assert.True(HasCalled(nameof(SimpleCallValueTaskAsync)), "Call not continued!");
+             Assert.True(HasIntercepted(nameof(SimpleCallValueTaskAsync)), "Method not intercepted!");
+            
+             Assert.True(CountCalls(nameof(SimpleCallValueTaskAsync)) == 1, "Called more than expected!");
+             Assert.True(CountIntercept(nameof(SimpleCallValueTaskAsync)) == 1, "Intercepted more than expected!");
+            
+             CallsIntercepted.TryRemove(nameof(ValueTaskAsyncNonGeneric), out _);
+             MethodsCalled.TryRemove(nameof(ValueTaskAsyncNonGeneric), out _);
         }
 
         [Theory]
@@ -510,8 +508,6 @@ namespace Jitex.Tests.Intercept
         [MethodImpl(MethodImplOptions.NoInlining)]
         private async ValueTask SimpleCallValueTaskAsync()
         {
-            Debug.WriteLine(Name);
-            Debug.WriteLine("Called");
             await Task.Delay(10);
             AddMethodCall(nameof(SimpleCallValueTaskAsync), caller: nameof(ValueTaskAsyncNonGeneric));
         }

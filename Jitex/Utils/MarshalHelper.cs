@@ -2,6 +2,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
+using System.Threading.Tasks;
 
 namespace Jitex.Utils
 {
@@ -23,7 +24,7 @@ namespace Jitex.Utils
         /// <param name="typeRef">Reference to get address.</param>
         /// <returns>Reference address from TypedReference.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe IntPtr GetReferenceFromTypedReference(TypedReference typeRef) => *(IntPtr*)&typeRef;
+        public static unsafe IntPtr GetReferenceFromTypedReference(TypedReference typeRef) => *(IntPtr*) &typeRef;
 
         /// <summary>
         /// Get reference address from object.
@@ -34,7 +35,7 @@ namespace Jitex.Utils
         public static unsafe IntPtr GetReferenceFromObject(ref object obj)
         {
             TypedReference typeRef = __makeref(obj);
-            return *(IntPtr*)&typeRef;
+            return *(IntPtr*) &typeRef;
         }
 
         public static object GetObjectFromAddress(IntPtr address, Type type)
@@ -82,7 +83,7 @@ namespace Jitex.Utils
 
             unsafe
             {
-                unitializedObjRef = *(IntPtr*)unitializedObjRef;
+                unitializedObjRef = *(IntPtr*) unitializedObjRef;
                 unitializedObjRef += IntPtr.Size;
                 source = new Span<byte>(address.ToPointer(), size);
                 dest = new Span<byte>(unitializedObjRef.ToPointer(), size);
@@ -91,6 +92,23 @@ namespace Jitex.Utils
             source.CopyTo(dest);
 
             return unitializedObject;
+        }
+        
+        
+        public static ValueTask Preserve()
+        {
+            Task task = new Task(async () =>
+            {
+                await Task.Delay(10);
+            });
+
+            return new ValueTask(Task.Run(() => task.Start()));
+            // Task task = new(async () =>
+            // {
+            //     await Task.Delay(1000);
+            //     Console.WriteLine("Finish");
+            // });
+            // return new ValueTask(task);
         }
     }
 }

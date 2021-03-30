@@ -4,10 +4,12 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Jitex.Utils;
 using Jitex.Utils.Extension;
 using IntPtr = System.IntPtr;
+using MethodBody = Jitex.Builder.Method.MethodBody;
 
 namespace Jitex.Intercept
 {
@@ -31,6 +33,7 @@ namespace Jitex.Intercept
         private static readonly ConstructorInfo ObjectCtor;
         private static readonly ConstructorInfo ConstructorCallManager;
         private static readonly ConstructorInfo ConstructorIntPtrLong;
+        private static readonly MethodInfo KeepAlive;
 
         static InterceptBuilder()
         {
@@ -42,6 +45,7 @@ namespace Jitex.Intercept
             ConstructorIntPtrLong = typeof(IntPtr).GetConstructor(new[] {typeof(long)})!;
             CallDispose = typeof(CallManager).GetMethod(nameof(CallManager.Dispose), BindingFlags.Public | BindingFlags.Instance)!;
             GetReferenceFromTypedReference = typeof(MarshalHelper).GetMethod(nameof(MarshalHelper.GetReferenceFromTypedReference))!;
+            KeepAlive = typeof(MarshalHelper).GetMethod("Preserve", (BindingFlags) (-1));
         }
 
         /// <summary>
@@ -151,7 +155,9 @@ namespace Jitex.Intercept
 
             Type retType;
 
-            if (isAwaitable && returnType.IsGenericType)
+            if (returnType.IsPointer || returnType.IsByRef)
+                retType = typeof(IntPtr);
+            else if (isAwaitable && returnType.IsGenericType)
                 retType = returnType.GetGenericArguments().First();
             else
                 retType = returnType;
@@ -233,11 +239,14 @@ namespace Jitex.Intercept
                     }
                     else
                     {
-                        LocalBuilder defaultTaskVariable = generator.DeclareLocal(typeof(ValueTask));
+                        // LocalBuilder defaultTaskVariable = generator.DeclareLocal(typeof(ValueTask));
+                        // generator.Emit(OpCodes.Ldloca_S, defaultTaskVariable.LocalIndex);
+                        // generator.Emit(OpCodes.Dup);
+                        // generator.Emit(OpCodes.Initobj, typeof(ValueTask));
+                        generator.Emit(OpCodes.Call, KeepAlive);
+                        // generator.Emit(OpCodes.Ldloc, defaultTaskVariable.LocalIndex);
+                        // generator.Emit(OpCodes.Box, typeof(ValueTask));
                         
-                        generator.Emit(OpCodes.Ldloca_S,defaultTaskVariable.LocalIndex);
-                        generator.Emit(OpCodes.Initobj,typeof(ValueTask));
-                        generator.Emit(OpCodes.Ldloc,defaultTaskVariable.LocalIndex);
                     }
                 }
             }

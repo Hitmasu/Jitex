@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Reflection;
 
 namespace Jitex.Utils.Extension
@@ -15,7 +16,7 @@ namespace Jitex.Utils.Extension
             if (method.IsConstructor)
                 return false;
 
-            MethodInfo methodInfo = (MethodInfo)method;
+            MethodInfo methodInfo = (MethodInfo) method;
             Type returnType = methodInfo.ReturnType;
 
             return returnType.IsAwaitable();

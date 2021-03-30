@@ -77,5 +77,11 @@ namespace Jitex.Utils
 
             return method.MethodHandle;
         }
+
+        public static void PrepareMethod(MethodBase method)
+        {
+            RuntimeMethodHandle handle = GetMethodHandle(method);
+            RuntimeHelpers.PrepareMethod(handle);
+        }
     }
 }

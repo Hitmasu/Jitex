@@ -21,11 +21,7 @@ namespace Jitex.Utils
 
         public static Task InternalPrepareMethodAsync(MethodBase method)
         {
-            return Task.Run(() =>
-            {
-                RuntimeMethodHandle handle = MethodHelper.GetMethodHandle(method);
-                RuntimeHelpers.PrepareMethod(handle);
-            });
+            return Task.Run(() => MethodHelper.PrepareMethod(method));
         }
     }
 }

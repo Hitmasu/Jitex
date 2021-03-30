@@ -2,9 +2,12 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
+using Jitex.Builder.Utils.Extensions;
 using Jitex.Intercept;
 using Jitex.Runtime;
 using Jitex.Utils;
+using Lokad.ILPack.IL;
 using MethodBody = Jitex.Builder.Method.MethodBody;
 
 namespace Jitex.JIT.Context
@@ -203,7 +206,7 @@ namespace Jitex.JIT.Context
 
             byte[] nativeCode = DetourHelper.CreateDetour(interceptMethod);
             InterceptContext = new InterceptContext(Method, nativeCode);
-
+             
             IsResolved = true;
             Mode = ResolveMode.Intercept;
         }
