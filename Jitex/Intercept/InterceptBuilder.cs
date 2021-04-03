@@ -33,7 +33,6 @@ namespace Jitex.Intercept
         private static readonly ConstructorInfo ObjectCtor;
         private static readonly ConstructorInfo ConstructorCallManager;
         private static readonly ConstructorInfo ConstructorIntPtrLong;
-        private static readonly MethodInfo KeepAlive;
 
         static InterceptBuilder()
         {
@@ -45,7 +44,6 @@ namespace Jitex.Intercept
             ConstructorIntPtrLong = typeof(IntPtr).GetConstructor(new[] {typeof(long)})!;
             CallDispose = typeof(CallManager).GetMethod(nameof(CallManager.Dispose), BindingFlags.Public | BindingFlags.Instance)!;
             GetReferenceFromTypedReference = typeof(MarshalHelper).GetMethod(nameof(MarshalHelper.GetReferenceFromTypedReference))!;
-            KeepAlive = typeof(MarshalHelper).GetMethod("Preserve", (BindingFlags) (-1));
         }
 
         /// <summary>
@@ -153,19 +151,18 @@ namespace Jitex.Intercept
                 }
             }
 
-            Type retType;
+            Type realReturnType;
 
-            if (returnType.IsPointer || returnType.IsByRef)
-                retType = typeof(IntPtr);
+            if (returnType.IsPointer || returnType.IsByRef || returnType == typeof(void))
+                realReturnType = typeof(IntPtr);
             else if (isAwaitable && returnType.IsGenericType)
-                retType = returnType.GetGenericArguments().First();
+                realReturnType = returnType.GetGenericArguments().First();
             else
-                retType = returnType;
+                realReturnType = returnType;
 
-            MethodInfo getAwaiter = typeof(Task<>).MakeGenericType(retType).GetMethod(nameof(Task<object>.GetAwaiter), BindingFlags.Public | BindingFlags.Instance)!;
-            MethodInfo getResult = typeof(TaskAwaiter<>).MakeGenericType(retType).GetMethod(nameof(TaskAwaiter<object>.GetResult), BindingFlags.Public | BindingFlags.Instance)!;
-
-            LocalBuilder awaiterVariable = generator.DeclareLocal(typeof(TaskAwaiter<>).MakeGenericType(retType));
+            MethodInfo getAwaiter = typeof(Task<>).MakeGenericType(realReturnType).GetMethod(nameof(Task<object>.GetAwaiter), BindingFlags.Public | BindingFlags.Instance)!;
+            MethodInfo getResult = typeof(TaskAwaiter<>).MakeGenericType(realReturnType).GetMethod(nameof(TaskAwaiter<object>.GetResult), BindingFlags.Public | BindingFlags.Instance)!;
+            LocalBuilder awaiterVariable = generator.DeclareLocal(typeof(TaskAwaiter<>).MakeGenericType(realReturnType));
 
             generator.Emit(OpCodes.Ldc_I8, Method.MethodHandle.Value.ToInt64());
             generator.Emit(OpCodes.Newobj, ConstructorIntPtrLong);
@@ -180,9 +177,9 @@ namespace Jitex.Intercept
             generator.Emit(OpCodes.Newobj, ConstructorCallManager);
             generator.Emit(OpCodes.Dup);
 
-            if (isAwaitable && returnType != typeof(ValueTask) || TypeHelper.SizeOf(retType) < IntPtr.Size)
+            if (returnType != typeof(void) && (isAwaitable && returnType != typeof(ValueTask) || TypeHelper.SizeOf(realReturnType) < IntPtr.Size))
             {
-                MethodInfo interceptor = InterceptAsyncCallAsync.MakeGenericMethod(retType);
+                MethodInfo interceptor = InterceptAsyncCallAsync.MakeGenericMethod(realReturnType);
                 generator.Emit(OpCodes.Call, interceptor);
             }
             else
@@ -201,7 +198,7 @@ namespace Jitex.Intercept
 
                 if (isAwaitable)
                 {
-                    retVariable = generator.DeclareLocal(retType);
+                    retVariable = generator.DeclareLocal(realReturnType);
 
                     generator.Emit(OpCodes.Stloc_S, retVariable.LocalIndex);
                     generator.Emit(OpCodes.Call, CallDispose);
@@ -209,12 +206,12 @@ namespace Jitex.Intercept
 
                     if (returnType.IsTask())
                     {
-                        MethodInfo fromResult = typeof(Task).GetMethod(nameof(Task.FromResult))!.MakeGenericMethod(retType);
+                        MethodInfo fromResult = typeof(Task).GetMethod(nameof(Task.FromResult))!.MakeGenericMethod(realReturnType);
                         generator.Emit(OpCodes.Call, fromResult);
                     }
                     else
                     {
-                        ConstructorInfo ctorValueTask = typeof(ValueTask<>).MakeGenericType(retType).GetConstructor(new[] {retType})!;
+                        ConstructorInfo ctorValueTask = typeof(ValueTask<>).MakeGenericType(realReturnType).GetConstructor(new[] {realReturnType})!;
                         generator.Emit(OpCodes.Newobj, ctorValueTask);
                     }
                 }
@@ -233,20 +230,16 @@ namespace Jitex.Intercept
 
                 if (isAwaitable)
                 {
-                    if (retType.IsTask())
+                    if (returnType.IsTask())
                     {
                         generator.Emit(OpCodes.Call, CompletedTask);
                     }
                     else
                     {
-                        // LocalBuilder defaultTaskVariable = generator.DeclareLocal(typeof(ValueTask));
-                        // generator.Emit(OpCodes.Ldloca_S, defaultTaskVariable.LocalIndex);
-                        // generator.Emit(OpCodes.Dup);
-                        // generator.Emit(OpCodes.Initobj, typeof(ValueTask));
-                        generator.Emit(OpCodes.Call, KeepAlive);
-                        // generator.Emit(OpCodes.Ldloc, defaultTaskVariable.LocalIndex);
-                        // generator.Emit(OpCodes.Box, typeof(ValueTask));
-                        
+                        LocalBuilder defaultTaskVariable = generator.DeclareLocal(typeof(ValueTask));
+                        generator.Emit(OpCodes.Ldloca_S, defaultTaskVariable.LocalIndex);
+                        generator.Emit(OpCodes.Initobj, typeof(ValueTask));
+                        generator.Emit(OpCodes.Ldloca, defaultTaskVariable.LocalIndex);
                     }
                 }
             }

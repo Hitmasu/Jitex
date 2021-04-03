@@ -46,7 +46,7 @@ namespace Jitex.Utils
         public static Delegate BuildDelegate(IntPtr addressMethod, MethodBase method)
         {
             IList<Type> parameters = CreateParameters(method);
-            Type[] parametersArr = parameters.ToArray();
+            Type[] parametersArray = parameters.ToArray();
 
             Type retType;
             Type boxType = default;
@@ -74,7 +74,7 @@ namespace Jitex.Utils
                 }
             }
 
-            DynamicMethod dm = new($"{method.Name}Original", retType, parametersArr, method.DeclaringType, true);
+            DynamicMethod dm = new($"{method.Name}Original", retType, parametersArray, method.DeclaringType, true);
             ILGenerator generator = dm.GetILGenerator();
 
             for (int i = 0; i < parameters.Count; i++)
@@ -82,18 +82,26 @@ namespace Jitex.Utils
 
             generator.Emit(OpCodes.Ldc_I8, addressMethod.ToInt64());
             generator.Emit(OpCodes.Conv_I);
-            generator.EmitCalli(OpCodes.Calli, CallingConventions.Standard, retType, parametersArr, null);
+            generator.EmitCalli(OpCodes.Calli, CallingConventions.Standard, retType, parametersArray, null);
 
-            if (retType == typeof(void))
-                generator.Emit(OpCodes.Pop);
-            else
+            if (retType != typeof(void))
                 generator.Emit(OpCodes.Box, boxType);
-
+                
             generator.Emit(OpCodes.Ret);
 
-            parameters.Add(retType);
-            Type funcType = Expression.GetFuncType(parameters.ToArray());
-            return dm.CreateDelegate(funcType);
+            Type delegateType;
+            
+            if (retType == typeof(void))
+            {
+                delegateType = Expression.GetActionType(parameters.ToArray());
+            }
+            else
+            {
+                parameters.Add(retType);
+                delegateType = Expression.GetFuncType(parameters.ToArray());
+            }
+
+            return dm.CreateDelegate(delegateType);
         }
 
         public static Delegate CreateDelegate(IntPtr address, MethodBase method)

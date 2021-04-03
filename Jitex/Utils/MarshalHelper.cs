@@ -93,22 +93,5 @@ namespace Jitex.Utils
 
             return unitializedObject;
         }
-        
-        
-        public static ValueTask Preserve()
-        {
-            Task task = new Task(async () =>
-            {
-                await Task.Delay(10);
-            });
-
-            return new ValueTask(Task.Run(() => task.Start()));
-            // Task task = new(async () =>
-            // {
-            //     await Task.Delay(1000);
-            //     Console.WriteLine("Finish");
-            // });
-            // return new ValueTask(task);
-        }
     }
 }
