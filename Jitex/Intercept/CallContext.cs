@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -17,7 +18,6 @@ namespace Jitex.Intercept
     /// </remarks>
     public class CallContext : IDisposable
     {
-        private readonly int _sizeType;
         private readonly Type? _returnType;
         private Parameter? _returnValue;
         private Parameter? _instanceValue;
@@ -35,7 +35,7 @@ namespace Jitex.Intercept
         /// <summary>
         /// Return case method has return (no void).
         /// </summary>
-        public bool HasReturn => _returnType != typeof(void);
+        public bool HasReturn => _returnType != null && _returnType != typeof(void);
 
         /// <summary>
         /// Method source call.
@@ -97,7 +97,7 @@ namespace Jitex.Intercept
                 _returnValue?.Dispose();
 
                 if (value != null)
-                    _returnValue = new Parameter(ref value, ((MethodInfo) Method).ReturnType);
+                    _returnValue = new Parameter(ref value, _returnType!);
                 else
                     _returnValue = null;
 
@@ -150,12 +150,7 @@ namespace Jitex.Intercept
             IsAwaitable = method.IsAwaitable();
 
             if (method is MethodInfo methodInfo)
-            {
                 _returnType = methodInfo.ReturnType;
-
-                if (TypeHelper.IsStruct(_returnType))
-                    _sizeType = TypeHelper.SizeOf(_returnType);
-            }
 
             int startIndex = 0;
 
@@ -195,7 +190,7 @@ namespace Jitex.Intercept
         /// </summary>
         internal void ContinueFlow()
         {
-            if (_returnType == typeof(void))
+            if (!HasReturn)
             {
                 Call.DynamicInvoke(ParametersCall);
             }
@@ -205,9 +200,9 @@ namespace Jitex.Intercept
 
                 if (returnValue is IntPtr returnAddress)
                 {
-                    if (TypeHelper.IsStruct(_returnType!))
+                    if (_returnType!.IsStruct())
                     {
-                        if (_sizeType <= IntPtr.Size)
+                        if (_returnType!.SizeOf() <= IntPtr.Size)
                         {
                             IntPtr reference = MarshalHelper.GetReferenceFromTypedReference(__makeref(returnValue));
                             IntPtr valueAddress;
@@ -226,7 +221,7 @@ namespace Jitex.Intercept
                         }
                     }
 
-                    _returnValue = new Parameter(returnAddress, _returnType, isReturnAddress: true)
+                    _returnValue = new Parameter(returnAddress, _returnType!, isReturnAddress: true)
                     {
                         IsReturnAddress = true
                     };
@@ -353,7 +348,7 @@ namespace Jitex.Intercept
                 if (_returnType == typeof(void))
                     return default;
 
-                if (TypeHelper.IsStruct(_returnType))
+                if (_returnType.IsStruct())
                 {
                     if (returnValue is IntPtr address)
                     {
@@ -396,10 +391,10 @@ namespace Jitex.Intercept
 
         public void Dispose()
         {
-            // _returnValue?.Dispose();
-            // _instanceValue?.Dispose();
-            // _methodHandle?.Dispose();
-            // Parameters?.Dispose();
+            _returnValue?.Dispose();
+            _instanceValue?.Dispose();
+            _methodHandle?.Dispose();
+            Parameters?.Dispose();
         }
     }
 }

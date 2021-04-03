@@ -356,7 +356,6 @@ namespace Jitex.JIT
             {
                 nativeEntry = default;
                 nativeSizeOfCode = default;
-                Debugger.Break();
                 return 0;
             }
             finally

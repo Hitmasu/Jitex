@@ -151,18 +151,18 @@ namespace Jitex.Intercept
                 }
             }
 
-            Type realReturnType;
+            Type returnTypeInterceptor;
 
             if (returnType.IsPointer || returnType.IsByRef || returnType == typeof(void))
-                realReturnType = typeof(IntPtr);
+                returnTypeInterceptor = typeof(IntPtr);
             else if (isAwaitable && returnType.IsGenericType)
-                realReturnType = returnType.GetGenericArguments().First();
+                returnTypeInterceptor = returnType.GetGenericArguments().First();
             else
-                realReturnType = returnType;
+                returnTypeInterceptor = returnType;
 
-            MethodInfo getAwaiter = typeof(Task<>).MakeGenericType(realReturnType).GetMethod(nameof(Task<object>.GetAwaiter), BindingFlags.Public | BindingFlags.Instance)!;
-            MethodInfo getResult = typeof(TaskAwaiter<>).MakeGenericType(realReturnType).GetMethod(nameof(TaskAwaiter<object>.GetResult), BindingFlags.Public | BindingFlags.Instance)!;
-            LocalBuilder awaiterVariable = generator.DeclareLocal(typeof(TaskAwaiter<>).MakeGenericType(realReturnType));
+            MethodInfo getAwaiter = typeof(Task<>).MakeGenericType(returnTypeInterceptor).GetMethod(nameof(Task<object>.GetAwaiter), BindingFlags.Public | BindingFlags.Instance)!;
+            MethodInfo getResult = typeof(TaskAwaiter<>).MakeGenericType(returnTypeInterceptor).GetMethod(nameof(TaskAwaiter<object>.GetResult), BindingFlags.Public | BindingFlags.Instance)!;
+            LocalBuilder awaiterVariable = generator.DeclareLocal(typeof(TaskAwaiter<>).MakeGenericType(returnTypeInterceptor));
 
             generator.Emit(OpCodes.Ldc_I8, Method.MethodHandle.Value.ToInt64());
             generator.Emit(OpCodes.Newobj, ConstructorIntPtrLong);
@@ -177,9 +177,11 @@ namespace Jitex.Intercept
             generator.Emit(OpCodes.Newobj, ConstructorCallManager);
             generator.Emit(OpCodes.Dup);
 
-            if (returnType != typeof(void) && (isAwaitable && returnType != typeof(ValueTask) || TypeHelper.SizeOf(realReturnType) < IntPtr.Size))
+
+            if (isAwaitable && returnType != typeof(ValueTask) || 
+                returnType.IsStruct() && returnType.SizeOf() <= IntPtr.Size)
             {
-                MethodInfo interceptor = InterceptAsyncCallAsync.MakeGenericMethod(realReturnType);
+                MethodInfo interceptor = InterceptAsyncCallAsync.MakeGenericMethod(returnTypeInterceptor);
                 generator.Emit(OpCodes.Call, interceptor);
             }
             else
@@ -198,7 +200,7 @@ namespace Jitex.Intercept
 
                 if (isAwaitable)
                 {
-                    retVariable = generator.DeclareLocal(realReturnType);
+                    retVariable = generator.DeclareLocal(returnTypeInterceptor);
 
                     generator.Emit(OpCodes.Stloc_S, retVariable.LocalIndex);
                     generator.Emit(OpCodes.Call, CallDispose);
@@ -206,18 +208,18 @@ namespace Jitex.Intercept
 
                     if (returnType.IsTask())
                     {
-                        MethodInfo fromResult = typeof(Task).GetMethod(nameof(Task.FromResult))!.MakeGenericMethod(realReturnType);
+                        MethodInfo fromResult = typeof(Task).GetMethod(nameof(Task.FromResult))!.MakeGenericMethod(returnTypeInterceptor);
                         generator.Emit(OpCodes.Call, fromResult);
                     }
                     else
                     {
-                        ConstructorInfo ctorValueTask = typeof(ValueTask<>).MakeGenericType(realReturnType).GetConstructor(new[] {realReturnType})!;
+                        ConstructorInfo ctorValueTask = typeof(ValueTask<>).MakeGenericType(returnTypeInterceptor).GetConstructor(new[] {returnTypeInterceptor})!;
                         generator.Emit(OpCodes.Newobj, ctorValueTask);
                     }
                 }
                 else
                 {
-                    retVariable = generator.DeclareLocal(typeof(IntPtr));
+                    retVariable = generator.DeclareLocal(returnTypeInterceptor);
                     generator.Emit(OpCodes.Stloc_S, retVariable.LocalIndex);
                     generator.Emit(OpCodes.Call, CallDispose);
                     generator.Emit(OpCodes.Ldloc_S, retVariable.LocalIndex);

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 
@@ -36,7 +37,13 @@ namespace Jitex.Utils.Extension
             return type.GetGenericTypeDefinition() == typeof(ValueTask<>);
         }
 
-        public static IntPtr GetValueAddress(this Type type, IntPtr address)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsStruct(this Type type) => type != typeof(void) && type.IsValueType && !type.IsEnum;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int SizeOf(this Type type) => TypeHelper.SizeOf(type);
+
+        public static IntPtr GetValueAddress(this Type type, IntPtr address, bool isDirectAddress = false)
         {
             Type elementType;
 
@@ -50,8 +57,17 @@ namespace Jitex.Utils.Extension
                 if (type.IsByRef)
                     return address;
 
-                address = Marshal.ReadIntPtr(address);
-                return address;
+                return Marshal.ReadIntPtr(address);
+            }
+
+            if (type.IsStruct() && type.SizeOf() <= IntPtr.Size)
+            {
+                IntPtr valueAddress = Marshal.ReadIntPtr(address);
+
+                if (isDirectAddress)
+                    return valueAddress;
+
+                return Marshal.ReadIntPtr(valueAddress + IntPtr.Size);
             }
 
             if (elementType.IsValueType)
@@ -63,7 +79,6 @@ namespace Jitex.Utils.Extension
             if (type.IsByRef)
                 return address;
 
-            //return address;
             return Marshal.ReadIntPtr(address);
         }
     }

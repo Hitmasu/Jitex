@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Drawing;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
@@ -45,39 +46,48 @@ namespace ConsoleApp1
         public string Name { get; set; }
         public int Idade { get; set; }
 
-        public ValueTask Teste()
+        private static Point point = new Point(3, -1);
+
+        public ref Point Teste(Point pointer)
         {
+            unsafe
+            {
+                IntPtr valueAddr = *(IntPtr*)MarshalHelper.GetReferenceFromTypedReference(__makeref(pointer));
+                Console.WriteLine(valueAddr.ToString("X"));
+            }
+
             Console.WriteLine("Nome: " + Name);
             Console.WriteLine("Idade: " + Idade);
-            return new ValueTask();
+            Console.WriteLine("X: " + pointer.X);
+            Console.WriteLine("Y: " + pointer.Y);
+
+            return ref point;
         }
     }
 
     class Program
     {
-        private static Point point = new Point(1,2);
+        private static Point point = new Point(1, 2);
 
-        // private static async ValueTask Teste()
-        // {
-        //     return;
-        // }
-
-        static async Task Main()
+        static void Main()
         {
+            Person p = new Person { Idade = 24, Name = "Flávio" };
+            IntPtr addr = MarshalHelper.GetReferenceFromTypedReference(__makeref(p));
             JitexManager.AddMethodResolver(MethodResolver);
             JitexManager.AddInterceptor(InteceptorCallAsync);
 
-            Person p = new Person();
-            p.Teste();
-            // var lp = p.Teste();
-            // await lp;
-            await Task.Delay(-1);
+            unsafe
+            {
+                ref Point point2 = ref p.Teste(point);
+                Debugger.Break();
+            }
+
+            Console.ReadKey();
         }
 
         private static async ValueTask InteceptorCallAsync(CallContext context)
         {
-            context.DisableIntercept();
-            //context.Continue();
+            context.ReturnValue = new Point(3, -1);
             Console.WriteLine("Method intercepted");
         }
 

@@ -60,7 +60,7 @@ namespace Jitex.Intercept
         public ref object? GetParameterValue(int index)
         {
             Parameter parameter = GetParameter(index);
-            return ref parameter.GetValue();
+            return ref parameter.GetRefValue();
         }
 
         /// <summary>
@@ -163,7 +163,6 @@ namespace Jitex.Intercept
                 address = Marshal.ReadIntPtr(address);
                 Marshal.WriteIntPtr(parameter.AddressValue, address);
             }
-
         }
 
         public IEnumerator<Parameter> GetEnumerator()
@@ -264,8 +263,8 @@ namespace Jitex.Intercept
 
             //Normally, we dont should store address, because the value address can be updated (moved by GC)
             //and stored address become outdated.
-            //But case parameter is ByRef, it's necessary store case we need modify later.
-            if(Type.IsByRef || isReturnAddress)
+            //But case type is ByRef or it's from return address, it's necessary store case we need modify later.
+            if (Type.IsByRef || isReturnAddress)
                 SetAddress(address);
 
             if (readValue)
@@ -295,8 +294,10 @@ namespace Jitex.Intercept
         /// </summary>
         /// <param name="value">Value of parameter.</param>
         /// <param name="type">Type of parameter.</param>
-        internal Parameter(object value, Type type) : this(ref value, type) { }
-        
+        internal Parameter(object value, Type type) : this(ref value, type)
+        {
+        }
+
         internal void SetValue(object value)
         {
             _value = value;
@@ -315,18 +316,18 @@ namespace Jitex.Intercept
             SetAddress(address);
 
             if (readValue)
-                _value = MarshalHelper.GetObjectFromAddress(address,ElementType);
+                _value = MarshalHelper.GetObjectFromAddress(address, ElementType);
         }
 
         /// <summary>
-        /// Read "real address" from parameter.
+        /// Returns "real address" from parameter.
         /// </summary>
         /// <remarks>
         /// A address from parameter have some difference, Eg.:
         /// ValueType is passed a value address directly
         /// ReferenceType is passed a reference address which pointer to a value address.
         /// </remarks>
-        /// <returns>Return RealAddress from parameter.</returns>
+        /// <returns>Return real address from parameter.</returns>
         private IntPtr GetAddressValue()
         {
             IntPtr address;
@@ -340,6 +341,9 @@ namespace Jitex.Intercept
             }
             else if (IsReturnAddress)
             {
+                if (Type.IsStruct() && Type.SizeOf() <= IntPtr.Size)
+                    return Type.GetValueAddress(_address, true);
+
                 if (Type.IsValueType)
                     address = _address - IntPtr.Size;
                 else
@@ -368,15 +372,15 @@ namespace Jitex.Intercept
             _addressValue = addressValue;
         }
 
-        internal ref object? GetValue()
+        internal ref object? GetRefValue()
         {
             return ref _value;
         }
 
         public void Dispose()
         {
-            // _address = IntPtr.Zero;
-            // _addressValue = IntPtr.Zero;
+            _address = IntPtr.Zero;
+            _addressValue = IntPtr.Zero;
         }
     }
 }

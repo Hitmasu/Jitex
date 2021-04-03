@@ -19,6 +19,7 @@ namespace Jitex.Utils
         {
             if (type == typeof(void))
                 throw new ArgumentException("Type Void can't be used in SizeOf.");
+
             if (!CacheSizeOf.TryGetValue(type, out int size))
             {
                 Func<int> getSizeOf = CreateSizeOfMethod(type);
@@ -28,9 +29,6 @@ namespace Jitex.Utils
 
             return size;
         }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsStruct(Type type) => type != typeof(void) && type.IsValueType && !type.IsEnum;
 
         private static Func<int> CreateSizeOfMethod(Type type)
         {

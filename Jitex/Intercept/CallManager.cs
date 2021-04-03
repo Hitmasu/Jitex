@@ -46,7 +46,8 @@ namespace Jitex.Intercept
             if (_context.ProceedCall)
                 await _context.ContinueFlowAsync().ConfigureAwait(false);
 
-            return _context.HasReturn ? _context.ReturnAddress : IntPtr.Zero;
+            
+            return _context.HasReturn ? _context.ReturnAddress: IntPtr.Zero;
         }
 
         public async Task<TResult?> InterceptCallAsync<TResult>()
@@ -65,7 +66,7 @@ namespace Jitex.Intercept
 
         public void Dispose()
         {
-            // _context.Dispose();
+            _context.Dispose();
         }
 
         private class CallCache

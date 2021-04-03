@@ -3,6 +3,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
 using System.Threading.Tasks;
+using Jitex.Utils.Extension;
 
 namespace Jitex.Utils
 {
@@ -40,7 +41,7 @@ namespace Jitex.Utils
 
         public static object GetObjectFromAddress(IntPtr address, Type type)
         {
-            if (TypeHelper.IsStruct(type))
+            if (type.IsStruct())
             {
                 return GetStructFromAddress(address, type);
             }
