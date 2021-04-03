@@ -373,7 +373,7 @@ namespace Jitex.Tests.Intercept
         }
 
         [Fact]
-        public async Task TaskAsyncNonGeneric()
+        public async Task TaskNonGeneric()
         {
             await SimpleCallTaskAsync().ConfigureAwait(false);
 
@@ -383,12 +383,12 @@ namespace Jitex.Tests.Intercept
             Assert.True(CountCalls(nameof(SimpleCallTaskAsync)) == 1, "Called more than expected!");
             Assert.True(CountIntercept(nameof(SimpleCallTaskAsync)) == 1, "Intercepted more than expected!");
 
-            CallsIntercepted.TryRemove(nameof(TaskAsyncNonGeneric), out _);
-            MethodsCalled.TryRemove(nameof(TaskAsyncNonGeneric), out _);
+            CallsIntercepted.TryRemove(nameof(TaskNonGeneric), out _);
+            MethodsCalled.TryRemove(nameof(TaskNonGeneric), out _);
         }
 
         [Fact]
-        public async Task ValueTaskAsyncNonGeneric()
+        public async Task ValueTaskNonGeneric()
         {
             await SimpleCallValueTaskAsync().ConfigureAwait(false);
 
@@ -398,15 +398,15 @@ namespace Jitex.Tests.Intercept
             Assert.True(CountCalls(nameof(SimpleCallValueTaskAsync)) == 1, "Called more than expected!");
             Assert.True(CountIntercept(nameof(SimpleCallValueTaskAsync)) == 1, "Intercepted more than expected!");
 
-            CallsIntercepted.TryRemove(nameof(ValueTaskAsyncNonGeneric), out _);
-            MethodsCalled.TryRemove(nameof(ValueTaskAsyncNonGeneric), out _);
+            CallsIntercepted.TryRemove(nameof(ValueTaskNonGeneric), out _);
+            MethodsCalled.TryRemove(nameof(ValueTaskNonGeneric), out _);
         }
 
         [Theory]
         [InlineData(7, 9)]
         [InlineData(-1, 20)]
         [InlineData(2000, 7000)]
-        public async Task TaskAsyncGenericWithParameters(int n1, int n2)
+        public async Task TaskGenericWithParameters(int n1, int n2)
         {
             int result = await SumTaskAsync(n1, n2).ConfigureAwait(false);
 
@@ -418,8 +418,28 @@ namespace Jitex.Tests.Intercept
             Assert.True(CountCalls(nameof(SumTaskAsync)) == 1, "Called more than expected!");
             Assert.True(CountIntercept(nameof(SumTaskAsync)) == 1, "Intercepted more than expected!");
 
-            CallsIntercepted.TryRemove(nameof(TaskAsyncGenericWithParameters), out _);
-            MethodsCalled.TryRemove(nameof(TaskAsyncGenericWithParameters), out _);
+            CallsIntercepted.TryRemove(nameof(TaskGenericWithParameters), out _);
+            MethodsCalled.TryRemove(nameof(TaskGenericWithParameters), out _);
+        }
+
+        [Theory]
+        [InlineData(7, 9)]
+        [InlineData(-1, 20)]
+        [InlineData(2000, 7000)]
+        public async Task ValueTaskGenericWithParameters(int n1, int n2)
+        {
+            int result = await SumValueTaskAsync(n1, n2).ConfigureAwait(false);
+
+            Assert.Equal(n1 + n2, result);
+
+            Assert.True(HasCalled(nameof(SumValueTaskAsync)), "Call not continued!");
+            Assert.True(HasIntercepted(nameof(SumValueTaskAsync)), "Method not intercepted!");
+
+            Assert.True(CountCalls(nameof(SumValueTaskAsync)) == 1, "Called more than expected!");
+            Assert.True(CountIntercept(nameof(SumValueTaskAsync)) == 1, "Intercepted more than expected!");
+
+            CallsIntercepted.TryRemove(nameof(ValueTaskGenericWithParameters), out _);
+            MethodsCalled.TryRemove(nameof(ValueTaskGenericWithParameters), out _);
         }
 
         private static string ReverseText(string text) => new(text.Reverse().ToArray());
@@ -503,7 +523,7 @@ namespace Jitex.Tests.Intercept
         private async Task SimpleCallTaskAsync()
         {
             await Task.Delay(10);
-            AddMethodCall(nameof(SimpleCallTaskAsync), caller: nameof(TaskAsyncNonGeneric));
+            AddMethodCall(nameof(SimpleCallTaskAsync), caller: nameof(TaskNonGeneric));
         }
 
         [InterceptCall]
@@ -511,15 +531,23 @@ namespace Jitex.Tests.Intercept
         private async ValueTask SimpleCallValueTaskAsync()
         {
             await Task.Delay(10);
-            AddMethodCall(nameof(SimpleCallValueTaskAsync), caller: nameof(ValueTaskAsyncNonGeneric));
+            AddMethodCall(nameof(SimpleCallValueTaskAsync), caller: nameof(ValueTaskNonGeneric));
         }
 
         [InterceptCall]
         [MethodImpl(MethodImplOptions.NoInlining)]
         private async Task<int> SumTaskAsync(int n1, int n2)
         {
-            AddMethodCall(nameof(SumTaskAsync), caller: nameof(TaskAsyncGenericWithParameters));
+            AddMethodCall(nameof(SumTaskAsync), caller: nameof(TaskGenericWithParameters));
             return await Task.FromResult(n1 + n2);
+        }
+
+        [InterceptCall]
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private async ValueTask<int> SumValueTaskAsync(int n1, int n2)
+        {
+            AddMethodCall(nameof(SumValueTaskAsync), caller: nameof(ValueTaskGenericWithParameters));
+            return await new ValueTask<int>(n1 + n2);
         }
 
         private static async ValueTask InterceptorCall(CallContext context)

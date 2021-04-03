@@ -49,7 +49,7 @@ namespace Jitex.Utils
             Type[] parametersArray = parameters.ToArray();
 
             Type retType;
-            Type boxType = default;
+            Type? boxType = null;
             if (method is ConstructorInfo)
             {
                 retType = typeof(void);
@@ -107,8 +107,6 @@ namespace Jitex.Utils
         public static Delegate CreateDelegate(IntPtr address, MethodBase method)
         {
             return BuildDelegate(address, method);
-            //Type delegateType = CreateTypeDelegate(method);
-            //return Marshal.GetDelegateForFunctionPointer(address, delegateType);
         }
     }
 }

@@ -292,7 +292,7 @@ namespace Jitex.Intercept
             {
                 task = valueTask.AsTask();
             }
-            else if (_returnType!.IsValueTask()) //Check if is a ValueTask<T>
+            else if (_returnType!.IsValueTask())
             {
                 Type valueTaskType = typeof(ValueTask<>).MakeGenericType(_returnType.GetGenericArguments().First());
                 MethodInfo asTask = valueTaskType.GetMethod("AsTask", BindingFlags.Public | BindingFlags.Instance);

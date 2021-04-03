@@ -48,7 +48,7 @@ namespace ConsoleApp1
 
         private static Point point = new Point(3, -1);
 
-        public ref Point Teste(Point pointer)
+        public async ValueTask Teste(Point pointer)
         {
             unsafe
             {
@@ -56,12 +56,10 @@ namespace ConsoleApp1
                 Console.WriteLine(valueAddr.ToString("X"));
             }
 
-            Console.WriteLine("Nome: " + Name);
-            Console.WriteLine("Idade: " + Idade);
+            Console.WriteLine("Name: " + Name);
+            Console.WriteLine("Age: " + Idade);
             Console.WriteLine("X: " + pointer.X);
             Console.WriteLine("Y: " + pointer.Y);
-
-            return ref point;
         }
     }
 
@@ -69,25 +67,19 @@ namespace ConsoleApp1
     {
         private static Point point = new Point(1, 2);
 
-        static void Main()
+        static async Task Main()
         {
-            Person p = new Person { Idade = 24, Name = "Flávio" };
-            IntPtr addr = MarshalHelper.GetReferenceFromTypedReference(__makeref(p));
+            Person p = new Person { Idade = 999, Name = "Person name" };
             JitexManager.AddMethodResolver(MethodResolver);
             JitexManager.AddInterceptor(InteceptorCallAsync);
 
-            unsafe
-            {
-                ref Point point2 = ref p.Teste(point);
-                Debugger.Break();
-            }
+            await p.Teste(point);
 
             Console.ReadKey();
         }
 
         private static async ValueTask InteceptorCallAsync(CallContext context)
         {
-            context.ReturnValue = new Point(3, -1);
             Console.WriteLine("Method intercepted");
         }
 
