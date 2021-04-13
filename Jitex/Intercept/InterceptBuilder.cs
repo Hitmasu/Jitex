@@ -34,14 +34,15 @@ namespace Jitex.Intercept
         private static readonly ConstructorInfo ConstructorCallManager;
         private static readonly ConstructorInfo ConstructorIntPtrLong;
 
+
         static InterceptBuilder()
         {
             ObjectCtor = typeof(object).GetConstructor(Type.EmptyTypes)!;
             CompletedTask = typeof(Task).GetProperty(nameof(Task.CompletedTask))!.GetGetMethod();
-            ConstructorCallManager = typeof(CallManager).GetConstructor(new[] {typeof(IntPtr), typeof(object[]).MakeByRefType(), typeof(bool)})!;
+            ConstructorCallManager = typeof(CallManager).GetConstructor(new[] { typeof(IntPtr), typeof(object[]).MakeByRefType(), typeof(bool) })!;
             InterceptCallAsync = typeof(CallManager).GetMethods(BindingFlags.Public | BindingFlags.Instance).First(w => w.Name == nameof(CallManager.InterceptCallAsync) && !w.IsGenericMethod);
             InterceptAsyncCallAsync = typeof(CallManager).GetMethods(BindingFlags.Public | BindingFlags.Instance).First(w => w.Name == nameof(CallManager.InterceptCallAsync) && w.IsGenericMethod);
-            ConstructorIntPtrLong = typeof(IntPtr).GetConstructor(new[] {typeof(long)})!;
+            ConstructorIntPtrLong = typeof(IntPtr).GetConstructor(new[] { typeof(long) })!;
             CallDispose = typeof(CallManager).GetMethod(nameof(CallManager.Dispose), BindingFlags.Public | BindingFlags.Instance)!;
             GetReferenceFromTypedReference = typeof(MarshalHelper).GetMethod(nameof(MarshalHelper.GetReferenceFromTypedReference))!;
         }
@@ -66,7 +67,7 @@ namespace Jitex.Intercept
 
         private MethodInfo CreateMethodInterceptor()
         {
-            MethodInfo methodInfo = (MethodInfo) Method;
+            MethodInfo methodInfo = (MethodInfo)Method;
 
             HasReturn = methodInfo.ReturnType != typeof(Task) && methodInfo.ReturnType != typeof(ValueTask) && methodInfo.ReturnType != typeof(void);
 
@@ -160,8 +161,8 @@ namespace Jitex.Intercept
             else
                 returnTypeInterceptor = returnType;
 
-            MethodInfo getAwaiter = typeof(Task<>).MakeGenericType(returnTypeInterceptor).GetMethod(nameof(Task<object>.GetAwaiter), BindingFlags.Public | BindingFlags.Instance)!;
-            MethodInfo getResult = typeof(TaskAwaiter<>).MakeGenericType(returnTypeInterceptor).GetMethod(nameof(TaskAwaiter<object>.GetResult), BindingFlags.Public | BindingFlags.Instance)!;
+            MethodInfo getAwaiter = typeof(Task<>).MakeGenericType(returnTypeInterceptor).GetMethod(nameof(Task.GetAwaiter), BindingFlags.Public | BindingFlags.Instance)!;
+            MethodInfo getResult = typeof(TaskAwaiter<>).MakeGenericType(returnTypeInterceptor).GetMethod(nameof(TaskAwaiter.GetResult), BindingFlags.Public | BindingFlags.Instance)!;
             LocalBuilder awaiterVariable = generator.DeclareLocal(typeof(TaskAwaiter<>).MakeGenericType(returnTypeInterceptor));
 
             generator.Emit(OpCodes.Ldc_I8, Method.MethodHandle.Value.ToInt64());
@@ -177,9 +178,8 @@ namespace Jitex.Intercept
             generator.Emit(OpCodes.Newobj, ConstructorCallManager);
             generator.Emit(OpCodes.Dup);
 
-
-            if (isAwaitable && returnType != typeof(ValueTask) || 
-                returnType.IsStruct() && returnType.SizeOf() <= IntPtr.Size)
+            if (isAwaitable && returnType != typeof(ValueTask) ||
+                returnType.CanBeInline())
             {
                 MethodInfo interceptor = InterceptAsyncCallAsync.MakeGenericMethod(returnTypeInterceptor);
                 generator.Emit(OpCodes.Call, interceptor);
@@ -202,9 +202,10 @@ namespace Jitex.Intercept
                 {
                     retVariable = generator.DeclareLocal(returnTypeInterceptor);
 
-                    generator.Emit(OpCodes.Stloc_S, retVariable.LocalIndex);
+
+                    generator.Emit(OpCodes.Stloc, retVariable.LocalIndex);
                     generator.Emit(OpCodes.Call, CallDispose);
-                    generator.Emit(OpCodes.Ldloc_S, retVariable.LocalIndex);
+                    generator.Emit(OpCodes.Ldloc, retVariable.LocalIndex);
 
                     if (returnType.IsTask())
                     {
@@ -213,7 +214,7 @@ namespace Jitex.Intercept
                     }
                     else
                     {
-                        ConstructorInfo ctorValueTask = typeof(ValueTask<>).MakeGenericType(returnTypeInterceptor).GetConstructor(new[] {returnTypeInterceptor})!;
+                        ConstructorInfo ctorValueTask = typeof(ValueTask<int>).GetConstructor(new[] { typeof(int) })!;
                         generator.Emit(OpCodes.Newobj, ctorValueTask);
                     }
                 }

@@ -269,6 +269,7 @@ namespace Jitex.Intercept
             }
 
             object returnValue = Call.DynamicInvoke(ParametersCall);
+
             ProceedCall = false;
             ReturnValue = CreateReturnValue(ref returnValue);
             return ReturnValue;

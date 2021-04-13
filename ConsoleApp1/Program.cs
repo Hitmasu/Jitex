@@ -1,46 +1,20 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Drawing;
+using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Jitex;
 using Jitex.Intercept;
 using Jitex.JIT.Context;
+using Jitex.Runtime;
 using Jitex.Utils;
 using Console = System.Console;
+using IntPtr = System.IntPtr;
 
 namespace ConsoleApp1
 {
-    struct A
-    {
-        public int a;
-        public int b;
-        public int c;
-        public int d;
-
-        public A(int a, int b)
-        {
-            this.a = a;
-            this.b = b;
-            c = 10;
-            d = 0;
-        }
-    }
-
-    public struct B<T>
-    {
-        public T XYUZ;
-        public T a;
-        public int b;
-
-        public B(T _a, int ba)
-        {
-            a = _a;
-            XYUZ = a;
-            b = 0x0A;
-        }
-    }
-
     public class Person
     {
         public string Name { get; set; }
@@ -48,18 +22,11 @@ namespace ConsoleApp1
 
         private static Point point = new Point(3, -1);
 
-        public async ValueTask Teste(Point pointer)
+        public ValueTask<int> Teste(Point p, Point s)
         {
-            unsafe
-            {
-                IntPtr valueAddr = *(IntPtr*)MarshalHelper.GetReferenceFromTypedReference(__makeref(pointer));
-                Console.WriteLine(valueAddr.ToString("X"));
-            }
-
-            Console.WriteLine("Name: " + Name);
-            Console.WriteLine("Age: " + Idade);
-            Console.WriteLine("X: " + pointer.X);
-            Console.WriteLine("Y: " + pointer.Y);
+            Console.WriteLine(Name);
+            Console.WriteLine(Idade);
+            return new ValueTask<int>(10);
         }
     }
 
@@ -69,18 +36,24 @@ namespace ConsoleApp1
 
         static async Task Main()
         {
-            Person p = new Person { Idade = 999, Name = "Person name" };
+            Person p = new() {Idade = 999, Name = "Person name"};
             JitexManager.AddMethodResolver(MethodResolver);
             JitexManager.AddInterceptor(InteceptorCallAsync);
+            
+            var number = await p.Teste(point, point);
 
-            await p.Teste(point);
-
-            Console.ReadKey();
+            GC.KeepAlive(number);
+            Console.WriteLine(number);
         }
 
         private static async ValueTask InteceptorCallAsync(CallContext context)
         {
             Console.WriteLine("Method intercepted");
+        }
+
+        public static async ValueTask<int> A()
+        {
+            return await new ValueTask<int>(190);
         }
 
         private static void MethodResolver(MethodContext context)

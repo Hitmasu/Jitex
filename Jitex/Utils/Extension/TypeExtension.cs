@@ -38,6 +38,9 @@ namespace Jitex.Utils.Extension
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool CanBeInline(this Type type) => IsStruct(type) && SizeOf(type) <= IntPtr.Size;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsStruct(this Type type) => type != typeof(void) && type.IsValueType && !type.IsEnum;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -60,7 +63,7 @@ namespace Jitex.Utils.Extension
                 return Marshal.ReadIntPtr(address);
             }
 
-            if (type.IsStruct() && type.SizeOf() <= IntPtr.Size)
+            if (type.CanBeInline())
             {
                 IntPtr valueAddress = Marshal.ReadIntPtr(address);
 

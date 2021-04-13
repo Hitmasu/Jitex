@@ -46,7 +46,7 @@ namespace Jitex.Utils
                 return GetStructFromAddress(address, type);
             }
 
-            return GetObjectFromReference(address, type.TypeHandle.Value);
+            return GetObjectFromReference(address);
         }
 
         /// <summary>
@@ -58,7 +58,7 @@ namespace Jitex.Utils
         /// 
         /// Created by: IllidanS4
         /// https://github.com/IllidanS4/SharpUtils/blob/a3b4da490537e361e6a5debc873c303023d83bf1/Unsafe/Pointer.cs#L58
-        private static object GetObjectFromReference(IntPtr address, IntPtr typeHandle)
+        public static object GetObjectFromReference(IntPtr address)
         {
             TypedReference tr = default;
             Span<IntPtr> spanTr;

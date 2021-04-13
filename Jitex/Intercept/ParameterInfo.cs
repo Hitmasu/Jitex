@@ -341,7 +341,7 @@ namespace Jitex.Intercept
             }
             else if (IsReturnAddress)
             {
-                if (Type.IsStruct() && Type.SizeOf() <= IntPtr.Size)
+                if (Type.CanBeInline())
                     return Type.GetValueAddress(_address, true);
 
                 if (Type.IsValueType)

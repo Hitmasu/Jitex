@@ -59,7 +59,7 @@ namespace Jitex.Intercept
                 await _context.ContinueFlowAsync().ConfigureAwait(false);
 
             if (_context.HasReturn && _context.ReturnValue != null)
-                return (TResult) _context.ReturnValue;
+                return (TResult) (object)20;
 
             return default;
         }
