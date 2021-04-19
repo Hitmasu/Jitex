@@ -81,7 +81,8 @@ namespace Jitex.Intercept
 
             parameters.AddRange(methodInfo.GetParameters().Select(w => w.ParameterType));
 
-            DynamicMethod methodIntercept = new(Method.Name + "Jitex", MethodAttributes.Static | MethodAttributes.Public, CallingConventions.Standard, methodInfo.ReturnType, parameters.ToArray(), methodInfo.DeclaringType, true);
+            DynamicMethod methodIntercept = new(Method.Name + "Jitex", MethodAttributes.Static | MethodAttributes.Public, CallingConventions.Standard, methodInfo.ReturnType, new []{methodInfo.DeclaringType}, methodInfo.DeclaringType, true);
+
             ILGenerator generator = methodIntercept.GetILGenerator();
 
             BuildBody(generator, parameters, methodInfo.ReturnType);
@@ -202,7 +203,6 @@ namespace Jitex.Intercept
                 {
                     retVariable = generator.DeclareLocal(returnTypeInterceptor);
 
-
                     generator.Emit(OpCodes.Stloc, retVariable.LocalIndex);
                     generator.Emit(OpCodes.Call, CallDispose);
                     generator.Emit(OpCodes.Ldloc, retVariable.LocalIndex);
@@ -214,8 +214,11 @@ namespace Jitex.Intercept
                     }
                     else
                     {
-                        ConstructorInfo ctorValueTask = typeof(ValueTask<int>).GetConstructor(new[] { typeof(int) })!;
-                        generator.Emit(OpCodes.Newobj, ctorValueTask);
+                        // generator.Emit(OpCodes.Pop);
+                        MethodInfo methodToCall = typeof(MarshalHelper).GetMethod(nameof(MarshalHelper.PreserveValueTask));
+                        generator.Emit(OpCodes.Call, methodToCall);
+                        // ConstructorInfo ctorValueTask = typeof(ValueTask<int>).GetConstructor(new[] { typeof(int) })!;
+                        // generator.Emit(OpCodes.Newobj, ctorValueTask);
                     }
                 }
                 else

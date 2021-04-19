@@ -94,5 +94,12 @@ namespace Jitex.Utils
 
             return unitializedObject;
         }
+
+        private static ValueTask<int> atr;
+
+        public static ValueTask<int> PreserveValueTask(int number)
+        {
+            return new ValueTask<int>(number);
+        }
     }
 }
