@@ -366,10 +366,7 @@ namespace Jitex.Intercept
         private void SetAddress(IntPtr address)
         {
             _address = address;
-
-            IntPtr addressValue = GetAddressValue();
-
-            _addressValue = addressValue;
+            _addressValue = GetAddressValue();
         }
 
         internal ref object? GetRefValue()

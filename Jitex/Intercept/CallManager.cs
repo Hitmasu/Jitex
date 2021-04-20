@@ -45,9 +45,8 @@ namespace Jitex.Intercept
 
             if (_context.ProceedCall)
                 await _context.ContinueFlowAsync().ConfigureAwait(false);
-
             
-            return _context.HasReturn ? _context.ReturnAddress: IntPtr.Zero;
+            return _context.HasReturn ? _context.ReturnAddress : IntPtr.Zero;
         }
 
         public async Task<TResult?> InterceptCallAsync<TResult>()
@@ -59,7 +58,7 @@ namespace Jitex.Intercept
                 await _context.ContinueFlowAsync().ConfigureAwait(false);
 
             if (_context.HasReturn && _context.ReturnValue != null)
-                return (TResult) (object)_context.ReturnValue;
+                return (TResult) _context.ReturnValue;
 
             return default;
         }

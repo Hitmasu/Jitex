@@ -340,15 +340,18 @@ namespace Jitex.JIT
                     //This way, make easy turn on/off interception call.
 
                     //Compile method again to get a second address (like a clone)
-                    _framework.CompileMethod(thisPtr, comp, info, flags, out IntPtr safeNativeEntry, out _);
+                    _framework.CompileMethod(thisPtr, comp, info, flags, out IntPtr secondaryNativeEntry, out _);
 
                     InterceptContext interceptContext = methodContext.InterceptContext;
 
-                    //It's necessary save address from clone method, to be called later (in case interceptor needs call original method) 
-                    interceptContext.MethodOriginalAddress = safeNativeEntry;
+                    //It's necessary save address from original to be called later (in case interceptor needs call original method) 
+                    interceptContext.MethodOriginalAddress = nativeEntry;
 
-                    //The address which will be our detour (that will trampoline to our intercept method).
-                    interceptContext.MethodTrampolineAddress = nativeEntry;
+                    //Address which will be detoured (this will be the trampoline to our intercept method).
+                    interceptContext.MethodTrampolineAddress = secondaryNativeEntry;
+
+                    //Set trampoline to be method native address
+                    nativeEntry = secondaryNativeEntry;
 
                     //Write detour on method.
                     Intercept.InterceptManager.GetInstance().AddIntercept(interceptContext);

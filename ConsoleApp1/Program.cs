@@ -15,11 +15,12 @@ namespace ConsoleApp1
         public string Name { get; set; }
         public int Idade { get; set; }
 
-        public ValueTask<int> Teste()
+        public ValueTask Teste(int n1, int n2)
         {
             Console.WriteLine(Name);
             Console.WriteLine(Idade);
-            return new ValueTask<int>(10);
+            return ValueTask.CompletedTask;
+            
         }
     }
 
@@ -42,12 +43,9 @@ namespace ConsoleApp1
 
             //ValueTask<int> ap = (ValueTask<int>) dm.Invoke(null,null);
 
-            //var number = await p.Teste();
-            Program asq = new();
-            var number = await asq.A();
+            Program pr = new Program();
+            await p.Teste(-1,20);
             var num2 = MarshalHelper.PreserveValueTask(0xFF);
-            GC.KeepAlive(number);
-            Console.WriteLine(number);
         }
 
         private static async ValueTask InteceptorCallAsync(CallContext context)
@@ -55,7 +53,7 @@ namespace ConsoleApp1
             Console.WriteLine("Method intercepted");
         }
 
-        public async ValueTask<int> A()
+        public async ValueTask<int> Teste()
         {
             return 190;
         }

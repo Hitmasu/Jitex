@@ -56,7 +56,7 @@ namespace Jitex.Intercept
         {
             Method = method;
             
-            AssemblyName assemblyName = AssemblyName.GetAssemblyName($"{Method.Module.Assembly.FullName}{Method.Name}.Jitex");
+            AssemblyName assemblyName = new AssemblyName($"{Method.Module.Assembly.GetName().Name}_{Method.Name}_Jitex");
             AssemblyBuilder assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(assemblyName,AssemblyBuilderAccess.Run);
             ModuleBuilder moduleBuilder = assemblyBuilder.DefineDynamicModule($"{Method.Module.Name}.{Method.Name}.Jitex");
 
@@ -193,8 +193,7 @@ namespace Jitex.Intercept
             generator.Emit(OpCodes.Newobj, ConstructorCallManager);
             generator.Emit(OpCodes.Dup);
 
-            if (isAwaitable && returnType != typeof(ValueTask) ||
-                returnType.CanBeInline())
+            if (isAwaitable && returnType.IsGenericType || returnType.CanBeInline())
             {
                 MethodInfo interceptor = InterceptAsyncCallAsync.MakeGenericMethod(returnTypeInterceptor);
                 generator.Emit(OpCodes.Call, interceptor);
@@ -228,7 +227,7 @@ namespace Jitex.Intercept
                     }
                     else
                     {
-                        ConstructorInfo ctorValueTask = typeof(ValueTask<int>).GetConstructor(new[] {typeof(int)})!;
+                        ConstructorInfo ctorValueTask = returnType.GetConstructor(new[] {returnTypeInterceptor})!;
                         generator.Emit(OpCodes.Newobj, ctorValueTask);
                     }
                 }
@@ -256,7 +255,7 @@ namespace Jitex.Intercept
                         LocalBuilder defaultTaskVariable = generator.DeclareLocal(typeof(ValueTask));
                         generator.Emit(OpCodes.Ldloca_S, defaultTaskVariable.LocalIndex);
                         generator.Emit(OpCodes.Initobj, typeof(ValueTask));
-                        generator.Emit(OpCodes.Ldloca, defaultTaskVariable.LocalIndex);
+                        generator.Emit(OpCodes.Ldloc, defaultTaskVariable.LocalIndex);
                     }
                 }
             }
