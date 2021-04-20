@@ -18,12 +18,14 @@ namespace Jitex.Intercept
     /// </summary>
     internal class InterceptBuilder
     {
+        private readonly TypeBuilder _interceptorTypeBuilder;
+        
         /// <summary>
         /// Method original.
         /// </summary>
         public MethodBase Method { get; }
-
-        public bool HasReturn { get; private set; }
+        
+        public bool HasReturn { get; }
 
         private static readonly MethodInfo InterceptCallAsync;
         private static readonly MethodInfo InterceptAsyncCallAsync;
@@ -34,15 +36,14 @@ namespace Jitex.Intercept
         private static readonly ConstructorInfo ConstructorCallManager;
         private static readonly ConstructorInfo ConstructorIntPtrLong;
 
-
         static InterceptBuilder()
         {
             ObjectCtor = typeof(object).GetConstructor(Type.EmptyTypes)!;
             CompletedTask = typeof(Task).GetProperty(nameof(Task.CompletedTask))!.GetGetMethod();
-            ConstructorCallManager = typeof(CallManager).GetConstructor(new[] { typeof(IntPtr), typeof(object[]).MakeByRefType(), typeof(bool) })!;
+            ConstructorCallManager = typeof(CallManager).GetConstructor(new[] {typeof(IntPtr), typeof(object[]).MakeByRefType(), typeof(bool)})!;
             InterceptCallAsync = typeof(CallManager).GetMethods(BindingFlags.Public | BindingFlags.Instance).First(w => w.Name == nameof(CallManager.InterceptCallAsync) && !w.IsGenericMethod);
             InterceptAsyncCallAsync = typeof(CallManager).GetMethods(BindingFlags.Public | BindingFlags.Instance).First(w => w.Name == nameof(CallManager.InterceptCallAsync) && w.IsGenericMethod);
-            ConstructorIntPtrLong = typeof(IntPtr).GetConstructor(new[] { typeof(long) })!;
+            ConstructorIntPtrLong = typeof(IntPtr).GetConstructor(new[] {typeof(long)})!;
             CallDispose = typeof(CallManager).GetMethod(nameof(CallManager.Dispose), BindingFlags.Public | BindingFlags.Instance)!;
             GetReferenceFromTypedReference = typeof(MarshalHelper).GetMethod(nameof(MarshalHelper.GetReferenceFromTypedReference))!;
         }
@@ -54,6 +55,17 @@ namespace Jitex.Intercept
         public InterceptBuilder(MethodBase method)
         {
             Method = method;
+            
+            AssemblyName assemblyName = AssemblyName.GetAssemblyName($"{Method.Module.Assembly.FullName}{Method.Name}.Jitex");
+            AssemblyBuilder assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(assemblyName,AssemblyBuilderAccess.Run);
+            ModuleBuilder moduleBuilder = assemblyBuilder.DefineDynamicModule($"{Method.Module.Name}.{Method.Name}.Jitex");
+
+            _interceptorTypeBuilder = moduleBuilder.DefineType($"{Method.DeclaringType.Name}.{Method.Name}.Jitex");
+
+            if (method is MethodInfo methodInfo)
+                HasReturn = methodInfo.ReturnType != typeof(Task) && methodInfo.ReturnType != typeof(ValueTask) && methodInfo.ReturnType != typeof(void);
+            else
+                HasReturn = false;
         }
 
         /// <summary>
@@ -61,33 +73,35 @@ namespace Jitex.Intercept
         /// </summary>
         /// <returns></returns>
         public MethodBase Create()
-        {
+        {            
             return CreateMethodInterceptor();
         }
 
         private MethodInfo CreateMethodInterceptor()
         {
-            MethodInfo methodInfo = (MethodInfo)Method;
-
-            HasReturn = methodInfo.ReturnType != typeof(Task) && methodInfo.ReturnType != typeof(ValueTask) && methodInfo.ReturnType != typeof(void);
-
+            string methodName = $"{Method.Name}Jitex";
+            MethodInfo methodInfo = (MethodInfo) Method;
             List<Type> parameters = new List<Type>();
+            MethodAttributes methodAttributes = MethodAttributes.Public;
 
             if (Method.IsGenericMethod)
                 parameters.Add(typeof(IntPtr));
 
             if (!Method.IsStatic)
                 parameters.Add(typeof(IntPtr));
+            else
+                methodAttributes |= MethodAttributes.Static;
 
             parameters.AddRange(methodInfo.GetParameters().Select(w => w.ParameterType));
-
-            DynamicMethod methodIntercept = new(Method.Name + "Jitex", MethodAttributes.Static | MethodAttributes.Public, CallingConventions.Standard, methodInfo.ReturnType, new []{methodInfo.DeclaringType}, methodInfo.DeclaringType, true);
-
-            ILGenerator generator = methodIntercept.GetILGenerator();
-
+            
+            MethodBuilder builder = _interceptorTypeBuilder.DefineMethod(methodName, methodAttributes, 
+                CallingConventions.Standard, methodInfo.ReturnType, parameters.ToArray());
+            
+            ILGenerator generator = builder.GetILGenerator();
             BuildBody(generator, parameters, methodInfo.ReturnType);
 
-            return methodIntercept;
+            TypeInfo type = _interceptorTypeBuilder.CreateTypeInfo();
+            return type.GetMethod(methodName)!;
         }
 
         /// <summary>
@@ -214,11 +228,8 @@ namespace Jitex.Intercept
                     }
                     else
                     {
-                        // generator.Emit(OpCodes.Pop);
-                        MethodInfo methodToCall = typeof(MarshalHelper).GetMethod(nameof(MarshalHelper.PreserveValueTask));
-                        generator.Emit(OpCodes.Call, methodToCall);
-                        // ConstructorInfo ctorValueTask = typeof(ValueTask<int>).GetConstructor(new[] { typeof(int) })!;
-                        // generator.Emit(OpCodes.Newobj, ctorValueTask);
+                        ConstructorInfo ctorValueTask = typeof(ValueTask<int>).GetConstructor(new[] {typeof(int)})!;
+                        generator.Emit(OpCodes.Newobj, ctorValueTask);
                     }
                 }
                 else
