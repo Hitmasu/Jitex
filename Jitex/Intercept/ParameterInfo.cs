@@ -188,6 +188,7 @@ namespace Jitex.Intercept
     public class Parameter : IDisposable
     {
         private object? _value;
+        private readonly IntPtr _initAddress;
         private IntPtr _address;
         private IntPtr _addressValue;
 
@@ -253,6 +254,7 @@ namespace Jitex.Intercept
         /// <param name="isReturnAddress">If address is a return from original method.</param>
         internal Parameter(IntPtr address, Type type, bool readValue = true, bool isReturnAddress = false)
         {
+            _initAddress = address;
             IsReturnAddress = isReturnAddress;
             Type = type ?? throw new ArgumentNullException(nameof(type));
 

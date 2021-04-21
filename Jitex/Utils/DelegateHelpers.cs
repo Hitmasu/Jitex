@@ -14,9 +14,9 @@ namespace Jitex.Utils
     /// <summary>
     /// Helpers to manage delegate
     /// </summary>
-    public static class DelegateHelper
+    internal static class DelegateHelper
     {
-        public static IList<Type> CreateParameters(MethodBase method)
+        private static IList<Type> CreateParameters(MethodBase method)
         {
             IList<Type> parameters = new List<Type>();
 
@@ -39,10 +39,11 @@ namespace Jitex.Utils
             return parameters;
         }
 
-        public static Delegate BuildDelegate(IntPtr addressMethod, MethodBase method)
+        private static Delegate BuildDelegate(IntPtr addressMethod, MethodBase method)
         {
             IList<Type> parameters = CreateParameters(method);
             Type[] parametersArray = parameters.ToArray();
+            MethodInfo? methodInfo = method as MethodInfo;
 
             Type retType;
             Type? boxType = null;
@@ -53,11 +54,10 @@ namespace Jitex.Utils
             }
             else
             {
-                MethodInfo methodInfo = (MethodInfo) method;
-                Type returnType = methodInfo.ReturnType;
+                Type returnType = methodInfo!.ReturnType;
 
-                if (returnType.IsValueTask() && !methodInfo.IsStatic 
-                    && parametersArray.Length > 1 && parametersArray[2].CanBeInline())
+                if (returnType.IsValueTask() && !methodInfo.IsStatic
+                    && parametersArray.Length > 1 && parametersArray[2].CanBeInline() || returnType.IsPrimitive)
                 {
                     retType = returnType;
                 }
@@ -65,14 +65,9 @@ namespace Jitex.Utils
                 {
                     retType = typeof(void);
                 }
-                else if (!returnType.IsPrimitive)
-                {
-                    boxType = typeof(IntPtr);
-                    retType = typeof(object);
-                }
                 else
                 {
-                    boxType = methodInfo.ReturnType;
+                    boxType = typeof(IntPtr);
                     retType = typeof(object);
                 }
             }
@@ -86,11 +81,20 @@ namespace Jitex.Utils
             generator.Emit(OpCodes.Ldc_I8, addressMethod.ToInt64());
             generator.Emit(OpCodes.Conv_I);
 
+            if (method.IsConstructor)
+            {
+                generator.EmitCalli(OpCodes.Calli, CallingConventions.Standard, retType, parametersArray, null);
+            }
             if (method.IsStatic || method.IsConstructor)
-                generator.EmitCalli(OpCodes.Calli, CallingConventions.Any, retType, parametersArray, null);
+            {
+                CallingConventions callMode = methodInfo!.ReturnType.IsValueTask() ? CallingConventions.Any : CallingConventions.Standard;
+                generator.EmitCalli(OpCodes.Calli, callMode, retType, parametersArray, null);
+            }
             else
+            {
                 generator.EmitCalli(OpCodes.Calli, CallingConventions.HasThis, retType, parametersArray.Skip(1).ToArray(), null);
-            
+            }
+
             if (boxType != null && retType != typeof(void))
                 generator.Emit(OpCodes.Box, boxType);
 

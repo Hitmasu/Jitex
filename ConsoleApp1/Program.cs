@@ -20,7 +20,7 @@ namespace ConsoleApp1
             Console.WriteLine(Name);
             Console.WriteLine(Idade);
             return ValueTask.CompletedTask;
-            
+
         }
     }
 
@@ -30,7 +30,7 @@ namespace ConsoleApp1
 
         static async Task Main()
         {
-            Person p = new() {Idade = 999, Name = "Person name"};
+            Person p = new() { Idade = 999, Name = "Person name" };
             JitexManager.AddMethodResolver(MethodResolver);
             JitexManager.AddInterceptor(InteceptorCallAsync);
 
@@ -42,10 +42,7 @@ namespace ConsoleApp1
             //generator.Emit(OpCodes.Ret);
 
             //ValueTask<int> ap = (ValueTask<int>) dm.Invoke(null,null);
-
-            Program pr = new Program();
-            await p.Teste(-1,20);
-            var num2 = MarshalHelper.PreserveValueTask(0xFF);
+            int result = await Teste(1,1);
         }
 
         private static async ValueTask InteceptorCallAsync(CallContext context)
@@ -53,9 +50,10 @@ namespace ConsoleApp1
             Console.WriteLine("Method intercepted");
         }
 
-        public async ValueTask<int> Teste()
+        private static async ValueTask<int> Teste(int n1, int n2)
         {
-            return 190;
+            Console.WriteLine("Called");
+            return await new ValueTask<int>(n1 + n2);
         }
 
         private static void MethodResolver(MethodContext context)
