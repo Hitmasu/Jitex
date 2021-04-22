@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using Jitex.JIT;
 using Jitex.Utils.Comparer;
 using Jitex.Intercept;
-using Jitex.JIT.CorInfo;
 
 namespace Jitex
 {
@@ -26,12 +25,12 @@ namespace Jitex
         /// <summary>
         /// All modules load on Jitex.
         /// </summary>
-        public static IDictionary<Type, JitexModule> ModulesLoaded { get; } = new Dictionary<Type, JitexModule>(TypeEqualityComparer.Instance);
+        private static IDictionary<Type, JitexModule> ModulesLoaded { get; } = new Dictionary<Type, JitexModule>(TypeEqualityComparer.Instance);
 
         /// <summary>
         /// Returns if Jitex is loaded on application. 
         /// </summary>
-        public static bool IsLoaded => _jit != null && _jit.IsLoaded;
+        public static bool IsLoaded => _jit is {IsLoaded: true};
 
         /// <summary>
         /// Load module on Jitex.
@@ -43,7 +42,7 @@ namespace Jitex
             {
                 if (!ModuleIsLoaded(typeModule))
                 {
-                    JitexModule module = (JitexModule)Activator.CreateInstance(typeModule);
+                    JitexModule module = (JitexModule) Activator.CreateInstance(typeModule);
 
                     module.LoadResolvers();
 
@@ -56,6 +55,7 @@ namespace Jitex
         /// Load module on Jitex.
         /// </summary>
         /// <param name="typeModule">Module to load.</param>
+        /// <param name="instance">Instance of type.</param>
         public static void LoadModule(Type typeModule, object? instance)
         {
             if (instance == null) throw new ArgumentNullException(nameof(instance));
@@ -64,7 +64,7 @@ namespace Jitex
             {
                 if (!ModuleIsLoaded(typeModule))
                 {
-                    JitexModule module = (JitexModule)instance;
+                    JitexModule module = (JitexModule) instance;
 
                     module.LoadResolvers();
 

@@ -6,16 +6,20 @@ using Jitex.Utils;
 
 namespace Jitex.JIT.Context
 {
-    public class DetourContext
+    internal class DetourContext
     {
         /// <summary>
         /// Original Native Code
         /// </summary>
         private byte[]? _originalNativeCode;
 
+        /// <summary>
+        /// Trampoline code
+        /// </summary>
         private readonly byte[] _trampolineCode;
 
-        public bool IsDetoured { get; private set; }
+
+        private bool _isDetoured;
 
         /// <summary>
         /// Address of Native Code
@@ -41,16 +45,16 @@ namespace Jitex.JIT.Context
 
             //Write trampoline
             Marshal.Copy(_trampolineCode!, 0, MethodAddress, _trampolineCode!.Length);
-            IsDetoured = true;
+            _isDetoured = true;
         }
 
         internal void RemoveDetour()
         {
-            if (!IsDetoured)
+            if (!_isDetoured)
                 throw new InvalidOperationException("Method was not detoured!");
 
             Marshal.Copy(_originalNativeCode!, 0, MethodAddress, _originalNativeCode!.Length);
-            IsDetoured = false;
+            _isDetoured = false;
         }
     }
 }

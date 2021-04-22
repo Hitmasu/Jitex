@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Reflection;
 
@@ -7,7 +6,7 @@ namespace Jitex.JIT
 {
     [DebuggerDisplay("{Method.Name}")]
 
-    public class MethodCompiled
+    internal class MethodCompiled
     {
         public IntPtr CILJit { get; }
         public MethodBase Method { get; }

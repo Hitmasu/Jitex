@@ -2,14 +2,14 @@
 {
     internal static class ResolvedTokenOffset
     {
-        public static int Context { get; private set; }
-        public static int Scope { get; private set; }
-        public static int Token { get; private set; }
-        public static int Type { get; private set; }
+        public static int Context { get; }
+        public static int Scope { get; }
+        public static int Token { get; }
+        public static int Type { get; }
 
-        public static int HClass { get; private set; }
-        public static int HMethod { get; private set; }
-        public static int HField { get; private set; }
+        public static int HClass { get; }
+        public static int HMethod { get; }
+        public static int HField { get; }
 
         static ResolvedTokenOffset()
         {

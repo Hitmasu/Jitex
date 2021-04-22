@@ -12,7 +12,7 @@ namespace Jitex.Intercept
     /// <summary>
     /// Handlers to InterceptManager
     /// </summary>
-    public class InterceptHandler
+    public static class InterceptHandler
     {
         /// <summary>
         /// Handler to intercept async methods.

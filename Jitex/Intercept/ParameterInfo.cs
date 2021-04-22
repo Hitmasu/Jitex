@@ -1,9 +1,7 @@
 ﻿using System;
-using System.Buffers;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Jitex.Utils;
 using Jitex.Utils.Extension;
@@ -49,7 +47,7 @@ namespace Jitex.Intercept
             if (value == null)
                 return default;
 
-            return (T?)value;
+            return (T?) value;
         }
 
         /// <summary>
@@ -97,7 +95,7 @@ namespace Jitex.Intercept
 
             unsafe
             {
-                address = *(IntPtr*)&reference;
+                address = *(IntPtr*) &reference;
             }
 
             SetParameterValue(index, address, readValue);
@@ -129,7 +127,7 @@ namespace Jitex.Intercept
 
         public unsafe void OverrideParameterValue(int index, TypedReference reference)
         {
-            IntPtr referenceAddress = *(IntPtr*)&reference;
+            IntPtr referenceAddress = *(IntPtr*) &reference;
             IntPtr address = Marshal.ReadIntPtr(referenceAddress);
 
             Parameter parameter = GetParameter(index);
@@ -188,7 +186,6 @@ namespace Jitex.Intercept
     public class Parameter : IDisposable
     {
         private object? _value;
-        private readonly IntPtr _initAddress;
         private IntPtr _address;
         private IntPtr _addressValue;
 
@@ -205,7 +202,7 @@ namespace Jitex.Intercept
         /// <summary>
         /// If address setted is from return original method.
         /// </summary>
-        internal bool IsReturnAddress { get; set; }
+        private bool IsReturnAddress { get; }
 
         /// <summary>
         /// Address of parameter.
@@ -254,14 +251,10 @@ namespace Jitex.Intercept
         /// <param name="isReturnAddress">If address is a return from original method.</param>
         internal Parameter(IntPtr address, Type type, bool readValue = true, bool isReturnAddress = false)
         {
-            _initAddress = address;
             IsReturnAddress = isReturnAddress;
             Type = type ?? throw new ArgumentNullException(nameof(type));
 
-            if (type.IsByRef)
-                ElementType = type.GetElementType()!;
-            else
-                ElementType = type;
+            ElementType = type.IsByRef ? type.GetElementType()! : type;
 
             //Normally, we dont should store address, because the value address can be updated (moved by GC)
             //and stored address become outdated.

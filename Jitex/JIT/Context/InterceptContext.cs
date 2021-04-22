@@ -11,7 +11,6 @@ namespace Jitex.JIT.Context
 
         public IntPtr MethodTrampolineAddress
         {
-            get => MethodAddress;
             set => MethodAddress = value;
         }
         

@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using Jitex.Intercept;
-using Jitex.Runtime;
-using Jitex.Utils;
 using MethodBody = Jitex.Builder.Method.MethodBody;
 
 namespace Jitex.JIT.Context
@@ -77,9 +75,9 @@ namespace Jitex.JIT.Context
         /// </summary>
         internal byte[]? NativeCode { get; private set; }
 
-        public EntryContext EntryContext { get; set; }
+        internal EntryContext EntryContext { get; private set; }
 
-        public DetourContext DetourContext { get; private set; }
+        internal DetourContext DetourContext { get; private set; }
 
         internal InterceptContext InterceptContext { get; private set; }
 
@@ -187,18 +185,21 @@ namespace Jitex.JIT.Context
             Mode = ResolveMode.Detour;
         }
 
-        public void ResolveEntry(IntPtr address)
-        {
-            ResolveEntry(address, 0);
-        }
-
-        public void ResolveEntry(IntPtr address, int size)
+        /// <summary>
+        /// Resolve native entry method.
+        /// </summary>
+        /// <param name="address">Address to native code.</param>
+        /// <param name="size">Size of native code.</param>
+        public void ResolveEntry(IntPtr address, int size = 0)
         {
             EntryContext = new EntryContext(address, size);
             IsResolved = true;
             Mode = ResolveMode.Entry;
         }
 
+        /// <summary>
+        /// Intercept calls from method.
+        /// </summary>
         public void InterceptCall()
         {
             InterceptBuilder builder = new InterceptBuilder(Method);

@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace Jitex.JIT.CorInfo
+﻿namespace Jitex.JIT.CorInfo
 {
     internal enum InfoAccessType
     {

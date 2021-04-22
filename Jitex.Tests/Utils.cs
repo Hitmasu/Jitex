@@ -1,7 +1,4 @@
-﻿using System.Diagnostics;
-using System.Linq;
-using System.Reflection;
-using Xunit;
+﻿using System.Reflection;
 
 namespace Jitex.Tests
 {

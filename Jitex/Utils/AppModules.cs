@@ -11,7 +11,6 @@ namespace Jitex.Utils
         private static readonly IDictionary<IntPtr, Module> MapScopeToHandle = new Dictionary<IntPtr, Module>(IntPtrEqualityComparer.Instance);
 
         private static readonly FieldInfo m_pData;
-        private static object _lock = new object();
 
         static AppModules()
         {

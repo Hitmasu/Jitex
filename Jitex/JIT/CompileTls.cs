@@ -1,10 +1,6 @@
-﻿using System;
-using System.Diagnostics;
-using System.Linq;
+﻿using System.Diagnostics;
 using System.Reflection;
-using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
-using System.Threading;
 
 namespace Jitex.JIT
 {
@@ -58,23 +54,6 @@ namespace Jitex.JIT
                     method = tempMethod;
                 }
             }
-
-            return method;
-
-            // for (int i = 0; i < frames.Length; i++)
-            // {
-            //     StackFrame frame = frames[i];
-            //     MethodBase method = frame.GetMethod();
-            //     
-            //     if(method)
-            // }
-
-            // MethodBase[] trace = frames.Select(m => m.GetMethod())
-            //     .ToArray();
-            //
-            // return trace.Length >= 2 ? trace.ElementAt(1) : trace.LastOrDefault();
-            //
-            // return null;
 
             return method;
         }

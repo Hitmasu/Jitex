@@ -4,14 +4,12 @@ using Jitex.Utils;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Threading.Tasks;
 using Jitex.Exceptions;
 using Jitex.Framework;
 using Jitex.JIT.Context;
@@ -26,7 +24,7 @@ namespace Jitex.JIT
     /// <summary>
     /// Handlers to expose hooks.
     /// </summary>
-    public class JitexHandler
+    public static class JitexHandler
     {
         /// <summary>
         /// Method resolver handler.
@@ -453,9 +451,9 @@ namespace Jitex.JIT
                     }
 
                     //Capture method who trying resolve that token.
-                    MethodBase source = CompileTls.GetSource();
+                    MethodBase? source = CompileTls.GetSource();
 
-                    ConstructString constructString = new ConstructString(hModule, metadataToken, ppValue);
+                    ConstructString constructString = new ConstructString(hModule, metadataToken);
                     TokenContext context = new TokenContext(constructString, source);
 
                     foreach (TokenResolverHandler resolver in resolvers)
@@ -465,7 +463,7 @@ namespace Jitex.JIT
                         if (context.IsResolved)
                         {
                             if (string.IsNullOrEmpty(context.Content))
-                                throw new StringNullOrEmptyException();
+                                throw new ArgumentNullException("String content can't be null or empty.");
 
                             InfoAccessType result = CEEInfo.ConstructStringLiteral(thisHandle, hModule, metadataToken, ppValue);
                             WriteString(ppValue, context.Content!);

@@ -48,12 +48,7 @@ namespace Jitex.Utils.Extension
 
         public static IntPtr GetValueAddress(this Type type, IntPtr address, bool isDirectAddress = false)
         {
-            Type elementType;
-
-            if (type.IsByRef)
-                elementType = type.GetElementType()!;
-            else
-                elementType = type;
+            Type elementType = type.IsByRef ? type.GetElementType()! : type;
 
             if (elementType.IsPrimitive)
             {

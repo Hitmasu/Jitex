@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
-using System.Threading.Tasks;
 using Jitex.Utils.Extension;
 
 namespace Jitex.Utils
@@ -53,12 +51,11 @@ namespace Jitex.Utils
         /// Get object from a reference address.
         /// </summary>
         /// <param name="address">Reference address.</param>
-        /// <param name="typeHandle">Type handle.</param>
         /// <returns>Object from reference.</returns>
         /// 
         /// Created by: IllidanS4
         /// https://github.com/IllidanS4/SharpUtils/blob/a3b4da490537e361e6a5debc873c303023d83bf1/Unsafe/Pointer.cs#L58
-        public static object GetObjectFromReference(IntPtr address)
+        private static object GetObjectFromReference(IntPtr address)
         {
             TypedReference tr = default;
             Span<IntPtr> spanTr;
@@ -93,13 +90,6 @@ namespace Jitex.Utils
             source.CopyTo(dest);
 
             return unitializedObject;
-        }
-
-        private static ValueTask<int> atr;
-
-        public static ValueTask<int> PreserveValueTask(int number)
-        {
-            return new ValueTask<int>(number);
         }
     }
 }
