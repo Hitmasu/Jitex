@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace Jitex.Intercept
 {
-    internal class CallManager : IDisposable
+    public class CallManager : IDisposable
     {
         private static readonly IDictionary<IntPtr, CallCache> Cache = new Dictionary<IntPtr, CallCache>(IntPtrEqualityComparer.Instance);
         private static readonly InterceptManager InterceptManager = InterceptManager.GetInstance();
@@ -29,7 +29,7 @@ namespace Jitex.Intercept
                 InterceptContext? interceptContext = InterceptManager.GetInterceptContext(method);
                 if (interceptContext == null) throw new InterceptNotFound(method);
 
-                Delegate del = DelegateHelper.CreateDelegate(interceptContext.PrimaryNativeAddress, method);
+                Delegate del = DelegateHelper.CreateDelegate(interceptContext.MethodOriginalAddress, method);
 
                 cache = new CallCache(handle, method, del);
                 Cache.Add(handle, cache);
@@ -45,9 +45,8 @@ namespace Jitex.Intercept
 
             if (_context.ProceedCall)
                 await _context.ContinueFlowAsync().ConfigureAwait(false);
-
             
-            return _context.HasReturn ? _context.ReturnAddress: IntPtr.Zero;
+            return _context.HasReturn ? _context.ReturnAddress : IntPtr.Zero;
         }
 
         public async Task<TResult?> InterceptCallAsync<TResult>()

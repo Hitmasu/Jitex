@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -163,10 +162,6 @@ namespace Jitex.Intercept
             if (HasInstance)
             {
                 IntPtr instanceAddress = (IntPtr)parameters[startIndex++];
-
-                if (HasReturn && _returnType!.IsValueTask())
-                    instanceAddress -= IntPtr.Size;
-
                 _instanceValue = new Parameter(instanceAddress, Method.DeclaringType!);
             }
 
@@ -221,10 +216,7 @@ namespace Jitex.Intercept
                         }
                     }
 
-                    _returnValue = new Parameter(returnAddress, _returnType!, isReturnAddress: true)
-                    {
-                        IsReturnAddress = true
-                    };
+                    _returnValue = new Parameter(returnAddress, _returnType!, isReturnAddress: true);
                 }
                 else
                 {
@@ -248,10 +240,7 @@ namespace Jitex.Intercept
 
             if (returnValue is IntPtr returnAddress)
             {
-                _returnValue = new Parameter(returnAddress, _returnType!, isReturnAddress: true)
-                {
-                    IsReturnAddress = true
-                };
+                _returnValue = new Parameter(returnAddress, _returnType!, isReturnAddress: true);
             }
             else
             {
@@ -269,6 +258,7 @@ namespace Jitex.Intercept
             }
 
             object returnValue = Call.DynamicInvoke(ParametersCall);
+
             ProceedCall = false;
             ReturnValue = CreateReturnValue(ref returnValue);
             return ReturnValue;

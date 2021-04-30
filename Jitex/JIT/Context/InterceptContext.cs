@@ -5,19 +5,18 @@ namespace Jitex.JIT.Context
 {
     internal class InterceptContext : DetourContext
     {
-        public MethodBase Method { get; }
+        public MethodBase MethodIntercepted { get; }
 
-        public IntPtr PrimaryNativeAddress { get; set; }
+        public IntPtr MethodOriginalAddress { get; set; }
 
-        public IntPtr SecondaryNativeAddress
+        public IntPtr MethodTrampolineAddress
         {
-            get => NativeAddress;
-            set => NativeAddress = value;
+            set => MethodAddress = value;
         }
         
-        public InterceptContext(MethodBase method, byte[] nativeCode) : base(nativeCode)
+        public InterceptContext(MethodBase methodIntercepted, MethodBase methodInterceptor) : base(methodInterceptor)
         {
-            Method = method;
+            MethodIntercepted = methodIntercepted;
         }
     }
 }

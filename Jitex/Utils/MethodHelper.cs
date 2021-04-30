@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
@@ -11,8 +9,8 @@ namespace Jitex.Utils
     {
         private static readonly ConstructorInfo CtorHandle;
         private static readonly MethodInfo GetMethodBase;
-        private static readonly Type CanonType;
-        private static readonly MethodInfo GetMethodDescriptorInfo;
+        private static readonly Type? CanonType;
+        private static readonly MethodInfo? GetMethodDescriptorInfo;
 
         static MethodHelper()
         {
@@ -52,7 +50,7 @@ namespace Jitex.Utils
 
         public static MethodInfo GetMethodGeneric(MethodInfo method)
         {
-            Type[]? genericArguments = method.GetGenericArguments();
+            Type[] genericArguments = method.GetGenericArguments();
 
             bool hasCanon = false;
 

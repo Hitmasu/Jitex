@@ -7,7 +7,7 @@ namespace Jitex.Utils.Comparer
     {
         public static readonly TypeEqualityComparer Instance = new TypeEqualityComparer();
 
-        public bool Equals(Type x, Type y)
+        public bool Equals(Type? x, Type? y)
         {
             if (x == null && y == null)
                 return true;

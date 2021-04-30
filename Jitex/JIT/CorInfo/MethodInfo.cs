@@ -22,7 +22,7 @@ namespace Jitex.JIT.CorInfo
         private IntPtr MaxStackAddr => HInstance + MethodInfoOffset.MaxStack;
         private IntPtr EHCountAddr => HInstance + MethodInfoOffset.EHCount;
 
-        public SigInfo Locals { get; set; }
+        public SigInfo Locals { get; }
 
         public IntPtr MethodHandle
         {

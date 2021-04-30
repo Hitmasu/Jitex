@@ -44,7 +44,7 @@ namespace Jitex.Framework
         /// <summary>
         /// Address of ICorJitInfo.
         /// </summary>
-        public IntPtr CEEInfoVTable { get; set; }
+        public IntPtr CEEInfoVTable { get; private set; }
 
         /// <summary>
         /// Compile method delegate.

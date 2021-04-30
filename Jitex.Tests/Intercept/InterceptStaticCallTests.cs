@@ -14,15 +14,17 @@ using Xunit;
 namespace Jitex.Tests.Intercept
 {
     [Collection("Manager")]
-    public class InterceptCallTests
+    public class InterceptStaticCallTests
     {
-        private Point _point;
-        private InterceptPerson _person;
+        private static Point _pointFromIntercept;
+        private static Point _pointFromModify;
+        private static InterceptPerson _personFromIntercept;
+        private static InterceptPerson _personFromModify;
 
         private static readonly ConcurrentDictionary<string, ConcurrentBag<string>> CallsIntercepted = new();
         private static readonly ConcurrentDictionary<string, ConcurrentBag<string>> MethodsCalled = new();
 
-        static InterceptCallTests()
+        static InterceptStaticCallTests()
         {
             JitexManager.AddMethodResolver(MethodResolver);
             JitexManager.AddInterceptor(InterceptorCall);
@@ -85,28 +87,6 @@ namespace Jitex.Tests.Intercept
 
             CallsIntercepted.TryRemove(nameof(ModifyPrimitiveParametersTest), out _);
             MethodsCalled.TryRemove(nameof(ModifyPrimitiveParametersTest), out _);
-        }
-
-        [Theory]
-        [InlineData("Michael", 26)]
-        [InlineData("Brenda", 32)]
-        [InlineData("Felipe", 48)]
-        public void ModifyInstanceTest(string name, int age)
-        {
-            InterceptPerson person = new(name, age);
-
-            int result = person.GetAgeAfter10Years();
-            int expected = person.Age - 10;
-
-            Assert.Equal(expected, result);
-            Assert.Equal(name, person.Name);
-            Assert.Equal(age, person.Age);
-
-            Assert.True(HasIntercepted(nameof(InterceptPerson.GetAgeAfter10Years)), "Method not intercepted!");
-            Assert.True(CountIntercept(nameof(InterceptPerson.GetAgeAfter10Years)) == 1, "Intercepted more than expected!");
-
-            CallsIntercepted.TryRemove(nameof(ModifyInstanceTest), out _);
-            MethodsCalled.TryRemove(nameof(ModifyInstanceTest), out _);
         }
 
         [Theory]
@@ -261,10 +241,10 @@ namespace Jitex.Tests.Intercept
         [InlineData(2000, 7000)]
         public void InterceptRefValueTypeReturn(int x, int y)
         {
-            ref Point result = ref CreatePoint(x, y);
+            ref Point result = ref InterceptReturnStructRef(x, y);
 
             TypedReference resultRef = __makeref(result);
-            TypedReference pointRef = __makeref(_point);
+            TypedReference pointRef = __makeref(_pointFromIntercept);
 
             IntPtr resultAddr;
             IntPtr pointAddr;
@@ -275,15 +255,15 @@ namespace Jitex.Tests.Intercept
                 pointAddr = *(IntPtr*) &pointRef;
             }
 
-            Assert.Equal(_point, result);
+            Assert.Equal(_pointFromIntercept, result);
 
             Assert.Equal(pointAddr, resultAddr);
 
-            Assert.True(HasCalled(nameof(CreatePoint)), "Call not continued!");
-            Assert.True(HasIntercepted(nameof(CreatePoint)), "Method not intercepted!");
+            Assert.True(HasCalled(nameof(InterceptReturnStructRef)), "Call not continued!");
+            Assert.True(HasIntercepted(nameof(InterceptReturnStructRef)), "Method not intercepted!");
 
-            Assert.True(CountIntercept(nameof(CreatePoint)) == 1, "Intercepted more than expected!");
-            Assert.True(CountCalls(nameof(CreatePoint)) == 1, "Called more than expected!");
+            Assert.True(CountIntercept(nameof(InterceptReturnStructRef)) == 1, "Intercepted more than expected!");
+            Assert.True(CountCalls(nameof(InterceptReturnStructRef)) == 1, "Called more than expected!");
 
             CallsIntercepted.TryRemove(nameof(InterceptRefValueTypeReturn), out _);
             MethodsCalled.TryRemove(nameof(InterceptRefValueTypeReturn), out _);
@@ -295,10 +275,10 @@ namespace Jitex.Tests.Intercept
         [InlineData("Patricia", 99)]
         public void InterceptRefClassReturn(string name, int age)
         {
-            ref InterceptPerson result = ref CreatePerson(name, age);
+            ref InterceptPerson result = ref InterceptReturnObjectRef(name, age);
 
             TypedReference resultRef = __makeref(result);
-            TypedReference personRef = __makeref(_person);
+            TypedReference personRef = __makeref(_personFromIntercept);
 
             IntPtr resultAddr;
             IntPtr personAddr;
@@ -309,18 +289,18 @@ namespace Jitex.Tests.Intercept
                 personAddr = *(IntPtr*) &personRef;
             }
 
-            Assert.Equal(name, _person.Name);
-            Assert.Equal(age, _person.Age);
+            Assert.Equal(name, _personFromIntercept.Name);
+            Assert.Equal(age, _personFromIntercept.Age);
 
-            Assert.Equal(_person, result);
+            Assert.Equal(_personFromIntercept, result);
 
             Assert.Equal(personAddr, resultAddr);
 
-            Assert.True(HasCalled(nameof(CreatePerson)), "Call not continued!");
-            Assert.True(HasIntercepted(nameof(CreatePerson)), "Method not intercepted!");
+            Assert.True(HasCalled(nameof(InterceptReturnObjectRef)), "Call not continued!");
+            Assert.True(HasIntercepted(nameof(InterceptReturnObjectRef)), "Method not intercepted!");
 
-            Assert.True(CountIntercept(nameof(CreatePerson)) == 1, "Intercepted more than expected!");
-            Assert.True(CountCalls(nameof(CreatePerson)) == 1, "Called more than expected!");
+            Assert.True(CountIntercept(nameof(InterceptReturnObjectRef)) == 1, "Intercepted more than expected!");
+            Assert.True(CountCalls(nameof(InterceptReturnObjectRef)) == 1, "Called more than expected!");
 
             CallsIntercepted.TryRemove(nameof(InterceptRefClassReturn), out _);
             MethodsCalled.TryRemove(nameof(InterceptRefClassReturn), out _);
@@ -332,17 +312,17 @@ namespace Jitex.Tests.Intercept
         [InlineData(2000, 7000)]
         public void ModifyRefValueTypeReturn(int x, int y)
         {
-            ref Point result = ref CreatePoint(x, y);
+            ref Point result = ref ModifyReturnStructRef(x, y);
             Point expected = new(x + y, x - y);
 
             Assert.Equal(result, expected);
-            Assert.Equal(default, _point);
+            Assert.Equal(default, _pointFromModify);
 
-            Assert.False(HasCalled(nameof(CreatePoint)), "Call continued!");
-            Assert.True(HasIntercepted(nameof(CreatePoint)), "Method not intercepted!");
+            Assert.False(HasCalled(nameof(ModifyReturnStructRef)), "Call continued!");
+            Assert.True(HasIntercepted(nameof(ModifyReturnStructRef)), "Method not intercepted!");
 
-            Assert.True(CountIntercept(nameof(CreatePoint)) == 1, "Intercepted more than expected!");
-            Assert.True(CountCalls(nameof(CreatePoint)) == 0, "Called more than expected!");
+            Assert.True(CountIntercept(nameof(ModifyReturnStructRef)) == 1, "Intercepted more than expected!");
+            Assert.True(CountCalls(nameof(ModifyReturnStructRef)) == 0, "Called more than expected!");
 
             CallsIntercepted.TryRemove(nameof(ModifyRefValueTypeReturn), out _);
             MethodsCalled.TryRemove(nameof(ModifyRefValueTypeReturn), out _);
@@ -354,17 +334,17 @@ namespace Jitex.Tests.Intercept
         [InlineData("Patricia", 99)]
         public void ModifyRefClassReturn(string name, int age)
         {
-            ref InterceptPerson result = ref CreatePerson(name, age);
+            ref InterceptPerson result = ref ModifyReturnObjectRef(name, age);
             InterceptPerson expected = new(name + " " + name, age + age);
 
             Assert.Equal(result, expected);
-            Assert.Equal(default, _person);
+            Assert.Equal(default, _personFromModify);
 
-            Assert.False(HasCalled(nameof(CreatePerson)), "Call continued!");
-            Assert.True(HasIntercepted(nameof(CreatePerson)), "Method not intercepted!");
+            Assert.False(HasCalled(nameof(ModifyReturnObjectRef)), "Call continued!");
+            Assert.True(HasIntercepted(nameof(ModifyReturnObjectRef)), "Method not intercepted!");
 
-            Assert.True(CountIntercept(nameof(CreatePerson)) == 1, "Intercepted more than expected!");
-            Assert.True(CountCalls(nameof(CreatePerson)) == 0, "Called more than expected!");
+            Assert.True(CountIntercept(nameof(ModifyReturnObjectRef)) == 1, "Intercepted more than expected!");
+            Assert.True(CountCalls(nameof(ModifyReturnObjectRef)) == 0, "Called more than expected!");
 
             CallsIntercepted.TryRemove(nameof(ModifyRefClassReturn), out _);
             MethodsCalled.TryRemove(nameof(ModifyRefClassReturn), out _);
@@ -385,6 +365,7 @@ namespace Jitex.Tests.Intercept
             MethodsCalled.TryRemove(nameof(TaskNonGeneric), out _);
         }
 
+        #if !NETCOREAPP2
         [Fact]
         public async Task ValueTaskNonGeneric()
         {
@@ -399,6 +380,7 @@ namespace Jitex.Tests.Intercept
             CallsIntercepted.TryRemove(nameof(ValueTaskNonGeneric), out _);
             MethodsCalled.TryRemove(nameof(ValueTaskNonGeneric), out _);
         }
+        #endif
 
         [Theory]
         [InlineData(7, 9)]
@@ -420,6 +402,7 @@ namespace Jitex.Tests.Intercept
             MethodsCalled.TryRemove(nameof(TaskGenericWithParameters), out _);
         }
 
+#if !NETCOREAPP2
         [Theory]
         [InlineData(7, 9)]
         [InlineData(-1, 20)]
@@ -439,12 +422,13 @@ namespace Jitex.Tests.Intercept
             CallsIntercepted.TryRemove(nameof(ValueTaskGenericWithParameters), out _);
             MethodsCalled.TryRemove(nameof(ValueTaskGenericWithParameters), out _);
         }
+#endif
 
         private static string ReverseText(string text) => new(text.Reverse().ToArray());
 
         [InterceptCall]
         [MethodImpl(MethodImplOptions.NoInlining)]
-        private int SimpleSum(int n1, int n2)
+        private static int SimpleSum(int n1, int n2)
         {
             AddMethodCall(nameof(SimpleSum));
             return n1 + n2;
@@ -452,7 +436,7 @@ namespace Jitex.Tests.Intercept
 
         [InterceptCall]
         [MethodImpl(MethodImplOptions.NoInlining)]
-        private int SimpleSumRef(ref int n1, ref int n2)
+        private static int SimpleSumRef(ref int n1, ref int n2)
         {
             AddMethodCall(nameof(SimpleSumRef));
             return n1 + n2;
@@ -460,25 +444,43 @@ namespace Jitex.Tests.Intercept
 
         [InterceptCall]
         [MethodImpl(MethodImplOptions.NoInlining)]
-        private ref Point CreatePoint(int x, int y)
+        private static ref Point InterceptReturnStructRef(int x, int y)
         {
-            AddMethodCall(nameof(CreatePoint));
-            _point = new Point(x, y);
-            return ref _point;
+            AddMethodCall(nameof(InterceptReturnStructRef));
+            _pointFromIntercept = new Point(x, y);
+            return ref _pointFromIntercept;
+        }
+        
+        [InterceptCall]
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static ref Point ModifyReturnStructRef(int x, int y)
+        {
+            AddMethodCall(nameof(ModifyReturnStructRef));
+            _pointFromModify = new Point(x, y);
+            return ref _pointFromModify;
+        }
+        
+        [InterceptCall]
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static ref InterceptPerson InterceptReturnObjectRef(string name, int age)
+        {
+            AddMethodCall(nameof(InterceptReturnObjectRef));
+            _personFromIntercept = new InterceptPerson(name, age);
+            return ref _personFromIntercept;
         }
 
         [InterceptCall]
         [MethodImpl(MethodImplOptions.NoInlining)]
-        private ref InterceptPerson CreatePerson(string name, int age)
+        private static ref InterceptPerson ModifyReturnObjectRef(string name, int age)
         {
-            AddMethodCall(nameof(CreatePerson));
-            _person = new InterceptPerson(name, age);
-            return ref _person;
+            AddMethodCall(nameof(ModifyReturnObjectRef));
+            _personFromModify = new InterceptPerson(name, age);
+            return ref _personFromModify;
         }
 
         [InterceptCall]
         [MethodImpl(MethodImplOptions.NoInlining)]
-        private void SimpleSumOut(ref int n1, ref int n2, out int result)
+        private static void SimpleSumOut(ref int n1, ref int n2, out int result)
         {
             AddMethodCall(nameof(SimpleSumOut));
             result = n1 + n2;
@@ -486,7 +488,7 @@ namespace Jitex.Tests.Intercept
 
         [InterceptCall]
         [MethodImpl(MethodImplOptions.NoInlining)]
-        private int SumAge(InterceptPerson person)
+        private static int SumAge(InterceptPerson person)
         {
             AddMethodCall(nameof(SumAge));
             return person.Age + 10;
@@ -494,7 +496,7 @@ namespace Jitex.Tests.Intercept
 
         [InterceptCall]
         [MethodImpl(MethodImplOptions.NoInlining)]
-        private Point CreatePoint(Point point)
+        private static Point CreatePoint(Point point)
         {
             AddMethodCall(nameof(CreatePoint));
             return new Point(point.X, point.Y);
@@ -502,7 +504,7 @@ namespace Jitex.Tests.Intercept
 
         [InterceptCall]
         [MethodImpl(MethodImplOptions.NoInlining)]
-        private InterceptPerson MakeNewPerson(InterceptPerson person1)
+        private static InterceptPerson MakeNewPerson(InterceptPerson person1)
         {
             AddMethodCall(nameof(MakeNewPerson));
             return new InterceptPerson(person1.Name, person1.Age);
@@ -510,7 +512,7 @@ namespace Jitex.Tests.Intercept
 
         [InterceptCall]
         [MethodImpl(MethodImplOptions.NoInlining)]
-        private InterceptPerson SimpleCall(ref int valueType, ref InterceptPerson objType)
+        private static InterceptPerson SimpleCall(ref int valueType, ref InterceptPerson objType)
         {
             AddMethodCall(nameof(SimpleCall));
             return new InterceptPerson(objType.Name, valueType);
@@ -518,35 +520,39 @@ namespace Jitex.Tests.Intercept
 
         [InterceptCall]
         [MethodImpl(MethodImplOptions.NoInlining)]
-        private async Task SimpleCallTaskAsync()
+        private static async Task SimpleCallTaskAsync()
         {
             await Task.Delay(10);
             AddMethodCall(nameof(SimpleCallTaskAsync), caller: nameof(TaskNonGeneric));
         }
 
+#if !NETCOREAPP2
         [InterceptCall]
         [MethodImpl(MethodImplOptions.NoInlining)]
-        private async ValueTask SimpleCallValueTaskAsync()
+        private static async ValueTask SimpleCallValueTaskAsync()
         {
             await Task.Delay(10);
             AddMethodCall(nameof(SimpleCallValueTaskAsync), caller: nameof(ValueTaskNonGeneric));
         }
+#endif
 
         [InterceptCall]
         [MethodImpl(MethodImplOptions.NoInlining)]
-        private async Task<int> SumTaskAsync(int n1, int n2)
+        private static async Task<int> SumTaskAsync(int n1, int n2)
         {
             AddMethodCall(nameof(SumTaskAsync), caller: nameof(TaskGenericWithParameters));
             return await Task.FromResult(n1 + n2);
         }
 
+#if !NETCOREAPP2
         [InterceptCall]
         [MethodImpl(MethodImplOptions.NoInlining)]
-        private async ValueTask<int> SumValueTaskAsync(int n1, int n2)
+        private static async ValueTask<int> SumValueTaskAsync(int n1, int n2)
         {
             AddMethodCall(nameof(SumValueTaskAsync), caller: nameof(ValueTaskGenericWithParameters));
             return await new ValueTask<int>(n1 + n2);
         }
+#endif
 
         private static async ValueTask InterceptorCall(CallContext context)
         {
@@ -574,16 +580,6 @@ namespace Jitex.Tests.Intercept
 
                 context.Parameters.SetParameterValue(0, n1 + n2);
                 context.Parameters.SetParameterValue(1, n1 * n2);
-            }
-            else if (testSource.Name == nameof(ModifyInstanceTest) && context.Method.Name == nameof(InterceptPerson.GetAgeAfter10Years))
-            {
-                InterceptPerson interceptPerson = (InterceptPerson) context.Instance;
-                InterceptPerson newPerson = interceptPerson with
-                {
-                    Age = interceptPerson.Age - 20
-                };
-
-                context.Instance = newPerson;
             }
             else if (testSource.Name == nameof(ModifyObjectParameterTest) && context.Method.Name == nameof(SumAge))
             {
@@ -634,7 +630,7 @@ namespace Jitex.Tests.Intercept
                 context.Parameters.OverrideParameterValue(2, result);
                 context.ProceedCall = false;
             }
-            else if (testSource.Name == nameof(ModifyRefValueTypeReturn) && context.Method.Name == nameof(CreatePoint))
+            else if (testSource.Name == nameof(ModifyRefValueTypeReturn) && context.Method.Name == nameof(ModifyReturnStructRef))
             {
                 int x = context.Parameters.GetParameterValue<int>(0);
                 int y = context.Parameters.GetParameterValue<int>(1);
@@ -642,7 +638,7 @@ namespace Jitex.Tests.Intercept
                 Point point = new(x + y, x - y);
                 context.ReturnValue = point;
             }
-            else if (testSource.Name == nameof(ModifyRefClassReturn) && context.Method.Name == nameof(CreatePerson))
+            else if (testSource.Name == nameof(ModifyRefClassReturn) && context.Method.Name == nameof(ModifyReturnObjectRef))
             {
                 string name = context.Parameters.GetParameterValue<string>(0);
                 int age = context.Parameters.GetParameterValue<int>(1);

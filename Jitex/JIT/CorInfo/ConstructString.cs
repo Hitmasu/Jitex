@@ -1,21 +1,16 @@
 ﻿using System;
-using System.Reflection;
-using System.Runtime.InteropServices;
-using Jitex.Utils;
 
 namespace Jitex.JIT.CorInfo
 {
     internal class ConstructString
     {
-        public IntPtr HandleModule { get; set; }
-        public int MetadataToken { get; set; }
-        public IntPtr PPValue { get; set; }
+        public IntPtr HandleModule { get; }
+        public int MetadataToken { get; }
 
-        public ConstructString(IntPtr handleModule, int metadataToken, IntPtr ppValue)
+        public ConstructString(IntPtr handleModule, int metadataToken)
         {
             HandleModule = handleModule;
             MetadataToken = metadataToken;
-            PPValue = ppValue;
         }
     }
 }

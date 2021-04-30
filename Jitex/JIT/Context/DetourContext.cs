@@ -1,86 +1,60 @@
 ﻿using System;
+using System.Reflection;
 using System.Runtime.InteropServices;
+using Jitex.Runtime;
 using Jitex.Utils;
 
 namespace Jitex.JIT.Context
 {
-    /// <summary>
-    /// Detour mode
-    /// </summary>
-    public enum DetourMode
+    internal class DetourContext
     {
         /// <summary>
-        /// Replace address method by another address.
+        /// Original Native Code
         /// </summary>
-        DirectCall,
+        private byte[]? _originalNativeCode;
 
         /// <summary>
-        /// Create a trampoline on method address to another address.
+        /// Trampoline code
         /// </summary>
-        Trampoline
-    }
+        private readonly byte[] _trampolineCode;
 
-    public class DetourContext
-    {
-        public IntPtr Address { get; }
-        public int Size { get; }
-        public byte[] NativeCode { get; }
 
-        public bool IsDetoured { get; private set; }
+        private bool _isDetoured;
 
         /// <summary>
         /// Address of Native Code
         /// </summary>
-        internal IntPtr NativeAddress { get; set; }
-
-        /// <summary>
-        /// Original Native Code (Only Trampoline Mode)
-        /// </summary>
-        private byte[] OriginalNativeCode { get; }
-
-        public DetourMode Mode { get; }
-
-        internal DetourContext(byte[] nativeCode)
+        internal IntPtr MethodAddress { get; set; }
+        
+        internal DetourContext(IntPtr address)
         {
-            NativeCode = nativeCode;
-            Mode = DetourMode.Trampoline;
-            OriginalNativeCode = new byte[Trampoline.Size];
+            _trampolineCode = Trampoline.GetTrampoline(address);
         }
 
-        internal DetourContext(IntPtr address, int size)
-        {
-            Address = address;
-            Size = size;
-            Mode = DetourMode.DirectCall;
-        }
-
-        protected DetourContext()
-        {
-        }
+        internal DetourContext(MethodBase methodInterceptor) : this(RuntimeMethodCache.GetNativeAddress(methodInterceptor)){}
 
         internal void WriteDetour()
         {
-            if (Mode == DetourMode.DirectCall)
-                throw new InvalidOperationException("Detour as DirectCall cannot be detoured!");
-            
-            //Create backup of original instructions
-            Marshal.Copy(NativeAddress, OriginalNativeCode, 0, Trampoline.Size);
+            if (_originalNativeCode == null)
+            {
+                _originalNativeCode = new byte[Trampoline.Size];
+
+                //Create backup of original instructions
+                Marshal.Copy(MethodAddress, _originalNativeCode, 0, Trampoline.Size);
+            }
 
             //Write trampoline
-            Marshal.Copy(NativeCode!, 0, NativeAddress, NativeCode!.Length);
-            IsDetoured = true;
+            Marshal.Copy(_trampolineCode!, 0, MethodAddress, _trampolineCode!.Length);
+            _isDetoured = true;
         }
 
         internal void RemoveDetour()
         {
-            if (!IsDetoured)
+            if (!_isDetoured)
                 throw new InvalidOperationException("Method was not detoured!");
 
-            if (Mode == DetourMode.DirectCall)
-                throw new InvalidOperationException("Detour as DirectCall cannot be removed!");
-
-            Marshal.Copy(OriginalNativeCode!, 0, NativeAddress, OriginalNativeCode!.Length);
-            IsDetoured = false;
+            Marshal.Copy(_originalNativeCode!, 0, MethodAddress, _originalNativeCode!.Length);
+            _isDetoured = false;
         }
     }
 }

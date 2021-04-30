@@ -4,12 +4,10 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Jitex.Utils;
 using Jitex.Utils.Extension;
 using IntPtr = System.IntPtr;
-using MethodBody = Jitex.Builder.Method.MethodBody;
 
 namespace Jitex.Intercept
 {
@@ -18,12 +16,9 @@ namespace Jitex.Intercept
     /// </summary>
     internal class InterceptBuilder
     {
-        /// <summary>
-        /// Method original.
-        /// </summary>
-        public MethodBase Method { get; }
-
-        public bool HasReturn { get; private set; }
+        private readonly TypeBuilder _interceptorTypeBuilder;
+        private readonly MethodBase _method;
+        private readonly bool _hasReturn;
 
         private static readonly MethodInfo InterceptCallAsync;
         private static readonly MethodInfo InterceptAsyncCallAsync;
@@ -52,7 +47,18 @@ namespace Jitex.Intercept
         /// <param name="method">Method original which will be intercept.</param>
         public InterceptBuilder(MethodBase method)
         {
-            Method = method;
+            _method = method;
+            
+            AssemblyName assemblyName = new AssemblyName($"{_method.Module.Assembly.GetName().Name}_{_method.Name}_Jitex");
+            AssemblyBuilder assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(assemblyName,AssemblyBuilderAccess.Run);
+            ModuleBuilder moduleBuilder = assemblyBuilder.DefineDynamicModule($"{_method.Module.Name}.{_method.Name}.Jitex");
+
+            _interceptorTypeBuilder = moduleBuilder.DefineType($"{_method.DeclaringType.Name}.{_method.Name}.Jitex");
+
+            if (method is MethodInfo methodInfo)
+                _hasReturn = methodInfo.ReturnType != typeof(Task) && methodInfo.ReturnType != typeof(ValueTask) && methodInfo.ReturnType != typeof(void);
+            else
+                _hasReturn = false;
         }
 
         /// <summary>
@@ -60,32 +66,35 @@ namespace Jitex.Intercept
         /// </summary>
         /// <returns></returns>
         public MethodBase Create()
-        {
+        {            
             return CreateMethodInterceptor();
         }
 
         private MethodInfo CreateMethodInterceptor()
         {
-            MethodInfo methodInfo = (MethodInfo) Method;
-
-            HasReturn = methodInfo.ReturnType != typeof(Task) && methodInfo.ReturnType != typeof(ValueTask) && methodInfo.ReturnType != typeof(void);
-
+            string methodName = $"{_method.Name}Jitex";
+            MethodInfo methodInfo = (MethodInfo) _method;
             List<Type> parameters = new List<Type>();
+            MethodAttributes methodAttributes = MethodAttributes.Public;
 
-            if (Method.IsGenericMethod)
+            if (_method.IsGenericMethod)
                 parameters.Add(typeof(IntPtr));
 
-            if (!Method.IsStatic)
+            if (!_method.IsStatic)
                 parameters.Add(typeof(IntPtr));
+            else
+                methodAttributes |= MethodAttributes.Static;
 
             parameters.AddRange(methodInfo.GetParameters().Select(w => w.ParameterType));
-
-            DynamicMethod methodIntercept = new(Method.Name + "Jitex", MethodAttributes.Static | MethodAttributes.Public, CallingConventions.Standard, methodInfo.ReturnType, parameters.ToArray(), methodInfo.DeclaringType, true);
-            ILGenerator generator = methodIntercept.GetILGenerator();
-
+            
+            MethodBuilder builder = _interceptorTypeBuilder.DefineMethod(methodName, methodAttributes, 
+                CallingConventions.Standard, methodInfo.ReturnType, parameters.ToArray());
+            
+            ILGenerator generator = builder.GetILGenerator();
             BuildBody(generator, parameters, methodInfo.ReturnType);
 
-            return methodIntercept;
+            TypeInfo type = _interceptorTypeBuilder.CreateTypeInfo();
+            return type.GetMethod(methodName)!;
         }
 
         /// <summary>
@@ -107,10 +116,10 @@ namespace Jitex.Intercept
         /// </remarks>
         private void BuildBody(ILGenerator generator, IEnumerable<Type> parameters, Type returnType)
         {
-            bool isAwaitable = Method.IsAwaitable();
+            bool isAwaitable = _method.IsAwaitable();
             int totalArgs = parameters.Count();
 
-            if (Method.IsConstructor && !Method.IsStatic)
+            if (_method.IsConstructor && !_method.IsStatic)
             {
                 generator.Emit(OpCodes.Ldarg_0);
                 generator.Emit(OpCodes.Call, ObjectCtor);
@@ -160,16 +169,16 @@ namespace Jitex.Intercept
             else
                 returnTypeInterceptor = returnType;
 
-            MethodInfo getAwaiter = typeof(Task<>).MakeGenericType(returnTypeInterceptor).GetMethod(nameof(Task<object>.GetAwaiter), BindingFlags.Public | BindingFlags.Instance)!;
-            MethodInfo getResult = typeof(TaskAwaiter<>).MakeGenericType(returnTypeInterceptor).GetMethod(nameof(TaskAwaiter<object>.GetResult), BindingFlags.Public | BindingFlags.Instance)!;
+            MethodInfo getAwaiter = typeof(Task<>).MakeGenericType(returnTypeInterceptor).GetMethod(nameof(Task.GetAwaiter), BindingFlags.Public | BindingFlags.Instance)!;
+            MethodInfo getResult = typeof(TaskAwaiter<>).MakeGenericType(returnTypeInterceptor).GetMethod(nameof(TaskAwaiter.GetResult), BindingFlags.Public | BindingFlags.Instance)!;
             LocalBuilder awaiterVariable = generator.DeclareLocal(typeof(TaskAwaiter<>).MakeGenericType(returnTypeInterceptor));
 
-            generator.Emit(OpCodes.Ldc_I8, Method.MethodHandle.Value.ToInt64());
+            generator.Emit(OpCodes.Ldc_I8, _method.MethodHandle.Value.ToInt64());
             generator.Emit(OpCodes.Newobj, ConstructorIntPtrLong);
 
             generator.Emit(OpCodes.Ldloca_S, 0);
 
-            if (Method.IsGenericMethod || Method.DeclaringType!.IsGenericType)
+            if (_method.IsGenericMethod || _method.DeclaringType!.IsGenericType)
                 generator.Emit(OpCodes.Ldc_I4_1);
             else
                 generator.Emit(OpCodes.Ldc_I4_0);
@@ -177,9 +186,7 @@ namespace Jitex.Intercept
             generator.Emit(OpCodes.Newobj, ConstructorCallManager);
             generator.Emit(OpCodes.Dup);
 
-
-            if (isAwaitable && returnType != typeof(ValueTask) || 
-                returnType.IsStruct() && returnType.SizeOf() <= IntPtr.Size)
+            if (isAwaitable && returnType.IsGenericType || returnType.CanBeInline())
             {
                 MethodInfo interceptor = InterceptAsyncCallAsync.MakeGenericMethod(returnTypeInterceptor);
                 generator.Emit(OpCodes.Call, interceptor);
@@ -194,7 +201,7 @@ namespace Jitex.Intercept
             generator.Emit(OpCodes.Ldloca_S, awaiterVariable.LocalIndex);
             generator.Emit(OpCodes.Call, getResult);
 
-            if (HasReturn)
+            if (_hasReturn)
             {
                 LocalBuilder retVariable;
 
@@ -202,9 +209,9 @@ namespace Jitex.Intercept
                 {
                     retVariable = generator.DeclareLocal(returnTypeInterceptor);
 
-                    generator.Emit(OpCodes.Stloc_S, retVariable.LocalIndex);
+                    generator.Emit(OpCodes.Stloc, retVariable.LocalIndex);
                     generator.Emit(OpCodes.Call, CallDispose);
-                    generator.Emit(OpCodes.Ldloc_S, retVariable.LocalIndex);
+                    generator.Emit(OpCodes.Ldloc, retVariable.LocalIndex);
 
                     if (returnType.IsTask())
                     {
@@ -213,7 +220,7 @@ namespace Jitex.Intercept
                     }
                     else
                     {
-                        ConstructorInfo ctorValueTask = typeof(ValueTask<>).MakeGenericType(returnTypeInterceptor).GetConstructor(new[] {returnTypeInterceptor})!;
+                        ConstructorInfo ctorValueTask = returnType.GetConstructor(new[] {returnTypeInterceptor})!;
                         generator.Emit(OpCodes.Newobj, ctorValueTask);
                     }
                 }
@@ -241,7 +248,7 @@ namespace Jitex.Intercept
                         LocalBuilder defaultTaskVariable = generator.DeclareLocal(typeof(ValueTask));
                         generator.Emit(OpCodes.Ldloca_S, defaultTaskVariable.LocalIndex);
                         generator.Emit(OpCodes.Initobj, typeof(ValueTask));
-                        generator.Emit(OpCodes.Ldloca, defaultTaskVariable.LocalIndex);
+                        generator.Emit(OpCodes.Ldloc, defaultTaskVariable.LocalIndex);
                     }
                 }
             }

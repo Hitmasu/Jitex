@@ -12,7 +12,7 @@ namespace Jitex.Intercept
     /// <summary>
     /// Handlers to InterceptManager
     /// </summary>
-    public class InterceptHandler
+    public static class InterceptHandler
     {
         /// <summary>
         /// Handler to intercept async methods.
@@ -36,7 +36,7 @@ namespace Jitex.Intercept
         public void AddIntercept(InterceptContext detourContext)
         {
             _interceptedMethods.Add(detourContext);
-            EnableIntercept(detourContext.Method);
+            EnableIntercept(detourContext.MethodIntercepted);
         }
 
         public void EnableIntercept(MethodBase method)
@@ -59,7 +59,7 @@ namespace Jitex.Intercept
 
         public InterceptContext? GetInterceptContext(MethodBase method)
         {
-            return _interceptedMethods.FirstOrDefault(w => MethodEqualityComparer.Instance.Equals(w.Method, method));
+            return _interceptedMethods.FirstOrDefault(w => MethodEqualityComparer.Instance.Equals(w.MethodIntercepted, method));
         }
 
         public void AddInterceptorCall(InterceptHandler.InterceptorHandler inteceptor) => _interceptors += inteceptor;

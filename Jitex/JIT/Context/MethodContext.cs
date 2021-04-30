@@ -2,12 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Threading.Tasks;
-using Jitex.Builder.Utils.Extensions;
 using Jitex.Intercept;
-using Jitex.Runtime;
-using Jitex.Utils;
-using Lokad.ILPack.IL;
 using MethodBody = Jitex.Builder.Method.MethodBody;
 
 namespace Jitex.JIT.Context
@@ -40,7 +35,15 @@ namespace Jitex.JIT.Context
             /// </summary>
             Detour = 1 << 2,
 
-            Intercept = 1 << 3
+            /// <summary>
+            /// Intercept call
+            /// </summary>
+            Intercept = 1 << 3,
+
+            /// <summary>
+            /// Native entry of method
+            /// </summary>
+            Entry = 1 << 4
         }
 
         /// <summary>
@@ -72,7 +75,9 @@ namespace Jitex.JIT.Context
         /// </summary>
         internal byte[]? NativeCode { get; private set; }
 
-        public DetourContext DetourContext { get; private set; }
+        internal EntryContext EntryContext { get; private set; }
+
+        internal DetourContext DetourContext { get; private set; }
 
         internal InterceptContext InterceptContext { get; private set; }
 
@@ -134,18 +139,18 @@ namespace Jitex.JIT.Context
         /// Detour to another method.
         /// </summary>
         /// <param name="method"></param>
-        public void ResolveDetour(MethodInfo method, DetourMode mode = DetourMode.Trampoline)
+        public void ResolveDetour(MethodInfo method)
         {
-            ResolveDetour(method as MethodBase, mode);
+            ResolveDetour(method as MethodBase);
         }
 
         /// <summary>
         /// Detour to a Delegate
         /// </summary>
         /// <param name="del"></param>
-        public void ResolveDetour(Delegate del, DetourMode mode = DetourMode.Trampoline)
+        public void ResolveDetour(Delegate del)
         {
-            ResolveDetour<Delegate>(del, mode);
+            ResolveDetour<Delegate>(del);
         }
 
         /// <summary>
@@ -153,27 +158,18 @@ namespace Jitex.JIT.Context
         /// </summary>
         /// <param name="del"></param>
         /// <typeparam name="T"></typeparam>
-        public void ResolveDetour<T>(T del, DetourMode mode = DetourMode.Trampoline) where T : Delegate
+        public void ResolveDetour<T>(T del) where T : Delegate
         {
-            ResolveDetour(del.Method, mode);
+            ResolveDetour(del.Method);
         }
 
         /// <summary>
         /// Detour to a address
         /// </summary>
         /// <param name="address"></param>
-        public void ResolveDetour(IntPtr address, int size = 0, DetourMode mode = DetourMode.Trampoline)
+        public void ResolveDetour(IntPtr address, int size = 0)
         {
-            if (mode == DetourMode.Trampoline)
-            {
-                byte[] nativeCode = DetourHelper.CreateDetour(address);
-                DetourContext = new DetourContext(nativeCode);
-            }
-            else
-            {
-                DetourContext = new DetourContext(address, size);
-            }
-
+            DetourContext = new DetourContext(address);
             IsResolved = true;
             Mode = ResolveMode.Detour;
         }
@@ -182,31 +178,34 @@ namespace Jitex.JIT.Context
         /// Detour to another method.
         /// </summary>
         /// <param name="method"></param>
-        public void ResolveDetour(MethodBase method, DetourMode mode = DetourMode.Trampoline)
+        public void ResolveDetour(MethodBase method)
         {
-            if (mode == DetourMode.Trampoline)
-            {
-                byte[] nativeCode = DetourHelper.CreateDetour(method);
-                DetourContext = new DetourContext(nativeCode);
-            }
-            else
-            {
-                IntPtr address = RuntimeMethodCache.GetNativeAddress(method);
-                DetourContext = new DetourContext(address, 0);
-            }
-
+            DetourContext = new DetourContext(method);
             IsResolved = true;
             Mode = ResolveMode.Detour;
         }
 
+        /// <summary>
+        /// Resolve native entry method.
+        /// </summary>
+        /// <param name="address">Address to native code.</param>
+        /// <param name="size">Size of native code.</param>
+        public void ResolveEntry(IntPtr address, int size = 0)
+        {
+            EntryContext = new EntryContext(address, size);
+            IsResolved = true;
+            Mode = ResolveMode.Entry;
+        }
+
+        /// <summary>
+        /// Intercept calls from method.
+        /// </summary>
         public void InterceptCall()
         {
             InterceptBuilder builder = new InterceptBuilder(Method);
             MethodBase interceptMethod = builder.Create();
+            InterceptContext = new InterceptContext(Method, interceptMethod);
 
-            byte[] nativeCode = DetourHelper.CreateDetour(interceptMethod);
-            InterceptContext = new InterceptContext(Method, nativeCode);
-             
             IsResolved = true;
             Mode = ResolveMode.Intercept;
         }

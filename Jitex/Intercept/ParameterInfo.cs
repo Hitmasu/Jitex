@@ -1,9 +1,7 @@
 ﻿using System;
-using System.Buffers;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Jitex.Utils;
 using Jitex.Utils.Extension;
@@ -49,7 +47,7 @@ namespace Jitex.Intercept
             if (value == null)
                 return default;
 
-            return (T?)value;
+            return (T?) value;
         }
 
         /// <summary>
@@ -97,7 +95,7 @@ namespace Jitex.Intercept
 
             unsafe
             {
-                address = *(IntPtr*)&reference;
+                address = *(IntPtr*) &reference;
             }
 
             SetParameterValue(index, address, readValue);
@@ -129,7 +127,7 @@ namespace Jitex.Intercept
 
         public unsafe void OverrideParameterValue(int index, TypedReference reference)
         {
-            IntPtr referenceAddress = *(IntPtr*)&reference;
+            IntPtr referenceAddress = *(IntPtr*) &reference;
             IntPtr address = Marshal.ReadIntPtr(referenceAddress);
 
             Parameter parameter = GetParameter(index);
@@ -204,7 +202,7 @@ namespace Jitex.Intercept
         /// <summary>
         /// If address setted is from return original method.
         /// </summary>
-        internal bool IsReturnAddress { get; set; }
+        private bool IsReturnAddress { get; }
 
         /// <summary>
         /// Address of parameter.
@@ -256,10 +254,7 @@ namespace Jitex.Intercept
             IsReturnAddress = isReturnAddress;
             Type = type ?? throw new ArgumentNullException(nameof(type));
 
-            if (type.IsByRef)
-                ElementType = type.GetElementType()!;
-            else
-                ElementType = type;
+            ElementType = type.IsByRef ? type.GetElementType()! : type;
 
             //Normally, we dont should store address, because the value address can be updated (moved by GC)
             //and stored address become outdated.
@@ -341,7 +336,7 @@ namespace Jitex.Intercept
             }
             else if (IsReturnAddress)
             {
-                if (Type.IsStruct() && Type.SizeOf() <= IntPtr.Size)
+                if (Type.CanBeInline())
                     return Type.GetValueAddress(_address, true);
 
                 if (Type.IsValueType)
@@ -366,10 +361,7 @@ namespace Jitex.Intercept
         private void SetAddress(IntPtr address)
         {
             _address = address;
-
-            IntPtr addressValue = GetAddressValue();
-
-            _addressValue = addressValue;
+            _addressValue = GetAddressValue();
         }
 
         internal ref object? GetRefValue()

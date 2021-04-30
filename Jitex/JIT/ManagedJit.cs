@@ -4,14 +4,12 @@ using Jitex.Utils;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Threading.Tasks;
 using Jitex.Exceptions;
 using Jitex.Framework;
 using Jitex.JIT.Context;
@@ -26,7 +24,7 @@ namespace Jitex.JIT
     /// <summary>
     /// Handlers to expose hooks.
     /// </summary>
-    public class JitexHandler
+    public static class JitexHandler
     {
         /// <summary>
         /// Method resolver handler.
@@ -118,7 +116,7 @@ namespace Jitex.JIT
 
         private void PrepareHook()
         {
-            RuntimeHelperExtension.PrepareDelegate(_compileMethod, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, (uint) 0, IntPtr.Zero, 0);
+            RuntimeHelperExtension.PrepareDelegate(_compileMethod, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, (uint)0, IntPtr.Zero, 0);
             RuntimeHelperExtension.PrepareDelegate(_resolveToken, IntPtr.Zero, IntPtr.Zero);
             RuntimeHelperExtension.PrepareDelegate(_constructStringLiteral, IntPtr.Zero, IntPtr.Zero, 0, IntPtr.Zero);
         }
@@ -219,7 +217,7 @@ namespace Jitex.JIT
 
                 if (methodFound == null)
                     return _framework.CompileMethod(thisPtr, comp, info, flags, out nativeEntry, out nativeSizeOfCode);
-                
+
                 if (DynamicHelpers.IsDynamicScope(methodInfo.Scope))
                     methodFound = DynamicHelpers.GetOwner(methodFound);
 
@@ -284,7 +282,7 @@ namespace Jitex.JIT
 
                                 methodInfo.Locals.Signature = sigAddress + 1;
                                 methodInfo.Locals.Args = sigAddress + 3;
-                                methodInfo.Locals.NumArgs = (ushort) methodBody.LocalVariables.Count;
+                                methodInfo.Locals.NumArgs = (ushort)methodBody.LocalVariables.Count;
                             }
 
                             methodInfo.MaxStack = methodBody.MaxStackSize;
@@ -299,7 +297,7 @@ namespace Jitex.JIT
                         }
 
                         methodInfo.ILCode = ilAddress;
-                        methodInfo.ILCodeSize = (uint) ilLength;
+                        methodInfo.ILCodeSize = (uint)ilLength;
                     }
                 }
 
@@ -307,13 +305,13 @@ namespace Jitex.JIT
 
                 MethodCompiled methodCompiled = new MethodCompiled(methodFound, thisPtr, comp, info, flags, nativeEntry, nativeSizeOfCode);
                 RuntimeMethodCache.AddMethod(methodCompiled);
-                
+
                 if (ilAddress != IntPtr.Zero)
                     Marshal.FreeHGlobal(ilAddress);
-                
+
                 if (sigAddress != IntPtr.Zero)
                     Marshal.FreeHGlobal(sigAddress);
-                
+
                 if (methodContext?.Mode == MethodContext.ResolveMode.Native)
                 {
                     Marshal.Copy(methodContext.NativeCode!, 0, nativeEntry, methodContext.NativeCode!.Length);
@@ -321,33 +319,43 @@ namespace Jitex.JIT
                 else if (methodContext?.Mode == MethodContext.ResolveMode.Detour)
                 {
                     DetourContext detourContext = methodContext.DetourContext;
-                
-                    if (detourContext.Mode == DetourMode.DirectCall)
-                    {
-                        nativeEntry = detourContext.Address;
-                
-                        if (detourContext.Size > 0)
-                            nativeSizeOfCode = detourContext.Size;
-                    }
-                    else
-                    {
-                        detourContext.NativeAddress = nativeEntry;
-                        detourContext.WriteDetour();
-                    }
+                    detourContext.MethodAddress = nativeEntry;
+                    detourContext.WriteDetour();
+                }
+                else if (methodContext?.Mode == MethodContext.ResolveMode.Entry)
+                {
+                    EntryContext entryContext = methodContext.EntryContext;
+                    nativeEntry = entryContext.NativeEntry;
+
+                    if (entryContext.Size > 0)
+                        nativeSizeOfCode = entryContext.Size;
                 }
                 else if (methodContext?.Mode == MethodContext.ResolveMode.Intercept)
                 {
-                    //Create a backup from original method
-                    _framework.CompileMethod(thisPtr, comp, info, flags, out IntPtr nativeEntrySecondary, out _);
-                
+                    //To make intercept possible, we need compile method 2 times:
+                    //1º method it's method will be detoured
+                    //2º method it's our unmodified method.
+                    //This way, make easy turn on/off interception call.
+
+                    //Compile method again to get a second address (like a clone)
+                    _framework.CompileMethod(thisPtr, comp, info, flags, out IntPtr secondaryNativeEntry, out _);
+
                     InterceptContext interceptContext = methodContext.InterceptContext;
-                
-                    //For some reason, reverse order not work with generic methods.
-                    interceptContext.PrimaryNativeAddress = nativeEntry;
-                    interceptContext.SecondaryNativeAddress = nativeEntrySecondary;
-                
-                    nativeEntry = nativeEntrySecondary;
+
+                    //It's necessary save address from original to be called later (in case interceptor needs call original method) 
+                    interceptContext.MethodOriginalAddress = nativeEntry;
+
+                    //Address which will be detoured (this will be the trampoline to our intercept method).
+                    interceptContext.MethodTrampolineAddress = secondaryNativeEntry;
+
+                    //Set trampoline to be method native address
+                    nativeEntry = secondaryNativeEntry;
+
+                    //Write detour on method.
                     Intercept.InterceptManager.GetInstance().AddIntercept(interceptContext);
+
+                    //That's how should work:
+                    //CallerMethod -> Detour Method -> Intercept Method -> Safe Method (MethodAddress)
                 }
 
                 return result;
@@ -443,9 +451,9 @@ namespace Jitex.JIT
                     }
 
                     //Capture method who trying resolve that token.
-                    MethodBase source = CompileTls.GetSource();
+                    MethodBase? source = CompileTls.GetSource();
 
-                    ConstructString constructString = new ConstructString(hModule, metadataToken, ppValue);
+                    ConstructString constructString = new ConstructString(hModule, metadataToken);
                     TokenContext context = new TokenContext(constructString, source);
 
                     foreach (TokenResolverHandler resolver in resolvers)
@@ -455,7 +463,7 @@ namespace Jitex.JIT
                         if (context.IsResolved)
                         {
                             if (string.IsNullOrEmpty(context.Content))
-                                throw new StringNullOrEmptyException();
+                                throw new ArgumentNullException("String content can't be null or empty.");
 
                             InfoAccessType result = CEEInfo.ConstructStringLiteral(thisHandle, hModule, metadataToken, ppValue);
                             WriteString(ppValue, context.Content!);
@@ -513,7 +521,7 @@ namespace Jitex.JIT
             if (methodContext.NativeCode == null)
                 throw new NullReferenceException(nameof(methodContext.NativeCode));
 
-            System.Reflection.MethodInfo method = (System.Reflection.MethodInfo) methodContext.Method;
+            System.Reflection.MethodInfo method = (System.Reflection.MethodInfo)methodContext.Method;
 
             int metadataToken = method.IsGenericMethod ? 0x2B000001 : method.MetadataToken;
 
@@ -534,26 +542,26 @@ namespace Jitex.JIT
             if (!method.IsStatic)
             {
                 argIndex++;
-                callBody.Add((byte) OpCodes.Ldarg_0.Value);
+                callBody.Add((byte)OpCodes.Ldarg_0.Value);
             }
 
             int totalArgs = method.GetParameters().Count(w => !w.IsOptional);
 
             for (int i = 0; i < totalArgs; i++)
             {
-                callBody.Add((byte) OpCodes.Ldarga_S.Value);
-                callBody.Add((byte) argIndex++);
+                callBody.Add((byte)OpCodes.Ldarga_S.Value);
+                callBody.Add((byte)argIndex++);
             }
 
-            callBody.Add((byte) OpCodes.Call.Value);
+            callBody.Add((byte)OpCodes.Call.Value);
             callBody.AddRange(tokenBytes);
 
             if (!isVoid)
-                callBody.Add((byte) OpCodes.Pop.Value);
+                callBody.Add((byte)OpCodes.Pop.Value);
 
             byte[] callBytes = callBody.ToArray();
 
-            int bodyLength = (int) Math.Ceiling((double) methodContext.NativeCode.Length / callBytes.Length) * callBytes.Length;
+            int bodyLength = (int)Math.Ceiling((double)methodContext.NativeCode.Length / callBytes.Length) * callBytes.Length;
             int retLength = 1;
 
             if (!isVoid)
@@ -573,7 +581,7 @@ namespace Jitex.JIT
                 Marshal.Copy(callBytes, 0, ilAddress + bodyLength, callBytes.Length);
             }
 
-            Marshal.WriteByte(ilAddress + ilSize - 1, (byte) OpCodes.Ret.Value);
+            Marshal.WriteByte(ilAddress + ilSize - 1, (byte)OpCodes.Ret.Value);
 
             return (ilAddress, ilSize);
         }

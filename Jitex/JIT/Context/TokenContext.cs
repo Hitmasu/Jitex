@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Reflection;
-using System.Reflection.Emit;
 using Jitex.JIT.CorInfo;
 using Jitex.Utils;
 
@@ -11,22 +10,17 @@ namespace Jitex.JIT.Context
     /// </summary>
     public class TokenContext
     {
-        private ResolvedToken? _resolvedToken;
-
+        private readonly ResolvedToken? _resolvedToken;
         private TokenKind _tokenType;
+        private int _metadataToken;
+        private Module? _module;
 
         /// <summary>
         /// Token type.
         /// </summary>
         public TokenKind TokenType
         {
-            get
-            {
-                if (_resolvedToken != null)
-                    return _resolvedToken.Type;
-
-                return _tokenType;
-            }
+            get => _resolvedToken?.Type ?? _tokenType;
             internal set => _tokenType = value;
         }
 
@@ -35,17 +29,40 @@ namespace Jitex.JIT.Context
         /// </summary>
         public IntPtr Context
         {
-            get => _resolvedToken.Context;
-            set => _resolvedToken.Context = value;
+            get
+            {
+                if (TokenType == TokenKind.String)
+                    throw new InvalidOperationException("String don't have context.");
+
+                return _resolvedToken!.Context;
+            }
+            set
+            {
+                if (TokenType == TokenKind.String)
+                    throw new InvalidOperationException("String don't have context.");
+
+                _resolvedToken!.Context = value;
+            }
         }
 
         public IntPtr Scope
         {
-            get => _resolvedToken.Scope;
-            set => _resolvedToken.Scope = value;
-        }
+            get
+            {
+                if (TokenType == TokenKind.String)
+                    throw new InvalidOperationException("String don't have scope.");
 
-        private int _metadataToken;
+                return _resolvedToken!.Scope;
+            }
+
+            set
+            {
+                if (TokenType == TokenKind.String)
+                    throw new InvalidOperationException("String don't have scope.");
+
+                _resolvedToken!.Scope = value;
+            }
+        }
 
         /// <summary>
         /// Metadata Token
@@ -68,8 +85,6 @@ namespace Jitex.JIT.Context
             }
         }
 
-        private Module _module;
-
         /// <summary>
         /// Address handle from token
         /// </summary>
@@ -80,13 +95,16 @@ namespace Jitex.JIT.Context
                 switch (TokenType)
                 {
                     case TokenKind.Method:
-                        return _resolvedToken.HMethod;
+                        return _resolvedToken!.HMethod;
 
                     case TokenKind.Field:
-                        return _resolvedToken.HField;
+                        return _resolvedToken!.HField;
 
                     case TokenKind.Class:
-                        return _resolvedToken.HClass;
+                        return _resolvedToken!.HClass;
+
+                    case TokenKind.String:
+                        throw new InvalidOperationException("String don't have handle.");
 
                     default:
                         throw new NotImplementedException();
@@ -97,16 +115,19 @@ namespace Jitex.JIT.Context
                 switch (TokenType)
                 {
                     case TokenKind.Method:
-                        _resolvedToken.HMethod = value;
+                        _resolvedToken!.HMethod = value;
                         break;
 
                     case TokenKind.Field:
-                        _resolvedToken.HField = value;
+                        _resolvedToken!.HField = value;
                         break;
 
                     case TokenKind.Class:
-                        _resolvedToken.HClass = value;
+                        _resolvedToken!.HClass = value;
                         break;
+
+                    case TokenKind.String:
+                        throw new InvalidOperationException("String don't have handle.");
 
                     default:
                         throw new NotImplementedException();
@@ -122,14 +143,18 @@ namespace Jitex.JIT.Context
             get
             {
                 if (_resolvedToken != null)
-                    return _resolvedToken.Module;
-
+                    return _resolvedToken!.Module;
+                
                 return _module;
             }
             set
             {
+                if (value == null)
+                    throw new ArgumentNullException("Module can't be null.");
+
                 if (_resolvedToken != null)
-                    _resolvedToken.Module = value;
+                    _resolvedToken!.Module = value;
+
                 _module = value;
             }
         }
@@ -137,7 +162,7 @@ namespace Jitex.JIT.Context
         /// <summary>
         /// Source from compile tree ("requester compile").
         /// </summary>
-        public MethodBase? Source { get; internal set; }
+        public MethodBase? Source { get; }
 
         /// <summary>
         /// If context is already resolved.
@@ -164,7 +189,7 @@ namespace Jitex.JIT.Context
         /// Constructor for string type.
         /// </summary>
         /// <param name="constructString">Original string.</param>
-        /// <param name="source">Source method from compile tree ("requester").</param>
+        /// <param name="source">Source method who requested token.</param>
         internal TokenContext(ConstructString constructString, MethodBase? source)
         {
             Module = AppModules.GetModuleByAddress(constructString.HandleModule);
@@ -178,7 +203,7 @@ namespace Jitex.JIT.Context
         }
 
         /// <summary>
-        /// Resolve token by module.
+        /// Resolve token from module.
         /// </summary>
         /// <param name="module">Module containing token.</param>
         public void ResolveFromModule(Module module)
@@ -197,35 +222,14 @@ namespace Jitex.JIT.Context
             }
         }
 
-        public void ResolveModule(Module module)
-        {
-            _resolvedToken!.Module = module;
-        }
-
         /// <summary>
         /// Resolve token by method.
         /// </summary>
         /// <param name="method">Method to replace.</param>
         public void ResolveMethod(MethodBase method)
         {
-            // if (method is DynamicMethod)
-            //     throw new NotImplementedException();
-
             _resolvedToken!.Module = method.Module;
             _resolvedToken.Token = method.MetadataToken;
-        }
-
-        /// <summary>
-        /// Resolve token by method.
-        /// </summary>
-        /// <param name="method">Method to replace.</param>
-        public void ResolveToken(Module module, int token)
-        {
-            // if (method is DynamicMethod)
-            //     throw new NotImplementedException();
-
-            _resolvedToken!.Module = module;
-            _resolvedToken.Token = token;
         }
 
         /// <summary>
@@ -235,11 +239,6 @@ namespace Jitex.JIT.Context
         public void ResolveConstructor(ConstructorInfo constructor)
         {
             ResolveMethod(constructor);
-        }
-
-        public void ResolveContext()
-        {
-            _resolvedToken.Context = IntPtr.Zero;
         }
 
         /// <summary>
