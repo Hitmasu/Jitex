@@ -365,6 +365,7 @@ namespace Jitex.Tests.Intercept
             MethodsCalled.TryRemove(nameof(TaskNonGeneric), out _);
         }
 
+        #if !NETCOREAPP2
         [Fact]
         public async Task ValueTaskNonGeneric()
         {
@@ -379,6 +380,7 @@ namespace Jitex.Tests.Intercept
             CallsIntercepted.TryRemove(nameof(ValueTaskNonGeneric), out _);
             MethodsCalled.TryRemove(nameof(ValueTaskNonGeneric), out _);
         }
+        #endif
 
         [Theory]
         [InlineData(7, 9)]
@@ -400,6 +402,7 @@ namespace Jitex.Tests.Intercept
             MethodsCalled.TryRemove(nameof(TaskGenericWithParameters), out _);
         }
 
+#if !NETCOREAPP2
         [Theory]
         [InlineData(7, 9)]
         [InlineData(-1, 20)]
@@ -419,6 +422,7 @@ namespace Jitex.Tests.Intercept
             CallsIntercepted.TryRemove(nameof(ValueTaskGenericWithParameters), out _);
             MethodsCalled.TryRemove(nameof(ValueTaskGenericWithParameters), out _);
         }
+#endif
 
         private static string ReverseText(string text) => new(text.Reverse().ToArray());
 
@@ -522,6 +526,7 @@ namespace Jitex.Tests.Intercept
             AddMethodCall(nameof(SimpleCallTaskAsync), caller: nameof(TaskNonGeneric));
         }
 
+#if !NETCOREAPP2
         [InterceptCall]
         [MethodImpl(MethodImplOptions.NoInlining)]
         private static async ValueTask SimpleCallValueTaskAsync()
@@ -529,6 +534,7 @@ namespace Jitex.Tests.Intercept
             await Task.Delay(10);
             AddMethodCall(nameof(SimpleCallValueTaskAsync), caller: nameof(ValueTaskNonGeneric));
         }
+#endif
 
         [InterceptCall]
         [MethodImpl(MethodImplOptions.NoInlining)]
@@ -538,6 +544,7 @@ namespace Jitex.Tests.Intercept
             return await Task.FromResult(n1 + n2);
         }
 
+#if !NETCOREAPP2
         [InterceptCall]
         [MethodImpl(MethodImplOptions.NoInlining)]
         private static async ValueTask<int> SumValueTaskAsync(int n1, int n2)
@@ -545,6 +552,7 @@ namespace Jitex.Tests.Intercept
             AddMethodCall(nameof(SumValueTaskAsync), caller: nameof(ValueTaskGenericWithParameters));
             return await new ValueTask<int>(n1 + n2);
         }
+#endif
 
         private static async ValueTask InterceptorCall(CallContext context)
         {

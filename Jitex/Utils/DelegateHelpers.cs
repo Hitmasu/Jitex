@@ -4,6 +4,8 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Reflection.Emit;
+using Jitex.Exceptions;
+using Jitex.Framework;
 using Jitex.Utils.Extension;
 using IntPtr = System.IntPtr;
 
@@ -14,6 +16,14 @@ namespace Jitex.Utils
     /// </summary>
     internal static class DelegateHelper
     {
+        private static readonly bool CanBuildStaticValueTask;
+
+        static DelegateHelper()
+        {
+            RuntimeFramework framework = RuntimeFramework.GetFramework();
+            CanBuildStaticValueTask = framework.FrameworkVersion >= new Version(3, 0, 0);
+        }
+
         private static IList<Type> CreateParameters(MethodBase method)
         {
             IList<Type> parameters = new List<Type>();
@@ -54,8 +64,14 @@ namespace Jitex.Utils
             {
                 Type returnType = methodInfo!.ReturnType;
 
+                //Currently, methods with signature: static ValueTask Method(args) can be only intercepted on .NET Core 3.0 or above.
+                //that is a because EmitCalli with Any will raise a CLR Invalid Program on build dynamic method.
+                //TODO: Find a way to intercept.
+                if (!CanBuildStaticValueTask && method.IsStatic && returnType.IsValueTask())
+                    throw new InvalidMethodException("Method with signature Static and ValueTask can be only created on .NET Core 3.0 or above.");
+
                 if (returnType.IsValueTask() && !methodInfo.IsStatic
-                    && parametersArray.Length > 1 && parametersArray[2].CanBeInline() || returnType.IsPrimitive)
+                                             && parametersArray.Length > 1 && parametersArray[2].CanBeInline() || returnType.IsPrimitive)
                 {
                     retType = returnType;
                 }
@@ -83,6 +99,7 @@ namespace Jitex.Utils
             {
                 generator.EmitCalli(OpCodes.Calli, CallingConventions.Standard, retType, parametersArray, null);
             }
+
             if (method.IsStatic || method.IsConstructor)
             {
                 CallingConventions callMode = methodInfo!.ReturnType.IsValueTask() ? CallingConventions.Any : CallingConventions.Standard;
