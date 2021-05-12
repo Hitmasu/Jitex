@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
@@ -7,28 +8,18 @@ namespace Jitex.Utils
 {
     internal static class StackHelper
     {
-        public static MethodBase? GetSourceCall(params Type[] typesToIgnore)
+        public static MethodBase? GetSourceCall(params Assembly[] assemblyToIgnore)
         {
-            StackTrace trace = new StackTrace();
-            StackFrame[]? frames = trace.GetFrames();
+            StackTrace trace = new(1, false);
+            
+            IEnumerable<MethodBase> methods = trace.GetFrames()
+                .Select(frame => frame.GetMethod())
+                .Where(method => !assemblyToIgnore.Contains(method.DeclaringType.Assembly));
 
-            if (frames == null)
+            if (!methods.Any())
                 return null;
 
-            MethodBase? source = null;
-
-            foreach (StackFrame frame in frames)
-            {
-                MethodBase method = frame.GetMethod();
-                
-                if(typesToIgnore.Contains(method.DeclaringType))
-                    continue;
-
-                source = frame.GetMethod();
-                break;
-            }
-
-            return source;
+            return methods.FirstOrDefault();
         }
     }
 }

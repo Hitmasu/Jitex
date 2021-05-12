@@ -228,10 +228,10 @@ namespace Jitex.JIT
                     {
                         if (_framework.CEEInfoVTable == IntPtr.Zero)
                         {
-                            // _framework.ReadICorJitInfoVTable(comp);
+                            _framework.ReadICorJitInfoVTable(comp);
 
-                            // _hookManager.InjectHook(CEEInfo.ResolveTokenIndex, _resolveToken!);
-                            // _hookManager.InjectHook(CEEInfo.ConstructStringLiteralIndex, _constructStringLiteral!);
+                            _hookManager.InjectHook(CEEInfo.ResolveTokenIndex, _resolveToken!);
+                            _hookManager.InjectHook(CEEInfo.ConstructStringLiteralIndex, _constructStringLiteral!);
                         }
                     }
 
@@ -395,7 +395,7 @@ namespace Jitex.JIT
 
                 IntPtr sourceAddress = Marshal.ReadIntPtr(thisHandle, IntPtr.Size * 2);
                 MethodBase? source = RuntimeMethodCache.GetMethodFromHandle(sourceAddress);
-                bool hasSource = source == null;
+                bool hasSource = source != null;
 
                 TokenContext context = new TokenContext(ref resolvedToken, source, hasSource);
 

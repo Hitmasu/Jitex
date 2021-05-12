@@ -21,7 +21,7 @@ namespace Jitex.JIT.Context
             {
                 if (!HasSource)
                 {
-                    _source = StackHelper.GetSourceCall(typeof(ManagedJit), typeof(MethodContext));
+                    _source = StackHelper.GetSourceCall(typeof(ManagedJit).Assembly);
                     HasSource = true;
                 }
 

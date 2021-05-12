@@ -392,7 +392,7 @@ namespace Jitex.Tests.Intercept
 
             Assert.True(HasCalled(nameof(SimpleCallValueTaskAsync)), "Call not continued!");
             Assert.True(HasIntercepted(nameof(SimpleCallValueTaskAsync)), "Method not intercepted!");
-            
+
             Assert.True(CountCalls(nameof(SimpleCallValueTaskAsync)) == 1, "Called more than expected!");
             Assert.True(CountIntercept(nameof(SimpleCallValueTaskAsync)) == 1, "Intercepted more than expected!");
 
@@ -406,19 +406,18 @@ namespace Jitex.Tests.Intercept
         [InlineData(2000, 7000)]
         public async Task TaskGenericWithParameters(int n1, int n2)
         {
-            Assert.True((true));
-            // int result = await SumTaskAsync(n1, n2).ConfigureAwait(false);
-            //
-            // Assert.Equal(n1 + n2, result);
-            //
-            // Assert.True(HasCalled(nameof(SumTaskAsync)), "Call not continued!");
-            // Assert.True(HasIntercepted(nameof(SumTaskAsync)), "Method not intercepted!");
-            //
-            // Assert.True(CountCalls(nameof(SumTaskAsync)) == 1, "Called more than expected!");
-            // Assert.True(CountIntercept(nameof(SumTaskAsync)) == 1, "Intercepted more than expected!");
-            //
-            // CallsIntercepted.TryRemove(nameof(TaskGenericWithParameters), out _);
-            // MethodsCalled.TryRemove(nameof(TaskGenericWithParameters), out _);
+            int result = await SumTaskAsync(n1, n2).ConfigureAwait(false);
+
+            Assert.Equal(n1 + n2, result);
+
+            Assert.True(HasCalled(nameof(SumTaskAsync)), "Call not continued!");
+            Assert.True(HasIntercepted(nameof(SumTaskAsync)), "Method not intercepted!");
+
+            Assert.True(CountCalls(nameof(SumTaskAsync)) == 1, "Called more than expected!");
+            Assert.True(CountIntercept(nameof(SumTaskAsync)) == 1, "Intercepted more than expected!");
+
+            CallsIntercepted.TryRemove(nameof(TaskGenericWithParameters), out _);
+            MethodsCalled.TryRemove(nameof(TaskGenericWithParameters), out _);
         }
 
         [Theory]
@@ -533,7 +532,7 @@ namespace Jitex.Tests.Intercept
             AddMethodCall(nameof(SimpleCallValueTaskAsync), caller: nameof(ValueTaskNonGeneric));
         }
 
-        // [InterceptCall]
+        [InterceptCall]
         [MethodImpl(MethodImplOptions.NoInlining)]
         private async Task<int> SumTaskAsync(int n1, int n2)
         {
@@ -555,16 +554,7 @@ namespace Jitex.Tests.Intercept
 
             MethodBase testSource = GetSourceTest();
 
-            // //When return of method is a ValueTask, DisposeTestClass will raise an exception "Internal CLR Error"
-            // //I dont know why that happen in xunit, but preventing him to be called, resolve this problem.
-            // //TODO: Need discover why Internal CLR Error is raised when returns is a ValueTask.
-            if (context.Method.Name == "DisposeTestClass")
-            {
-                context.ProceedCall = false;
-                return;
-            }
-            
-            if (testSource.DeclaringType != typeof(InterceptCallTests))
+            if (testSource == null || testSource.DeclaringType != typeof(InterceptCallTests))
                 return;
 
             if (testSource.Name == nameof(ModifyPrimitiveReturnTest))
@@ -658,9 +648,6 @@ namespace Jitex.Tests.Intercept
 
         private static void MethodResolver(MethodContext context)
         {
-            if (context.Method.Name == "DisposeTestClass")
-                context.InterceptCall();
-
             if (context.Method.GetCustomAttribute<InterceptCallAttribute>() != null || context.Method.Name == nameof(InterceptPerson.GetAgeAfter10Years))
                 context.InterceptCall();
         }
