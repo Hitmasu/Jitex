@@ -34,7 +34,7 @@ namespace Jitex.Framework
         /// <summary>
         /// Address of JIT.
         /// </summary>
-        public IntPtr Jit { get; }
+        private IntPtr Jit { get; }
 
         /// <summary>
         /// Address of table JIT.
@@ -54,7 +54,7 @@ namespace Jitex.Framework
         /// <summary>
         /// Runtime running.
         /// </summary>
-        private static RuntimeFramework Framework { get; set; }
+        private static RuntimeFramework? Framework { get; set; }
 
         /// <summary>
         /// Load info from JIT.

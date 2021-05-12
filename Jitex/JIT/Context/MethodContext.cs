@@ -2,7 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using Jitex.Intercept;
+using Jitex.Utils;
 using MethodBody = Jitex.Builder.Method.MethodBody;
 
 namespace Jitex.JIT.Context
@@ -10,7 +12,7 @@ namespace Jitex.JIT.Context
     /// <summary>
     /// Context for method resolution.
     /// </summary>
-    public class MethodContext
+    public class MethodContext : ContextBase
     {
         private MethodBody? _body;
 
@@ -47,11 +49,6 @@ namespace Jitex.JIT.Context
         }
 
         /// <summary>
-        /// Source from call
-        /// </summary>
-        public MethodBase? Source { get; }
-
-        /// <summary>
         /// Method original which will compiled.
         /// </summary>
         public MethodBase Method { get; }
@@ -75,21 +72,20 @@ namespace Jitex.JIT.Context
         /// </summary>
         internal byte[]? NativeCode { get; private set; }
 
-        internal EntryContext EntryContext { get; private set; }
+        internal EntryContext? EntryContext { get; private set; }
 
-        internal DetourContext DetourContext { get; private set; }
+        internal DetourContext? DetourContext { get; private set; }
 
-        internal InterceptContext InterceptContext { get; private set; }
+        internal InterceptContext? InterceptContext { get; private set; }
 
         /// <summary>
         /// Resolution mode.
         /// </summary>
         internal ResolveMode Mode { get; private set; }
 
-        internal MethodContext(MethodBase method, MethodBase? source)
+        internal MethodContext(MethodBase method, MethodBase? source, bool hasSource) : base(source, hasSource)
         {
             Method = method;
-            Source = source;
         }
 
         /// <summary>
@@ -167,7 +163,7 @@ namespace Jitex.JIT.Context
         /// Detour to a address
         /// </summary>
         /// <param name="address"></param>
-        public void ResolveDetour(IntPtr address, int size = 0)
+        public void ResolveDetour(IntPtr address)
         {
             DetourContext = new DetourContext(address);
             IsResolved = true;

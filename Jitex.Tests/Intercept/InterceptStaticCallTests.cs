@@ -569,6 +569,9 @@ namespace Jitex.Tests.Intercept
                 return;
             }
 
+            if (testSource.DeclaringType != typeof(InterceptStaticCallTests))
+                return;
+            
             if (testSource.Name == nameof(ModifyPrimitiveReturnTest))
             {
                 context.ReturnValue = 11;

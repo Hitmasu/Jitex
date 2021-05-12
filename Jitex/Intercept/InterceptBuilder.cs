@@ -48,9 +48,9 @@ namespace Jitex.Intercept
         public InterceptBuilder(MethodBase method)
         {
             _method = method;
-            
+
             AssemblyName assemblyName = new AssemblyName($"{_method.Module.Assembly.GetName().Name}_{_method.Name}_Jitex");
-            AssemblyBuilder assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(assemblyName,AssemblyBuilderAccess.Run);
+            AssemblyBuilder assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run);
             ModuleBuilder moduleBuilder = assemblyBuilder.DefineDynamicModule($"{_method.Module.Name}.{_method.Name}.Jitex");
 
             _interceptorTypeBuilder = moduleBuilder.DefineType($"{_method.DeclaringType.Name}.{_method.Name}.Jitex");
@@ -66,7 +66,7 @@ namespace Jitex.Intercept
         /// </summary>
         /// <returns></returns>
         public MethodBase Create()
-        {            
+        {
             return CreateMethodInterceptor();
         }
 
@@ -86,10 +86,10 @@ namespace Jitex.Intercept
                 methodAttributes |= MethodAttributes.Static;
 
             parameters.AddRange(methodInfo.GetParameters().Select(w => w.ParameterType));
-            
-            MethodBuilder builder = _interceptorTypeBuilder.DefineMethod(methodName, methodAttributes, 
+
+            MethodBuilder builder = _interceptorTypeBuilder.DefineMethod(methodName, methodAttributes,
                 CallingConventions.Standard, methodInfo.ReturnType, parameters.ToArray());
-            
+
             ILGenerator generator = builder.GetILGenerator();
             BuildBody(generator, parameters, methodInfo.ReturnType);
 
@@ -114,7 +114,7 @@ namespace Jitex.Intercept
         ///    return InterceptCall();
         /// }
         /// </remarks>
-        private void BuildBody(ILGenerator generator, IEnumerable<Type> parameters, Type returnType)
+        private void BuildBody(ILGenerator generator, IReadOnlyCollection<Type> parameters, Type returnType)
         {
             bool isAwaitable = _method.IsAwaitable();
             int totalArgs = parameters.Count();
