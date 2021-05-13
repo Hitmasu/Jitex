@@ -560,15 +560,9 @@ namespace Jitex.Tests.Intercept
 
             MethodBase testSource = GetSourceTest();
 
-            //When return of method is a ValueTask, DisposeTestClass will raise an exception "Internal CLR Error"
-            //I dont know why that happen in xunit, but preventing him to be called, resolve this problem.
-            //TODO: Need discover why Internal CLR Error is raised when returns is a ValueTask.
-            if (context.Method.Name == "DisposeTestClass")
-            {
-                context.ProceedCall = false;
+            if (testSource == null || testSource.DeclaringType != typeof(InterceptStaticCallTests))
                 return;
-            }
-
+            
             if (testSource.Name == nameof(ModifyPrimitiveReturnTest))
             {
                 context.ReturnValue = 11;
@@ -650,9 +644,6 @@ namespace Jitex.Tests.Intercept
 
         private static void MethodResolver(MethodContext context)
         {
-            if (context.Method.Name == "DisposeTestClass")
-                context.InterceptCall();
-
             if (context.Method.GetCustomAttribute<InterceptCallAttribute>() != null || context.Method.Name == nameof(InterceptPerson.GetAgeAfter10Years))
                 context.InterceptCall();
         }

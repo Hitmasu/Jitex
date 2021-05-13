@@ -5,7 +5,6 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using Jitex.Utils.NativeAPI.Windows;
 using System.IO;
-using System.Threading;
 using Jitex.Utils.NativeAPI.POSIX;
 using Mono.Unix.Native;
 

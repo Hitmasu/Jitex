@@ -15,7 +15,13 @@ namespace Jitex.Intercept
         public object? this[int index]
         {
             get => GetParameterValue(index);
-            set => SetParameterValue(index, ref value);
+            set
+            {
+                if (value != null)
+                    SetParameterValue(index, ref value);
+                else
+                    SetParameterValue(index, null);
+            }
         }
 
         internal Parameters(IEnumerable<Parameter> parameters)
@@ -23,7 +29,7 @@ namespace Jitex.Intercept
             _parameters = parameters.ToArray();
         }
 
-        internal Parameter GetParameter(int index)
+        public Parameter GetParameter(int index)
         {
             if (_parameters == null)
                 throw new NullReferenceException("No parameters loaded.");
@@ -42,7 +48,7 @@ namespace Jitex.Intercept
         /// <returns>Value from parameter.</returns>
         public T? GetParameterValue<T>(int index)
         {
-            ref object value = ref GetParameterValue(index);
+            ref object? value = ref GetParameterValue(index);
 
             if (value == null)
                 return default;
@@ -66,7 +72,7 @@ namespace Jitex.Intercept
         /// </summary>
         /// <param name="index">Index of parameter.</param>
         /// <param name="value">Value to set.</param>
-        public void SetParameterValue(int index, object value)
+        public void SetParameterValue(int index, object? value)
         {
             Parameter parameter = GetParameter(index);
             parameter.SetValue(value);
@@ -221,7 +227,7 @@ namespace Jitex.Intercept
         /// <summary>
         /// "Real type" from parameter (case parameter is ByRef)
         /// </summary>
-        internal Type ElementType { get; }
+        internal Type? ElementType { get; }
 
         /// <summary>
         /// Value from parameter (Address or Value)
@@ -293,10 +299,19 @@ namespace Jitex.Intercept
         {
         }
 
-        internal void SetValue(object value)
+        internal void SetValue(object? value)
         {
             _value = value;
-            SetAddress(IntPtr.Zero);
+
+            if (value != null)
+            {
+                IntPtr address = MarshalHelper.GetReferenceFromObject(ref _value!);
+                SetAddress(address);
+            }
+            else
+            {
+                SetAddress(IntPtr.Zero);
+            }
         }
 
         internal void SetValue(ref object value)

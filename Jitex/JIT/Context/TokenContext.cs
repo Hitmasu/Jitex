@@ -8,7 +8,7 @@ namespace Jitex.JIT.Context
     /// <summary>
     /// Context for token resolution.
     /// </summary>
-    public class TokenContext
+    public class TokenContext : ContextBase
     {
         private readonly ResolvedToken? _resolvedToken;
         private TokenKind _tokenType;
@@ -144,7 +144,7 @@ namespace Jitex.JIT.Context
             {
                 if (_resolvedToken != null)
                     return _resolvedToken!.Module;
-                
+
                 return _module;
             }
             set
@@ -158,11 +158,6 @@ namespace Jitex.JIT.Context
                 _module = value;
             }
         }
-
-        /// <summary>
-        /// Source from compile tree ("requester compile").
-        /// </summary>
-        public MethodBase? Source { get; }
 
         /// <summary>
         /// If context is already resolved.
@@ -179,10 +174,10 @@ namespace Jitex.JIT.Context
         /// </summary>
         /// <param name="resolvedToken">Original token.</param>
         /// <param name="source">Source method from compile tree ("requester").</param>
-        internal TokenContext(ref ResolvedToken resolvedToken, MethodBase? source)
+        /// <param name="hasSource">Has source from call.</param>
+        internal TokenContext(ref ResolvedToken resolvedToken, MethodBase? source, bool hasSource) : base(source, hasSource)
         {
             _resolvedToken = resolvedToken;
-            Source = source;
         }
 
         /// <summary>
@@ -190,10 +185,10 @@ namespace Jitex.JIT.Context
         /// </summary>
         /// <param name="constructString">Original string.</param>
         /// <param name="source">Source method who requested token.</param>
-        internal TokenContext(ConstructString constructString, MethodBase? source)
+        /// /// <param name="hasSource">Has source from call.</param>
+        internal TokenContext(ConstructString constructString, MethodBase? source, bool hasSource) : base(source, hasSource)
         {
             Module = AppModules.GetModuleByAddress(constructString.HandleModule);
-            Source = source;
 
             TokenType = TokenKind.String;
             MetadataToken = constructString.MetadataToken;

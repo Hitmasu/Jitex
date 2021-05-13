@@ -284,8 +284,8 @@ namespace Jitex.Intercept
             }
             else if (_returnType!.IsValueTask())
             {
-                Type valueTaskType = typeof(ValueTask<>).MakeGenericType(_returnType.GetGenericArguments().First());
-                MethodInfo asTask = valueTaskType.GetMethod("AsTask", BindingFlags.Public | BindingFlags.Instance);
+                Type valueTaskType = typeof(ValueTask<>).MakeGenericType(_returnType!.GetGenericArguments().First());
+                MethodInfo asTask = valueTaskType!.GetMethod("AsTask", BindingFlags.Public | BindingFlags.Instance)!;
                 task = (Task)asTask.Invoke(returnValue, null);
             }
 
@@ -331,18 +331,18 @@ namespace Jitex.Intercept
         }
 
 
-        private object CreateReturnValue(ref object returnValue)
+        private object? CreateReturnValue(ref object returnValue)
         {
             if (Method is MethodInfo)
             {
                 if (_returnType == typeof(void))
                     return default;
 
-                if (_returnType.IsStruct())
+                if (_returnType!.IsStruct())
                 {
                     if (returnValue is IntPtr address)
                     {
-                        return MarshalHelper.GetObjectFromAddress(address, _returnType);
+                        return MarshalHelper.GetObjectFromAddress(address, _returnType!);
                     }
 
                     return returnValue;
@@ -351,7 +351,7 @@ namespace Jitex.Intercept
                 IntPtr ptrReturn = (IntPtr)returnValue; //Address of instance/Value is returned.
                 IntPtr refReturn;
 
-                if (_returnType.IsAwaitable() || Marshal.ReadIntPtr(ptrReturn) == _returnType.TypeHandle.Value)
+                if (_returnType!.IsAwaitable() || Marshal.ReadIntPtr(ptrReturn) == _returnType!.TypeHandle.Value)
                 {
                     unsafe
                     {
@@ -363,7 +363,7 @@ namespace Jitex.Intercept
                     refReturn = ptrReturn;
                 }
 
-                returnValue = MarshalHelper.GetObjectFromAddress(refReturn, _returnType);
+                returnValue = MarshalHelper.GetObjectFromAddress(refReturn, _returnType!);
 
                 return returnValue;
             }
