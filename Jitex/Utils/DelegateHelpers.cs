@@ -70,7 +70,7 @@ namespace Jitex.Utils
                 //TODO: Find a way to intercept.
                 if (!CanBuildStaticValueTask && method.IsStatic && returnType.IsValueTask())
                     throw new InvalidMethodException("Method with signature Static and ValueTask can be only created on .NET Core 3.0 or above.");
-
+                
                 if (returnType.IsValueTask() && !methodInfo.IsStatic
                                              && parametersArray.Length > 1 && parametersArray[2].CanBeInline() || returnType.IsPrimitive)
                 {
@@ -78,8 +78,7 @@ namespace Jitex.Utils
                 }
                 else if (OSHelper.IsLinux && returnType.IsValueTask())
                 {
-                    boxType = typeof(IntPtr);
-                    retType = typeof(object);
+                    retType = returnType;
                 }
                 else if (returnType == typeof(void))
                 {
@@ -114,18 +113,15 @@ namespace Jitex.Utils
                 else
                     callMode = methodInfo!.ReturnType.IsValueTask() ? CallingConventions.Any : CallingConventions.Standard;
 
-                generator.EmitCalli(OpCodes.Calli, callMode, typeof(IntPtr), parametersArray, null);
+                generator.EmitCalli(OpCodes.Calli, callMode, retType, parametersArray, null);
             }
             else
             {
                 generator.EmitCalli(OpCodes.Calli, CallingConventions.HasThis, retType, parametersArray.Skip(1).ToArray(), null);
             }
-            
+
             if (boxType != null && retType != typeof(void))
-            {
-                Console.WriteLine(boxType.FullName);
                 generator.Emit(OpCodes.Box, boxType);
-            }
 
             generator.Emit(OpCodes.Ret);
 

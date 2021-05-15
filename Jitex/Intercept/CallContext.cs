@@ -339,12 +339,8 @@ namespace Jitex.Intercept
                 if (_returnType!.IsStruct())
                 {
                     if (returnValue is IntPtr address)
-                    {
-                        Console.WriteLine("0x"+address.ToString("X"));
                         return MarshalHelper.GetObjectFromAddress(address, _returnType!);
-                    }
 
-                    Console.WriteLine("Is NOT address: " + returnValue.GetType().FullName);
                     return returnValue;
                 }
 
