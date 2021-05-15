@@ -405,11 +405,11 @@ namespace Jitex.Tests.Intercept
 #if !NETCOREAPP2
         [Theory]
         [InlineData(7, 9)]
-        [InlineData(-1, 20)]
-        [InlineData(2000, 7000)]
+         [InlineData(-1, 20)]
+         [InlineData(2000, 7000)]
         public async Task ValueTaskGenericWithParameters(int n1, int n2)
         {
-            int result = await SumValueTaskAsync(n1, n2).ConfigureAwait(false);
+            int result = await SumValueTaskAsync(n1,n2).ConfigureAwait(false);
 
             Assert.Equal(n1 + n2, result);
 
@@ -550,7 +550,7 @@ namespace Jitex.Tests.Intercept
         private static async ValueTask<int> SumValueTaskAsync(int n1, int n2)
         {
             AddMethodCall(nameof(SumValueTaskAsync), caller: nameof(ValueTaskGenericWithParameters));
-            return await new ValueTask<int>(n1 + n2);
+            return await new ValueTask<int>(n1+n2);
         }
 #endif
 

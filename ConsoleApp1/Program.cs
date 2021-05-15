@@ -31,10 +31,12 @@ namespace ConsoleApp1
             JitexManager.AddMethodResolver(MethodResolver);
             JitexManager.AddInterceptor(InteceptorCallAsync);
             
-            int result = Teste(5, 5);
+            int result = await Teste();
+            Debugger.Break();
+            
         }
 
-        private static int Teste(int a, int b) => a + b;
+        private static async ValueTask<int> Teste() => 10;
 
         private static async ValueTask InteceptorCallAsync(CallContext context)
         {
