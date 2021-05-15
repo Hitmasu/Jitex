@@ -4,6 +4,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Threading.Tasks;
 using Jitex.Exceptions;
 using Jitex.Framework;
 using Jitex.Utils.Extension;
@@ -75,6 +76,11 @@ namespace Jitex.Utils
                 {
                     retType = returnType;
                 }
+                else if (OSHelper.IsLinux && returnType.IsValueTask())
+                {
+                    boxType = typeof(IntPtr);
+                    retType = typeof(object);
+                }
                 else if (returnType == typeof(void))
                 {
                     retType = typeof(void);
@@ -99,19 +105,27 @@ namespace Jitex.Utils
             {
                 generator.EmitCalli(OpCodes.Calli, CallingConventions.Standard, retType, parametersArray, null);
             }
-
-            if (method.IsStatic || method.IsConstructor)
+            else if (method.IsStatic)
             {
-                CallingConventions callMode = methodInfo!.ReturnType.IsValueTask() ? CallingConventions.Any : CallingConventions.Standard;
-                generator.EmitCalli(OpCodes.Calli, callMode, retType, parametersArray, null);
+                CallingConventions callMode;
+
+                if (OSHelper.IsLinux)
+                    callMode = CallingConventions.Standard;
+                else
+                    callMode = methodInfo!.ReturnType.IsValueTask() ? CallingConventions.Any : CallingConventions.Standard;
+
+                generator.EmitCalli(OpCodes.Calli, callMode, typeof(IntPtr), parametersArray, null);
             }
             else
             {
                 generator.EmitCalli(OpCodes.Calli, CallingConventions.HasThis, retType, parametersArray.Skip(1).ToArray(), null);
             }
-
+            
             if (boxType != null && retType != typeof(void))
+            {
+                Console.WriteLine(boxType.FullName);
                 generator.Emit(OpCodes.Box, boxType);
+            }
 
             generator.Emit(OpCodes.Ret);
 

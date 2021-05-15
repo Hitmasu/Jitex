@@ -155,13 +155,13 @@ namespace Jitex.Intercept
 
             if (Method.IsGenericMethod)
             {
-                IntPtr handle = (IntPtr)parameters[startIndex++];
+                IntPtr handle = (IntPtr) parameters[startIndex++];
                 _methodHandle = new Parameter(handle, typeof(IntPtr), false);
             }
 
             if (HasInstance)
             {
-                IntPtr instanceAddress = (IntPtr)parameters[startIndex++];
+                IntPtr instanceAddress = (IntPtr) parameters[startIndex++];
                 _instanceValue = new Parameter(instanceAddress, Method.DeclaringType!);
             }
 
@@ -174,7 +174,7 @@ namespace Jitex.Intercept
                 object parameter = parameters[i];
                 Type parameterType = parametersMethod[i - startIndex];
 
-                parametersInfo[i - startIndex] = new Parameter((IntPtr)parameter, parameterType);
+                parametersInfo[i - startIndex] = new Parameter((IntPtr) parameter, parameterType);
             }
 
             Parameters = new Parameters(parametersInfo);
@@ -204,7 +204,7 @@ namespace Jitex.Intercept
 
                             unsafe
                             {
-                                valueAddress = *(IntPtr*)reference;
+                                valueAddress = *(IntPtr*) reference;
                                 valueAddress += IntPtr.Size;
                             }
 
@@ -258,7 +258,6 @@ namespace Jitex.Intercept
             }
 
             object returnValue = Call.DynamicInvoke(ParametersCall);
-
             ProceedCall = false;
             ReturnValue = CreateReturnValue(ref returnValue);
             return ReturnValue;
@@ -286,7 +285,7 @@ namespace Jitex.Intercept
             {
                 Type valueTaskType = typeof(ValueTask<>).MakeGenericType(_returnType!.GetGenericArguments().First());
                 MethodInfo asTask = valueTaskType!.GetMethod("AsTask", BindingFlags.Public | BindingFlags.Instance)!;
-                task = (Task)asTask.Invoke(returnValue, null);
+                task = (Task) asTask.Invoke(returnValue, null);
             }
 
             await task.ConfigureAwait(false);
@@ -297,7 +296,6 @@ namespace Jitex.Intercept
             Type taskGeneric = typeof(Task<>).MakeGenericType(_returnType.GetGenericArguments().First());
             PropertyInfo getResult = taskGeneric.GetProperty("Result")!;
             return getResult.GetValue(task);
-
         }
 
         /// <summary>
@@ -312,7 +310,7 @@ namespace Jitex.Intercept
             if (returnValue == null)
                 return default;
 
-            return (TResult?)returnValue;
+            return (TResult?) returnValue;
         }
 
         /// <summary>
@@ -327,7 +325,7 @@ namespace Jitex.Intercept
             if (returnValue == null)
                 return default;
 
-            return (TResult?)returnValue;
+            return (TResult?) returnValue;
         }
 
 
@@ -342,20 +340,22 @@ namespace Jitex.Intercept
                 {
                     if (returnValue is IntPtr address)
                     {
+                        Console.WriteLine("0x"+address.ToString("X"));
                         return MarshalHelper.GetObjectFromAddress(address, _returnType!);
                     }
 
+                    Console.WriteLine("Is NOT address: " + returnValue.GetType().FullName);
                     return returnValue;
                 }
 
-                IntPtr ptrReturn = (IntPtr)returnValue; //Address of instance/Value is returned.
+                IntPtr ptrReturn = (IntPtr) returnValue; //Address of instance/Value is returned.
                 IntPtr refReturn;
 
                 if (_returnType!.IsAwaitable() || Marshal.ReadIntPtr(ptrReturn) == _returnType!.TypeHandle.Value)
                 {
                     unsafe
                     {
-                        refReturn = (IntPtr)(&ptrReturn); //It's necessary create a reference to address of instance/value.
+                        refReturn = (IntPtr) (&ptrReturn); //It's necessary create a reference to address of instance/value.
                     }
                 }
                 else
