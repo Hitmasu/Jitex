@@ -4,6 +4,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Threading.Tasks;
 using Jitex.Exceptions;
 using Jitex.Framework;
 using Jitex.Utils.Extension;
@@ -69,9 +70,13 @@ namespace Jitex.Utils
                 //TODO: Find a way to intercept.
                 if (!CanBuildStaticValueTask && method.IsStatic && returnType.IsValueTask())
                     throw new InvalidMethodException("Method with signature Static and ValueTask can be only created on .NET Core 3.0 or above.");
-
+                
                 if (returnType.IsValueTask() && !methodInfo.IsStatic
                                              && parametersArray.Length > 1 && parametersArray[2].CanBeInline() || returnType.IsPrimitive)
+                {
+                    retType = returnType;
+                }
+                else if (OSHelper.IsLinux && returnType.IsValueTask())
                 {
                     retType = returnType;
                 }
@@ -99,10 +104,15 @@ namespace Jitex.Utils
             {
                 generator.EmitCalli(OpCodes.Calli, CallingConventions.Standard, retType, parametersArray, null);
             }
-
-            if (method.IsStatic || method.IsConstructor)
+            else if (method.IsStatic)
             {
-                CallingConventions callMode = methodInfo!.ReturnType.IsValueTask() ? CallingConventions.Any : CallingConventions.Standard;
+                CallingConventions callMode;
+
+                if (OSHelper.IsLinux)
+                    callMode = CallingConventions.Standard;
+                else
+                    callMode = methodInfo!.ReturnType.IsValueTask() ? CallingConventions.Any : CallingConventions.Standard;
+
                 generator.EmitCalli(OpCodes.Calli, callMode, retType, parametersArray, null);
             }
             else
