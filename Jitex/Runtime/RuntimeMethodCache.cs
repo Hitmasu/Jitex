@@ -9,7 +9,7 @@ using Jitex.Utils.Comparer;
 
 namespace Jitex.Runtime
 {
-    public static class RuntimeMethodCache
+    internal static class RuntimeMethodCache
     {
 
         private static readonly ConcurrentBag<MethodCompiled> CompiledMethods = new ConcurrentBag<MethodCompiled>();

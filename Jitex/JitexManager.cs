@@ -135,10 +135,10 @@ namespace Jitex
             return ModulesLoaded.TryGetValue(typeModule, out JitexModule module) && module.IsLoaded;
         }
 
-        public static void AddInterceptor(InterceptHandler.InterceptorHandler interceptorCall)
+        public static void AddInterceptor(InterceptHandler.InterceptorHandler interceptorCallAsync)
         {
             lock (CallInterceptorLock)
-                InterceptManager.AddInterceptorCall(interceptorCall);
+                InterceptManager.AddInterceptorCall(interceptorCallAsync);
         }
 
         public static void RemoveInterceptor(InterceptHandler.InterceptorHandler interceptorCall)

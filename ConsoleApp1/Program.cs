@@ -8,42 +8,43 @@ using Console = System.Console;
 
 namespace ConsoleApp1
 {
-    public class Person
-    {
-        public string Name { get; set; }
-        public int Idade { get; set; }
-
-        public ValueTask Teste(int n1, int n2)
-        {
-            Console.WriteLine(Name);
-            Console.WriteLine(Idade);
-            return ValueTask.CompletedTask;
-
-        }
-    }
-
     class Program
     {
         private static Point point = new Point(1, 2);
 
-        static async Task Main()
+        static void Main()
         {
             JitexManager.AddMethodResolver(MethodResolver);
             JitexManager.AddInterceptor(InteceptorCallAsync);
             
-            int result = Teste(5, 5);
+            int result = SimpleSum(5, 5);
         }
 
-        private static int Teste(int a, int b) => a + b;
+        private static int SimpleSum(int a, int b) => a + b;
 
         private static async ValueTask InteceptorCallAsync(CallContext context)
         {
-            Console.WriteLine("Method intercepted");
+            //Get parameters passed to method
+            int n1 = context.Parameters.GetParameterValue<int>(0);
+            int n2 = context.Parameters.GetParameterValue<int>(1);
+            
+            //Set new parameters value to call
+            context.Parameters.SetParameterValue(0,999);
+            context.Parameters.SetParameterValue(1,1);
+
+            //Set return value;
+            context.ReturnValue = 50;
+            
+            //Prevent method original to be called
+            context.ProceedCall = false;
+            
+            //Continue original call
+            int result = await context.ContinueAsync<int>();
         }
 
         private static void MethodResolver(MethodContext context)
         {
-            if (context.Method.Name == nameof(Person.Teste) || context.Method.Name == "A")
+            if (context.Method.Name == nameof(SimpleSum))
                 context.InterceptCall();
         }
     }

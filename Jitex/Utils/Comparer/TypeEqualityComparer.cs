@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace Jitex.Utils.Comparer
 {
-    public class TypeEqualityComparer : IEqualityComparer<Type>
+    internal class TypeEqualityComparer : IEqualityComparer<Type>
     {
         public static readonly TypeEqualityComparer Instance = new TypeEqualityComparer();
 
