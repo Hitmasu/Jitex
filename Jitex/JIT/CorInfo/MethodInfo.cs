@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using Jitex.Runtime.Offsets;
+using Jitex.Framework.Offsets;
 using Jitex.Utils;
 
 namespace Jitex.JIT.CorInfo
@@ -22,7 +22,7 @@ namespace Jitex.JIT.CorInfo
         private IntPtr MaxStackAddr => HInstance + MethodInfoOffset.MaxStack;
         private IntPtr EHCountAddr => HInstance + MethodInfoOffset.EHCount;
 
-        public SigInfo Locals { get; set; }
+        public SigInfo Locals { get; }
 
         public IntPtr MethodHandle
         {

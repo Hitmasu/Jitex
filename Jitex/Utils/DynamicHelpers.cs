@@ -1,15 +1,12 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Reflection;
 using System.Reflection.Emit;
-using System.Text;
-using MethodInfo = Jitex.JIT.CorInfo.MethodInfo;
 
 namespace Jitex.Utils
 {
     internal static class DynamicHelpers
     {
-        private static FieldInfo m_owner;
+        private static readonly FieldInfo m_owner;
 
         static DynamicHelpers()
         {

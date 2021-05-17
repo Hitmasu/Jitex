@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using Jitex.JIT;
 using Jitex.Utils.Comparer;
+using Jitex.Intercept;
 
 namespace Jitex
 {
@@ -13,20 +14,23 @@ namespace Jitex
         private static readonly object LockModules = new object();
         private static readonly object MethodResolverLock = new object();
         private static readonly object TokenResolverLock = new object();
+        private static readonly object CallInterceptorLock = new object();
 
         private static ManagedJit? _jit;
+        private static InterceptManager? _interceptManager;
 
         private static ManagedJit Jit => _jit ??= ManagedJit.GetInstance();
+        private static InterceptManager InterceptManager => _interceptManager ??= InterceptManager.GetInstance();
 
         /// <summary>
         /// All modules load on Jitex.
         /// </summary>
-        public static IDictionary<Type, JitexModule> ModulesLoaded { get; } = new Dictionary<Type, JitexModule>(TypeComparer.Instance);
+        private static IDictionary<Type, JitexModule> ModulesLoaded { get; } = new Dictionary<Type, JitexModule>(TypeEqualityComparer.Instance);
 
         /// <summary>
         /// Returns if Jitex is loaded on application. 
         /// </summary>
-        public static bool IsLoaded => _jit != null && _jit.IsLoaded;
+        public static bool IsLoaded => _jit is {IsLoaded: true};
 
         /// <summary>
         /// Load module on Jitex.
@@ -39,7 +43,7 @@ namespace Jitex
                 if (!ModuleIsLoaded(typeModule))
                 {
                     JitexModule module = (JitexModule) Activator.CreateInstance(typeModule);
-                    
+
                     module.LoadResolvers();
 
                     ModulesLoaded.Add(typeModule, module);
@@ -51,8 +55,11 @@ namespace Jitex
         /// Load module on Jitex.
         /// </summary>
         /// <param name="typeModule">Module to load.</param>
+        /// <param name="instance">Instance of type.</param>
         public static void LoadModule(Type typeModule, object? instance)
         {
+            if (instance == null) throw new ArgumentNullException(nameof(instance));
+
             lock (LockModules)
             {
                 if (!ModuleIsLoaded(typeModule))
@@ -126,6 +133,36 @@ namespace Jitex
         public static bool ModuleIsLoaded(Type typeModule)
         {
             return ModulesLoaded.TryGetValue(typeModule, out JitexModule module) && module.IsLoaded;
+        }
+
+        public static void AddInterceptor(InterceptHandler.InterceptorHandler interceptorCallAsync)
+        {
+            lock (CallInterceptorLock)
+                InterceptManager.AddInterceptorCall(interceptorCallAsync);
+        }
+
+        public static void RemoveInterceptor(InterceptHandler.InterceptorHandler interceptorCall)
+        {
+            lock (CallInterceptorLock)
+                InterceptManager.RemoveInterceptorCall(interceptorCall);
+        }
+
+        public static bool HasInterceptor(InterceptHandler.InterceptorHandler interceptorCall)
+        {
+            lock (CallInterceptorLock)
+                return InterceptManager.HasInteceptorCall(interceptorCall);
+        }
+
+        public static void EnableIntercept(System.Reflection.MethodBase method)
+        {
+            lock (CallInterceptorLock)
+                InterceptManager.EnableIntercept(method);
+        }
+
+        public static void DisableIntercept(System.Reflection.MethodBase method)
+        {
+            lock (CallInterceptorLock)
+                InterceptManager.RemoveIntercept(method);
         }
 
         /// <summary>

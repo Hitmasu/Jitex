@@ -4,7 +4,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using Jitex.JIT.CorInfo;
 
-namespace Jitex.Runtime
+namespace Jitex.Framework
 {
     internal abstract class RuntimeFramework
     {
@@ -34,7 +34,7 @@ namespace Jitex.Runtime
         /// <summary>
         /// Address of JIT.
         /// </summary>
-        public IntPtr Jit { get; }
+        private IntPtr Jit { get; }
 
         /// <summary>
         /// Address of table JIT.
@@ -44,7 +44,7 @@ namespace Jitex.Runtime
         /// <summary>
         /// Address of ICorJitInfo.
         /// </summary>
-        public IntPtr CEEInfoVTable { get; set; }
+        public IntPtr CEEInfoVTable { get; private set; }
 
         /// <summary>
         /// Compile method delegate.
@@ -54,7 +54,7 @@ namespace Jitex.Runtime
         /// <summary>
         /// Runtime running.
         /// </summary>
-        private static RuntimeFramework Framework { get; set; }
+        private static RuntimeFramework? Framework { get; set; }
 
         /// <summary>
         /// Load info from JIT.

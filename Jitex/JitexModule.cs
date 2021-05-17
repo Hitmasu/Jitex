@@ -15,13 +15,6 @@ namespace Jitex
         public bool IsLoaded => JitexManager.HasMethodResolver(MethodResolver) && JitexManager.HasTokenResolver(TokenResolver);
 
         /// <summary>
-        /// Instance a new module.
-        /// </summary>
-        protected JitexModule()
-        {
-        }
-
-        /// <summary>
         /// Load resolver from module.
         /// </summary>
         internal void LoadResolvers()

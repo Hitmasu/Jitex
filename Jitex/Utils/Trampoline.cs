@@ -16,6 +16,8 @@ namespace Jitex.Utils
             0xFF, 0xE0
         };
 
+        public static int Size => TrampolineInstruction.Length;
+
         public static byte[] GetTrampoline(IntPtr methodAddress)
         {
             byte[] trampoline = TrampolineInstruction;
@@ -28,14 +30,10 @@ namespace Jitex.Utils
         {
             IntPtr jmpNative;
 
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                jmpNative = Kernel32.VirtualAlloc(TrampolineInstruction.Length, Kernel32.AllocationType.Commit, Kernel32.MemoryProtection.EXECUTE_READ_WRITE);
-            }
-            else
-            {
+            if (OSHelper.IsPosix)
                 jmpNative = Mman.mmap(TrampolineInstruction.Length, MmapProts.PROT_EXEC | MmapProts.PROT_WRITE, MmapFlags.MAP_ANON | MmapFlags.MAP_SHARED);
-            }
+            else
+                jmpNative = Kernel32.VirtualAlloc(TrampolineInstruction.Length, Kernel32.AllocationType.Commit, Kernel32.MemoryProtection.EXECUTE_READ_WRITE);
 
             Marshal.Copy(TrampolineInstruction, 0, jmpNative, TrampolineInstruction.Length);
             Marshal.WriteIntPtr(jmpNative, 2, address);
@@ -48,10 +46,10 @@ namespace Jitex.Utils
         /// <param name="address"></param>
         public static void FreeTrampoline(IntPtr address)
         {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                Kernel32.VirtualFree(address, TrampolineInstruction.Length);
-            else
+            if (OSHelper.IsPosix)
                 Mman.munmap(address, TrampolineInstruction.Length);
+            else
+                Kernel32.VirtualFree(address, TrampolineInstruction.Length);
         }
     }
 }

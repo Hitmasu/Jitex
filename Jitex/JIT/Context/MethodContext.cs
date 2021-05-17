@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
+using Jitex.Intercept;
 using Jitex.Utils;
 using MethodBody = Jitex.Builder.Method.MethodBody;
 
@@ -10,30 +12,41 @@ namespace Jitex.JIT.Context
     /// <summary>
     /// Context for method resolution.
     /// </summary>
-    public class MethodContext
+    public class MethodContext : ContextBase
     {
         private MethodBody? _body;
 
         /// <summary>
         /// Resolution mode.
         /// </summary>
+        [Flags]
         public enum ResolveMode
         {
             /// <summary>
             /// MSIL (pre-compile)
             /// </summary>
-            IL,
+            IL = 1 << 0,
 
             /// <summary>
             /// Bytecode (pos-compile)
             /// </summary>
-            NATIVE
-        }
+            Native = 1 << 1,
 
-        /// <summary>
-        /// Source from call
-        /// </summary>
-        public MethodBase? Source { get; }
+            /// <summary>
+            /// Detour
+            /// </summary>
+            Detour = 1 << 2,
+
+            /// <summary>
+            /// Intercept call
+            /// </summary>
+            Intercept = 1 << 3,
+
+            /// <summary>
+            /// Native entry of method
+            /// </summary>
+            Entry = 1 << 4
+        }
 
         /// <summary>
         /// Method original which will compiled.
@@ -59,21 +72,20 @@ namespace Jitex.JIT.Context
         /// </summary>
         internal byte[]? NativeCode { get; private set; }
 
-        internal bool IsDetour { get; private set; }
+        internal EntryContext? EntryContext { get; private set; }
+
+        internal DetourContext? DetourContext { get; private set; }
+
+        internal InterceptContext? InterceptContext { get; private set; }
 
         /// <summary>
         /// Resolution mode.
         /// </summary>
-        /// <remarks>
-        /// IL to MSIL
-        /// ASM to byte-code.
-        /// </remarks>
-        internal ResolveMode Mode => NativeCode == null ? ResolveMode.IL : ResolveMode.NATIVE;
+        internal ResolveMode Mode { get; private set; }
 
-        internal MethodContext(MethodBase method, MethodBase? source)
+        internal MethodContext(MethodBase method, MethodBase? source, bool hasSource) : base(source, hasSource)
         {
             Method = method;
-            Source = source;
         }
 
         /// <summary>
@@ -84,16 +96,7 @@ namespace Jitex.JIT.Context
         {
             NativeCode = nativeCode.ToArray();
             IsResolved = true;
-        }
-
-        /// <summary>
-        /// Resolve method by IL.
-        /// </summary>
-        /// <param name="il">IL instructions.</param>
-        public void ResolveIL(IEnumerable<byte> il)
-        {
-            Body = new MethodBody(il.ToArray());
-            IsResolved = true;
+            Mode = ResolveMode.Native;
         }
 
         /// <summary>
@@ -101,10 +104,20 @@ namespace Jitex.JIT.Context
         /// </summary>
         /// <param name="il">IL instructions.</param>
         /// <param name="maxStack">Stack size to instrucitons.</param>
-        public void ResolveIL(IEnumerable<byte> il, uint maxStack)
+        public void ResolveIL(IEnumerable<byte> il, uint maxStack = 8)
         {
             Body = new MethodBody(il.ToArray(), maxStack);
             IsResolved = true;
+            Mode = ResolveMode.IL;
+        }
+
+        /// <summary>
+        /// Resolve method by MethodBase.
+        /// </summary>
+        /// <param name="method">Body of new method.</param>
+        public void ResolveMethod(MethodBase method)
+        {
+            ResolveBody(new MethodBody(method));
         }
 
         /// <summary>
@@ -115,18 +128,9 @@ namespace Jitex.JIT.Context
         {
             Body = methodBody;
             IsResolved = true;
+            Mode = ResolveMode.IL;
         }
 
-        /// <summary>
-        /// Resolve method by MethodInfo.
-        /// </summary>
-        /// <param name="method">Body of new method.</param>
-        public void ResolveMethod(MethodInfo method)
-        {
-            Body = new MethodBody(method);
-            IsResolved = true;
-        }
-        
         /// <summary>
         /// Detour to another method.
         /// </summary>
@@ -137,36 +141,12 @@ namespace Jitex.JIT.Context
         }
 
         /// <summary>
-        /// Detour to another method.
-        /// </summary>
-        /// <param name="method"></param>
-        public void ResolveDetour(MethodBase method)
-        {
-            NativeCode = DetourHelper.CreateDetour(method);
-            IsResolved = true;
-            IsDetour = true;
-        }
-
-        /// <summary>
-        /// Detour to a address
-        /// </summary>
-        /// <param name="address"></param>
-        public void ResolveDetour(IntPtr address)
-        {
-            NativeCode = DetourHelper.CreateDetour(address);
-            IsResolved = true;
-            IsDetour = true;
-        }
-
-        /// <summary>
         /// Detour to a Delegate
         /// </summary>
         /// <param name="del"></param>
         public void ResolveDetour(Delegate del)
         {
-            NativeCode = DetourHelper.CreateDetour(del);
-            IsResolved = true;
-            IsDetour = true;
+            ResolveDetour<Delegate>(del);
         }
 
         /// <summary>
@@ -176,9 +156,54 @@ namespace Jitex.JIT.Context
         /// <typeparam name="T"></typeparam>
         public void ResolveDetour<T>(T del) where T : Delegate
         {
-            NativeCode = DetourHelper.CreateDetour(del);
+            ResolveDetour(del.Method);
+        }
+
+        /// <summary>
+        /// Detour to a address
+        /// </summary>
+        /// <param name="address"></param>
+        public void ResolveDetour(IntPtr address)
+        {
+            DetourContext = new DetourContext(address);
             IsResolved = true;
-            IsDetour = true;
+            Mode = ResolveMode.Detour;
+        }
+
+        /// <summary>
+        /// Detour to another method.
+        /// </summary>
+        /// <param name="method"></param>
+        public void ResolveDetour(MethodBase method)
+        {
+            DetourContext = new DetourContext(method);
+            IsResolved = true;
+            Mode = ResolveMode.Detour;
+        }
+
+        /// <summary>
+        /// Resolve native entry method.
+        /// </summary>
+        /// <param name="address">Address to native code.</param>
+        /// <param name="size">Size of native code.</param>
+        public void ResolveEntry(IntPtr address, int size = 0)
+        {
+            EntryContext = new EntryContext(address, size);
+            IsResolved = true;
+            Mode = ResolveMode.Entry;
+        }
+
+        /// <summary>
+        /// Intercept calls from method.
+        /// </summary>
+        public void InterceptCall()
+        {
+            InterceptBuilder builder = new InterceptBuilder(Method);
+            MethodBase interceptMethod = builder.Create();
+            InterceptContext = new InterceptContext(Method, interceptMethod);
+
+            IsResolved = true;
+            Mode = ResolveMode.Intercept;
         }
     }
 }

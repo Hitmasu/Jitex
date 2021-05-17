@@ -4,17 +4,17 @@ namespace Jitex.Hook
 {
     internal sealed class VTableHook
     {
-        public Delegate Delegate { get; set; }
+        public Delegate Delegate { get; }
 
         /// <summary>
         ///     Original address
         /// </summary>
-        public IntPtr OriginalAddress { get; set; }
+        public IntPtr OriginalAddress { get; }
 
         /// <summary>
         ///     New address.
         /// </summary>
-        public IntPtr Address { get; set; }
+        public IntPtr Address { get; }
 
         public VTableHook(Delegate @delegate, IntPtr originalAddress, IntPtr address)
         {

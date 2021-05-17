@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Runtime.InteropServices;
-using Jitex.Runtime.Offsets;
+using Jitex.Framework.Offsets;
 
 namespace Jitex.JIT.CorInfo
 {

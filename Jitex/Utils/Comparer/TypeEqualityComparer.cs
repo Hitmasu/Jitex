@@ -1,14 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
 
 namespace Jitex.Utils.Comparer
 {
-    public class TypeComparer : IEqualityComparer<Type>
+    internal class TypeEqualityComparer : IEqualityComparer<Type>
     {
-        public static readonly TypeComparer Instance = new TypeComparer();
+        public static readonly TypeEqualityComparer Instance = new TypeEqualityComparer();
 
-        public bool Equals(Type x, Type y)
+        public bool Equals(Type? x, Type? y)
         {
             if (x == null && y == null)
                 return true;
