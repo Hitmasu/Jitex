@@ -17,6 +17,7 @@
 		<Version>1.1.1-alpha</Version>
 		<AssemblyName>Jitex.Builder</AssemblyName>
 		<Nullable>enable</Nullable>
+		<PackageVersion>1.1.2</PackageVersion>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">

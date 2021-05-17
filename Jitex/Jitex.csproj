@@ -18,6 +18,7 @@
 		<LangVersion>9</LangVersion>
 		<AssemblyName>Jitex</AssemblyName>
 		<Version>5.1.1-alpha</Version>
+		<PackageVersion>6.0.0</PackageVersion>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
