@@ -66,38 +66,40 @@ class Program {
 ## Intercept call
 
 ```c#
-/// <summary>
-///     Take sum of 2 random numbers
-/// </summary>
-/// <returns></returns>
-public static int SimpleSumReplace () 
-{
-  const string url = "https://www.random.org/integers/?num=2&min=1&max=999&col=2&base=10&format=plain&rnd=new";
-  using HttpClient client = new HttpClient ();
-  using HttpResponseMessage response = client.GetAsync (url).Result;
-  string content = response.Content.ReadAsStringAsync ().Result;
-    
-  string[] columns = content.Split ("\t");
-    
-  int num1 = int.Parse (columns[0]);
-  int num2 = int.Parse (columns[1]);
-    
-  return num1 + num2;
+public static void Main(){
+	JitexManager.AddMethodResolver (MethodResolver);
+    JitexManager.AddInterceptor (InteceptorCallAsync);
 }
 
-private static void MethodResolver (MethodContext context) 
+private static int SimpleSum(int n1, int n2) => n1+n2;
+
+private static async ValueTask InteceptorCallAsync(CallContext context)
 {
-  if (context.Method.Name == "SimpleSum") {
-    //Replace SimpleSum to our SimpleSumReplace
-    MethodInfo replaceSumMethod = typeof (Program).GetMethod (nameof (SimpleSumReplace));
-    context.ResolveMethod (replaceSumMethod);
-  }
+    //Get parameters passed to method
+    int n1 = context.Parameters.GetParameterValue<int>(0);
+    int n2 = context.Parameters.GetParameterValue<int>(1);
+    
+    //Set new parameters value to call
+    context.Parameters.SetParameterValue(0,999);
+    context.Parameters.SetParameterValue(1,1)
+    //Set return value;
+    context.ReturnValue = 50;
+    
+    //Prevent method original to be called
+    context.ProceedCall = false;
+    
+    //Continue original call
+    int result = await context.ContinueAsync<int>();
+}
+
+private static void MethodResolver(MethodContext context)
+{
+    if (context.Method.Name == nameof(SimpleSum))
+        context.InterceptCall(); //every call from SimpleSum will be intercepted
 }
 ```
 
 ## Inject Method
-
-You can replace a method by other just passing a MethodInfo:
 
 ```c#
 /// <summary>
