@@ -18,7 +18,7 @@ It's a library built in .NET Standard 2.0, works on all version >=.NET Core 2.0.
 
 ------
 
-Jitex can help you inject code at runtime easily.
+Jitex can help you replace code at runtime easily.
 
 ```c#
 class Program {
@@ -53,12 +53,12 @@ class Program {
 
 ## Support
 
-- [Modify normal and generic methods](#Inject-Method)
+- [Modify normal and generic methods](#Replace-Method)
 - [Detour method](#Detour-Method)
-- [Inject MSIL code (IL)](#Inject-MSIL)
-- [Inject native code (ASM)](#Inject-Native-Code)
-- [Inject custom metadatatoken](#Inject-custom-metadatatoken)
-- [Inject custom string](#Inject-custom-string)
+- [Replace MSIL code (IL)](#Replace-MSIL)
+- [Replace native code (ASM)](#Replace-Native-Code)
+- [Execute custom metadatatoken](#Inject-custom-metadatatoken)
+- [Replace content string](#Replace-content-string)
 - [Modules](#Modules)
 
 
@@ -99,7 +99,7 @@ private static void MethodResolver(MethodContext context)
 }
 ```
 
-## Inject Method
+## Replace Method
 
 ```c#
 /// <summary>
@@ -156,7 +156,7 @@ private static void MethodResolver (MethodContext context) {
 }
 ```
 
-## Inject MSIL
+## Replace MSIL
 
 ```c#
 private static void MethodResolver (MethodContext context) 
@@ -177,7 +177,7 @@ private static void MethodResolver (MethodContext context)
 }
 ```
 
-## Inject Native Code
+## Replace Native Code
 
 ```c#
 private static void MethodResolver (MethodContext context) 
@@ -295,7 +295,7 @@ static void Main (string[] args) {
 }
 ```
 
-## Inject custom string
+## Replace content string
 
 ```c#
 private static void TokenResolver (TokenContext context) {
@@ -365,6 +365,10 @@ app.UseModule(typeof(ModuleJitex);
 ## Thanks
 
 Replace methods was an idea to increase performance in .NET Applications. Searching a way to do that, i've found this hook implementation from @xoofx [Writing a Managed JIT in C# with CoreCLR](https://xoofx.com/blog/2018/04/12/writing-managed-jit-in-csharp-with-coreclr/), which became core of Jitex.
+
+## Support
+
+[![](/Support/jetbrains.svg)](https://www.jetbrains.com/?from=Jitex)
 
 
 
