@@ -76,7 +76,7 @@ namespace Jitex.Utils
                 {
                     retType = returnType;
                 }
-                else if (OSHelper.IsLinux && returnType.IsValueTask())
+                else if (OSHelper.IsPosix && returnType.IsValueTask())
                 {
                     retType = returnType;
                 }
@@ -108,7 +108,7 @@ namespace Jitex.Utils
             {
                 CallingConventions callMode;
 
-                if (OSHelper.IsLinux)
+                if (OSHelper.IsPosix)
                     callMode = CallingConventions.Standard;
                 else
                     callMode = methodInfo!.ReturnType.IsValueTask() ? CallingConventions.Any : CallingConventions.Standard;
