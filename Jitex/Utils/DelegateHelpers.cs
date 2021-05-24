@@ -4,7 +4,6 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Reflection.Emit;
-using System.Threading.Tasks;
 using Jitex.Exceptions;
 using Jitex.Framework;
 using Jitex.Utils.Extension;
@@ -25,7 +24,7 @@ namespace Jitex.Utils
             CanBuildStaticValueTask = framework.FrameworkVersion >= new Version(3, 0, 0);
         }
 
-        private static IList<Type> CreateParameters(MethodBase method)
+        public static IList<Type> CreateParameters(MethodBase method)
         {
             IList<Type> parameters = new List<Type>();
 

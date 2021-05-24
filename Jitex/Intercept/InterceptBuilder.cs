@@ -77,15 +77,15 @@ namespace Jitex.Intercept
             List<Type> parameters = new List<Type>();
             MethodAttributes methodAttributes = MethodAttributes.Public;
 
-            if (_method.IsGenericMethod)
-                parameters.Add(typeof(IntPtr));
+            //if (_method.IsGenericMethod)
+            //    parameters.Add(typeof(IntPtr));
 
-            if (!_method.IsStatic)
-                parameters.Add(typeof(IntPtr));
-            else
-                methodAttributes |= MethodAttributes.Static;
+            //if (!_method.IsStatic)
+            //    parameters.Add(typeof(IntPtr));
+            //else
+            //    methodAttributes |= MethodAttributes.Static;
 
-            parameters.AddRange(methodInfo.GetParameters().Select(w => w.ParameterType));
+            parameters.AddRange(DelegateHelper.CreateParameters(methodInfo));
 
             MethodBuilder builder = _interceptorTypeBuilder.DefineMethod(methodName, methodAttributes,
                 CallingConventions.Standard, methodInfo.ReturnType, parameters.ToArray());
@@ -96,6 +96,29 @@ namespace Jitex.Intercept
             TypeInfo type = _interceptorTypeBuilder.CreateTypeInfo();
             return type.GetMethod(methodName)!;
         }
+
+        //private MethodInfo CreateMethodInterceptor()
+        //{
+        //    string methodName = $"{_method.Name}Jitex";
+        //    MethodInfo methodInfo = (MethodInfo) _method;
+        //    List<Type> parameters = new List<Type>();
+
+        //    if (_method.IsGenericMethod)
+        //        parameters.Add(typeof(IntPtr));
+
+        //    if (!_method.IsStatic)
+        //        parameters.Add(methodInfo.DeclaringType);
+
+        //    parameters.AddRange(methodInfo.GetParameters().Select(w => w.ParameterType));
+
+        //    DynamicMethod dm = new DynamicMethod(methodName, MethodAttributes.Public | MethodAttributes.Static,
+        //        CallingConventions.Standard, methodInfo.ReturnType, parameters.ToArray(), GetType().Module, true);
+
+        //    ILGenerator generator = dm.GetILGenerator();
+        //    BuildBody(generator, parameters, methodInfo.ReturnType);
+
+        //    return dm;
+        //}
 
         /// <summary>
         /// Create the body of method interceptor.
@@ -142,17 +165,27 @@ namespace Jitex.Intercept
                     Type type = parameterType;
 
                     if (type.IsByRef)
-                    {
-                        generator.Emit(OpCodes.Ldarg_S, argIndex);
                         type = type.GetElementType()!;
+
+                    if (type.IsPrimitive)
+                    {
+                        if (parameterType.IsByRef)
+                        {
+                            generator.Emit(OpCodes.Ldarg_S, argIndex);
+                        }
+                        else
+                        {
+                            generator.Emit(OpCodes.Ldarga_S, argIndex);
+                        }
+
+                        generator.Emit(OpCodes.Mkrefany, type);
+                        generator.Emit(OpCodes.Call, GetReferenceFromTypedReference);
                     }
                     else
                     {
-                        generator.Emit(OpCodes.Ldarga_S, argIndex);
+                        generator.Emit(OpCodes.Ldarg_S, argIndex);
                     }
 
-                    generator.Emit(OpCodes.Mkrefany, type);
-                    generator.Emit(OpCodes.Call, GetReferenceFromTypedReference);
                     generator.Emit(OpCodes.Box, typeof(IntPtr));
                     generator.Emit(OpCodes.Stelem_Ref);
 
@@ -209,9 +242,9 @@ namespace Jitex.Intercept
                 {
                     retVariable = generator.DeclareLocal(returnTypeInterceptor);
 
-                    generator.Emit(OpCodes.Stloc, retVariable.LocalIndex);
+                    generator.Emit(OpCodes.Stloc_S, retVariable.LocalIndex);
                     generator.Emit(OpCodes.Call, CallDispose);
-                    generator.Emit(OpCodes.Ldloc, retVariable.LocalIndex);
+                    generator.Emit(OpCodes.Ldloc_S, retVariable.LocalIndex);
 
                     if (returnType.IsTask())
                     {
@@ -254,6 +287,24 @@ namespace Jitex.Intercept
             }
 
             generator.Emit(OpCodes.Ret);
+        }
+
+
+        public IEnumerable<ParameterType> BuildParameterType(MethodBase method)
+        {
+            if (!method.IsStatic)
+                yield return new ParameterType(null, typeof(IntPtr));
+
+            if (method.IsGenericMethod)
+                yield return new ParameterType(null, typeof(IntPtr));
+
+            foreach (Type parameterType in method.GetParameters().Select(w => w.ParameterType))
+            {
+                if (parameterType.IsPrimitive)
+                    yield return new ParameterType(parameterType, parameterType);
+                else
+                    yield return new ParameterType(parameterType, typeof(IntPtr));
+            }
         }
     }
 }

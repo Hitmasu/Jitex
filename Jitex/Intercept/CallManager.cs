@@ -18,9 +18,6 @@ namespace Jitex.Intercept
 
         public CallManager(IntPtr handle, in object[] parameters, bool isGeneric)
         {
-            if (isGeneric)
-                handle = (IntPtr) parameters[0];
-
             if (!Cache.TryGetValue(handle, out CallCache cache))
             {
                 MethodBase? method = MethodHelper.GetMethodFromHandle(handle);
@@ -45,7 +42,7 @@ namespace Jitex.Intercept
 
             if (_context.ProceedCall)
                 await _context.ContinueFlowAsync().ConfigureAwait(false);
-            
+
             return _context.HasReturn ? _context.ReturnAddress : IntPtr.Zero;
         }
 
@@ -58,7 +55,7 @@ namespace Jitex.Intercept
                 await _context.ContinueFlowAsync().ConfigureAwait(false);
 
             if (_context.HasReturn && _context.ReturnValue != null)
-                return (TResult) _context.ReturnValue;
+                return (TResult)_context.ReturnValue;
 
             return default;
         }
