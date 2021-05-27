@@ -9,10 +9,6 @@ using Jitex.JIT.Context;
 
 namespace ConsoleApp1
 {
-    class Result
-    {
-        public int Value { get; set; }
-    }
 
     class Program
     {
@@ -20,14 +16,15 @@ namespace ConsoleApp1
         {
             JitexManager.AddMethodResolver(MethodResolver);
             JitexManager.AddInterceptor(InterceptorCallAsync);
-            var result = await new Program().Sum(1,1,null);
-            
+            var result = Sum<int>(1, 1, new Result {Value = 8520});
         }
 
-        public async ValueTask<int> Sum(int n1, int n2,Result result)
+        private static int Sum<T>(int n1, int n2, Result result)
         {
             Console.WriteLine(n1);
             Console.WriteLine(n2);
+            Console.WriteLine(result.Value);
+            // Console.WriteLine(typeof(T).Name);
             return 90;
         }
 
@@ -39,6 +36,11 @@ namespace ConsoleApp1
         {
             if (context.Method.Name == "Sum")
                 context.InterceptCall();
+        }
+        
+        private class Result
+        {
+            public int Value { get; set; }
         }
     }
 }

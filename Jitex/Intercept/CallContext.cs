@@ -126,13 +126,13 @@ namespace Jitex.Intercept
             get
             {
                 List<Parameter> rawParameters = new List<Parameter>();
-                
+
                 if (!Method.IsStatic)
                     rawParameters.Add(_instanceValue!);
-
+                
                 if (Method.IsGenericMethod)
                     rawParameters.Add(_methodHandle!);
-                
+
                 if (Parameters != null && Parameters.Any())
                     rawParameters.AddRange(Parameters);
 

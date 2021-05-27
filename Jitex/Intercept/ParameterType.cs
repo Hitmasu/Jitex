@@ -4,12 +4,12 @@ namespace Jitex.Intercept
 {
     internal class ParameterType
     {
-        public Type? RealType { get; }
+        public Type? OriginalType { get; }
         public Type Type { get; }
 
-        public ParameterType(Type? realType, Type type)
+        public ParameterType(Type? originalType, Type type)
         {
-            RealType = realType;
+            OriginalType = originalType;
             Type = type;
         }
     }

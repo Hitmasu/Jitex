@@ -74,21 +74,15 @@ namespace Jitex.Intercept
         {
             string methodName = $"{_method.Name}Jitex";
             MethodInfo methodInfo = (MethodInfo) _method;
-            List<Type> parameters = new List<Type>();
+            IReadOnlyCollection<ParameterType> parameters = BuildParameterType().ToList();
+
             MethodAttributes methodAttributes = MethodAttributes.Public;
 
-            //if (_method.IsGenericMethod)
-            //    parameters.Add(typeof(IntPtr));
-
-            //if (!_method.IsStatic)
-            //    parameters.Add(typeof(IntPtr));
-            //else
-            //    methodAttributes |= MethodAttributes.Static;
-
-            parameters.AddRange(DelegateHelper.CreateParameters(methodInfo));
+            if (methodInfo.IsStatic)
+                methodAttributes |= MethodAttributes.Static;
 
             MethodBuilder builder = _interceptorTypeBuilder.DefineMethod(methodName, methodAttributes,
-                CallingConventions.Standard, methodInfo.ReturnType, parameters.ToArray());
+                CallingConventions.Standard, methodInfo.ReturnType, parameters.Select(w => w.Type).ToArray());
 
             ILGenerator generator = builder.GetILGenerator();
             BuildBody(generator, parameters, methodInfo.ReturnType);
@@ -137,7 +131,7 @@ namespace Jitex.Intercept
         ///    return InterceptCall();
         /// }
         /// </remarks>
-        private void BuildBody(ILGenerator generator, IReadOnlyCollection<Type> parameters, Type returnType)
+        private void BuildBody(ILGenerator generator, IReadOnlyCollection<ParameterType> parameters, Type returnType)
         {
             bool isAwaitable = _method.IsAwaitable();
             int totalArgs = parameters.Count();
@@ -157,35 +151,18 @@ namespace Jitex.Intercept
             {
                 int argIndex = 0;
 
-                foreach (Type parameterType in parameters)
+                foreach (ParameterType parameterType in parameters)
                 {
                     generator.Emit(OpCodes.Ldloc_0);
                     generator.Emit(OpCodes.Ldc_I4, argIndex);
 
-                    Type type = parameterType;
-
-                    if (type.IsByRef)
-                        type = type.GetElementType()!;
-
-                    if (type.IsPrimitive)
-                    {
-                        if (parameterType.IsByRef)
-                        {
-                            generator.Emit(OpCodes.Ldarg_S, argIndex);
-                        }
-                        else
-                        {
-                            generator.Emit(OpCodes.Ldarga_S, argIndex);
-                        }
-
-                        generator.Emit(OpCodes.Mkrefany, type);
-                        generator.Emit(OpCodes.Call, GetReferenceFromTypedReference);
-                    }
-                    else
-                    {
+                    if (parameterType.OriginalType is {IsByRef: true})
                         generator.Emit(OpCodes.Ldarg_S, argIndex);
-                    }
+                    else
+                        generator.Emit(OpCodes.Ldarga_S, argIndex);
 
+                    generator.Emit(OpCodes.Mkrefany, parameterType.Type);
+                    generator.Emit(OpCodes.Call, GetReferenceFromTypedReference);
                     generator.Emit(OpCodes.Box, typeof(IntPtr));
                     generator.Emit(OpCodes.Stelem_Ref);
 
@@ -290,15 +267,17 @@ namespace Jitex.Intercept
         }
 
 
-        public IEnumerable<ParameterType> BuildParameterType(MethodBase method)
+        private IEnumerable<ParameterType> BuildParameterType()
         {
-            if (!method.IsStatic)
+            
+            if (_method.IsGenericMethod)
+                yield return new ParameterType(null, typeof(IntPtr));
+            
+            if (!_method.IsStatic)
                 yield return new ParameterType(null, typeof(IntPtr));
 
-            if (method.IsGenericMethod)
-                yield return new ParameterType(null, typeof(IntPtr));
 
-            foreach (Type parameterType in method.GetParameters().Select(w => w.ParameterType))
+            foreach (Type parameterType in _method.GetParameters().Select(w => w.ParameterType))
             {
                 if (parameterType.IsPrimitive)
                     yield return new ParameterType(parameterType, parameterType);
