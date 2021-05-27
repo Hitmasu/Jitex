@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Diagnostics;
-using System.Reflection;
-using System.Reflection.Emit;
 using System.Threading.Tasks;
 using Jitex;
 using Jitex.Intercept;
@@ -16,16 +14,15 @@ namespace ConsoleApp1
         {
             JitexManager.AddMethodResolver(MethodResolver);
             JitexManager.AddInterceptor(InterceptorCallAsync);
-            var result = Sum<int>(1, 1, new Result {Value = 8520});
+            var a = Sum<Process>(10);
+            Debugger.Break();
         }
 
-        private static int Sum<T>(int n1, int n2, Result result)
+        private static Result Sum<T>(int n1)
         {
             Console.WriteLine(n1);
-            Console.WriteLine(n2);
-            Console.WriteLine(result.Value);
-            // Console.WriteLine(typeof(T).Name);
-            return 90;
+            Console.WriteLine(typeof(T).Name);
+            return new Result{Value = 999};
         }
 
         private static async ValueTask InterceptorCallAsync(CallContext context)
@@ -37,8 +34,7 @@ namespace ConsoleApp1
             if (context.Method.Name == "Sum")
                 context.InterceptCall();
         }
-        
-        private class Result
+         class Result
         {
             public int Value { get; set; }
         }

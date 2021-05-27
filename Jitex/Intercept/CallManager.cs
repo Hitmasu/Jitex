@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Threading.Tasks;
+using Jitex.Runtime;
 
 namespace Jitex.Intercept
 {
@@ -18,6 +19,9 @@ namespace Jitex.Intercept
 
         public CallManager(IntPtr handle, in object[] parameters, bool isGeneric)
         {
+            if (isGeneric)
+                handle = (IntPtr)parameters[0];
+
             if (!Cache.TryGetValue(handle, out CallCache cache))
             {
                 MethodBase? method = MethodHelper.GetMethodFromHandle(handle);

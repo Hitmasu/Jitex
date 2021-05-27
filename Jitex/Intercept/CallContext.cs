@@ -129,7 +129,7 @@ namespace Jitex.Intercept
 
                 if (!Method.IsStatic)
                     rawParameters.Add(_instanceValue!);
-                
+
                 if (Method.IsGenericMethod)
                     rawParameters.Add(_methodHandle!);
 
@@ -155,9 +155,8 @@ namespace Jitex.Intercept
 
             if (Method.IsGenericMethod)
             {
-                IntPtr handle = method.MethodHandle.Value;
+                IntPtr handle = (IntPtr) parameters[startIndex++];
                 _methodHandle = new Parameter(handle, typeof(IntPtr), false);
-                startIndex++;
             }
 
             if (HasInstance)

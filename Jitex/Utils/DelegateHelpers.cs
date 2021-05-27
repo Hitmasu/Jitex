@@ -30,10 +30,10 @@ namespace Jitex.Utils
 
             if (!method.IsStatic)
                 parameters.Add(typeof(IntPtr));
-            
+
             if (method.IsGenericMethod)
                 parameters.Add(typeof(IntPtr));
-            
+
             foreach (ParameterInfo parameter in method.GetParameters())
             {
                 Type type = parameter.ParameterType;
