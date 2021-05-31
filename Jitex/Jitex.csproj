@@ -7,7 +7,7 @@
 		<Platforms>AnyCPU;x64</Platforms>
 		<Authors>Hitmasu</Authors>
 		<Company />
-		<Description>A framework to modify MSIL/Bytecode at runtime.</Description>
+		<Description>A library to modify MSIL and native code at runtime.</Description>
 		<PackageProjectUrl>https://github.com/Hitmasu/Jitex</PackageProjectUrl>
 		<RepositoryUrl>https://github.com/Hitmasu/Jitex</RepositoryUrl>
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
@@ -17,8 +17,7 @@
 		<PackageTags>JIT</PackageTags>
 		<LangVersion>9</LangVersion>
 		<AssemblyName>Jitex</AssemblyName>
-		<Version>5.1.1-alpha</Version>
-		<PackageVersion>6.0.0</PackageVersion>
+		<PackageVersion>6.0.1</PackageVersion>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
