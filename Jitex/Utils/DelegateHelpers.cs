@@ -27,7 +27,7 @@ namespace Jitex.Utils
         public static IList<Type> CreateParameters(MethodBase method)
         {
             IList<Type> parameters = new List<Type>();
-
+            
             if (!method.IsStatic)
                 parameters.Add(typeof(IntPtr));
 
@@ -70,8 +70,7 @@ namespace Jitex.Utils
                 if (!CanBuildStaticValueTask && method.IsStatic && returnType.IsValueTask())
                     throw new InvalidMethodException("Method with signature Static and ValueTask can be only created on .NET Core 3.0 or above.");
                 
-                if (returnType.IsValueTask() && !methodInfo.IsStatic
-                                             && parametersArray.Length > 1 && parametersArray[2].CanBeInline() || returnType.IsPrimitive)
+                if (returnType.IsValueTask() && !methodInfo.IsStatic || returnType.IsPrimitive)
                 {
                     retType = returnType;
                 }

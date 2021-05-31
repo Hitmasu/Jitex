@@ -153,16 +153,16 @@ namespace Jitex.Intercept
 
             int startIndex = 0;
 
-            if (Method.IsGenericMethod)
-            {
-                IntPtr handle = (IntPtr) parameters[startIndex++];
-                _methodHandle = new Parameter(handle, typeof(IntPtr), false);
-            }
-
             if (HasInstance)
             {
                 IntPtr instanceAddress = (IntPtr)parameters[startIndex++];
                 _instanceValue = new Parameter(instanceAddress, Method.DeclaringType!);
+            }
+
+            if (Method.IsGenericMethod)
+            {
+                IntPtr handle = (IntPtr) parameters[startIndex++];
+                _methodHandle = new Parameter(handle, typeof(IntPtr), false);
             }
 
             Parameter[] parametersInfo = new Parameter[parameters.Length - startIndex];

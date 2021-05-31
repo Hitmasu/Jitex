@@ -17,10 +17,15 @@ namespace Jitex.Intercept
 
         private readonly CallContext _context;
 
-        public CallManager(IntPtr handle, in object[] parameters, bool isGeneric)
+        public CallManager(IntPtr handle, in object[] parameters, bool isGeneric, bool isStatic)
         {
             if (isGeneric)
-                handle = (IntPtr)parameters[0];
+            {
+                if (isStatic)
+                    handle = (IntPtr)parameters[0];
+                else
+                    handle = (IntPtr)parameters[1];
+            }
 
             if (!Cache.TryGetValue(handle, out CallCache cache))
             {

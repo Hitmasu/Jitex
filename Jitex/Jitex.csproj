@@ -42,6 +42,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<PackageReference Include="Iced" Version="1.11.3" />
 		<PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
 		<PackageReference Include="System.Memory" Version="4.5.4" />
 		<PackageReference Include="Mono.Posix.NETStandard" Version="1.0.0" />

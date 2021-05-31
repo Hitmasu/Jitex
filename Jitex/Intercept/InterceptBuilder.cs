@@ -4,10 +4,12 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
+using Iced.Intel;
+using Jitex.Runtime;
 using Jitex.Utils;
 using Jitex.Utils.Extension;
-using IntPtr = System.IntPtr;
 
 namespace Jitex.Intercept
 {
@@ -19,21 +21,24 @@ namespace Jitex.Intercept
         private readonly TypeBuilder _interceptorTypeBuilder;
         private readonly MethodBase _method;
         private readonly bool _hasReturn;
+        private readonly IReadOnlyCollection<ParameterType> _parameters;
+        private static ulong _methodAccessExceptionAddress;
+        private static MethodInfo _firstMethodValidation;
 
         private static readonly MethodInfo InterceptCallAsync;
         private static readonly MethodInfo InterceptAsyncCallAsync;
         private static readonly MethodInfo CompletedTask;
         private static readonly MethodInfo CallDispose;
         private static readonly MethodInfo GetReferenceFromTypedReference;
-        private static readonly ConstructorInfo ObjectCtor;
+        private static readonly ConstructorInfo ConstructorObject;
         private static readonly ConstructorInfo ConstructorCallManager;
         private static readonly ConstructorInfo ConstructorIntPtrLong;
 
         static InterceptBuilder()
         {
-            ObjectCtor = typeof(object).GetConstructor(Type.EmptyTypes)!;
+            ConstructorObject = typeof(object).GetConstructor(Type.EmptyTypes)!;
             CompletedTask = typeof(Task).GetProperty(nameof(Task.CompletedTask))!.GetGetMethod();
-            ConstructorCallManager = typeof(CallManager).GetConstructor(new[] { typeof(IntPtr), typeof(object[]).MakeByRefType(), typeof(bool) })!;
+            ConstructorCallManager = typeof(CallManager).GetConstructors().First();
             InterceptCallAsync = typeof(CallManager).GetMethods(BindingFlags.Public | BindingFlags.Instance).First(w => w.Name == nameof(CallManager.InterceptCallAsync) && !w.IsGenericMethod);
             InterceptAsyncCallAsync = typeof(CallManager).GetMethods(BindingFlags.Public | BindingFlags.Instance).First(w => w.Name == nameof(CallManager.InterceptCallAsync) && w.IsGenericMethod);
             ConstructorIntPtrLong = typeof(IntPtr).GetConstructor(new[] { typeof(long) })!;
@@ -59,6 +64,8 @@ namespace Jitex.Intercept
                 _hasReturn = methodInfo.ReturnType != typeof(Task) && methodInfo.ReturnType != typeof(ValueTask) && methodInfo.ReturnType != typeof(void);
             else
                 _hasReturn = false;
+
+            _parameters = BuildParameterType().ToList();
         }
 
         /// <summary>
@@ -67,14 +74,15 @@ namespace Jitex.Intercept
         /// <returns></returns>
         public MethodBase Create()
         {
-            return CreateMethodInterceptor();
+            MethodInfo interceptor = CreateMethodInterceptor();
+            RemoveAccessValidation(interceptor, _firstMethodValidation);
+            return interceptor;
         }
 
         private MethodInfo CreateMethodInterceptor()
         {
             string methodName = $"{_method.Name}Jitex";
             MethodInfo methodInfo = (MethodInfo)_method;
-            IReadOnlyCollection<ParameterType> parameters = BuildParameterType().ToList();
 
             MethodAttributes methodAttributes = MethodAttributes.Public;
 
@@ -82,43 +90,22 @@ namespace Jitex.Intercept
                 methodAttributes |= MethodAttributes.Static;
 
             MethodBuilder builder = _interceptorTypeBuilder.DefineMethod(methodName, methodAttributes,
-                CallingConventions.Standard, methodInfo.ReturnType, parameters.Select(w => w.Type).ToArray());
+                CallingConventions.Standard, methodInfo.ReturnType, _parameters.Select(w => w.Type).ToArray());
 
             ILGenerator generator = builder.GetILGenerator();
-            BuildBody(generator, parameters, methodInfo.ReturnType);
+            BuildBody(generator, methodInfo.ReturnType);
 
             TypeInfo type = _interceptorTypeBuilder.CreateTypeInfo();
-            return type.GetMethod(methodName)!;
+
+            MethodInfo interceptor = type.GetMethod(methodName)!;
+            return interceptor;
         }
 
-        //private MethodInfo CreateMethodInterceptor()
-        //{
-        //    string methodName = $"{_method.Name}Jitex";
-        //    MethodInfo methodInfo = (MethodInfo) _method;
-        //    List<Type> parameters = new List<Type>();
-
-        //    if (_method.IsGenericMethod)
-        //        parameters.Add(typeof(IntPtr));
-
-        //    if (!_method.IsStatic)
-        //        parameters.Add(methodInfo.DeclaringType);
-
-        //    parameters.AddRange(methodInfo.GetParameters().Select(w => w.ParameterType));
-
-        //    DynamicMethod dm = new DynamicMethod(methodName, MethodAttributes.Public | MethodAttributes.Static,
-        //        CallingConventions.Standard, methodInfo.ReturnType, parameters.ToArray(), GetType().Module, true);
-
-        //    ILGenerator generator = dm.GetILGenerator();
-        //    BuildBody(generator, parameters, methodInfo.ReturnType);
-
-        //    return dm;
-        //}
 
         /// <summary>
         /// Create the body of method interceptor.
         /// </summary>
         /// <param name="generator">Generator of method.</param>
-        /// <param name="parameters">Parameters of method.</param>
         /// <param name="returnType">Return type of method.</param>
         /// <remarks>
         /// Thats just create a middleware to call InterceptCall.
@@ -131,15 +118,15 @@ namespace Jitex.Intercept
         ///    return InterceptCall();
         /// }
         /// </remarks>
-        private void BuildBody(ILGenerator generator, IReadOnlyCollection<ParameterType> parameters, Type returnType)
+        private void BuildBody(ILGenerator generator, Type returnType)
         {
             bool isAwaitable = _method.IsAwaitable();
-            int totalArgs = parameters.Count();
+            int totalArgs = _parameters.Count;
 
             if (_method.IsConstructor && !_method.IsStatic)
             {
                 generator.Emit(OpCodes.Ldarg_0);
-                generator.Emit(OpCodes.Call, ObjectCtor);
+                generator.Emit(OpCodes.Call, ConstructorObject);
             }
 
             generator.DeclareLocal(typeof(object[]));
@@ -151,7 +138,7 @@ namespace Jitex.Intercept
             {
                 int argIndex = 0;
 
-                foreach (ParameterType parameterType in parameters)
+                foreach (ParameterType parameterType in _parameters)
                 {
                     generator.Emit(OpCodes.Ldloc_0);
                     generator.Emit(OpCodes.Ldc_I4, argIndex);
@@ -176,10 +163,8 @@ namespace Jitex.Intercept
                 returnTypeInterceptor = typeof(IntPtr);
             else if (isAwaitable && returnType.IsGenericType)
                 returnTypeInterceptor = returnType.GetGenericArguments().First();
-            else if (returnType.IsPrimitive)
-                returnTypeInterceptor = returnType;
             else
-                returnTypeInterceptor = typeof(IntPtr);
+                returnTypeInterceptor = returnType;
 
             MethodInfo getAwaiter = typeof(Task<>).MakeGenericType(returnTypeInterceptor).GetMethod(nameof(Task.GetAwaiter), BindingFlags.Public | BindingFlags.Instance)!;
             MethodInfo getResult = typeof(TaskAwaiter<>).MakeGenericType(returnTypeInterceptor).GetMethod(nameof(TaskAwaiter.GetResult), BindingFlags.Public | BindingFlags.Instance)!;
@@ -195,16 +180,23 @@ namespace Jitex.Intercept
             else
                 generator.Emit(OpCodes.Ldc_I4_0);
 
+            if (_method.IsStatic)
+                generator.Emit(OpCodes.Ldc_I4_1);
+            else
+                generator.Emit(OpCodes.Ldc_I4_0);
+
             generator.Emit(OpCodes.Newobj, ConstructorCallManager);
             generator.Emit(OpCodes.Dup);
 
-            if (isAwaitable && returnType.IsGenericType || returnType.CanBeInline())
+            if ((isAwaitable && returnType.IsGenericType || returnType.CanBeInline()))
             {
                 MethodInfo interceptor = InterceptAsyncCallAsync.MakeGenericMethod(returnTypeInterceptor);
+                _firstMethodValidation = interceptor;
                 generator.Emit(OpCodes.Call, interceptor);
             }
             else
             {
+                _firstMethodValidation = getAwaiter;
                 generator.Emit(OpCodes.Call, InterceptCallAsync);
             }
 
@@ -268,16 +260,13 @@ namespace Jitex.Intercept
             generator.Emit(OpCodes.Ret);
         }
 
-
         private IEnumerable<ParameterType> BuildParameterType()
         {
-
-            if (_method.IsGenericMethod)
-                yield return new ParameterType(typeof(IntPtr).MakeByRefType(), typeof(IntPtr));
-
             if (!_method.IsStatic)
                 yield return new ParameterType(null, typeof(IntPtr));
 
+            if (_method.IsGenericMethod)
+                yield return new ParameterType(typeof(IntPtr).MakeByRefType(), typeof(IntPtr));
 
             foreach (Type parameterType in _method.GetParameters().Select(w => w.ParameterType))
             {
@@ -286,6 +275,96 @@ namespace Jitex.Intercept
                 else
                     yield return new ParameterType(parameterType, typeof(IntPtr));
             }
+        }
+
+        /// <summary>
+        /// Remove access validation from code.
+        /// </summary>
+        /// <remarks>
+        /// When a method is compiled, a lot of validation is added on native code. As MethodBuilder doesn't have skipVisibility like DynamicMethod, we need
+        /// remove them to gain access on not public class/struct.
+        /// ----
+        /// 
+        /// Example of remove:
+        /// 0x00007ff7f9029eeb 48 b9 78 5a 1f f9 f7 7f 00 00 mov    rcx, 7FF7F91F5A78h
+        /// 0x00007ff7f9029ef5 48 ba 18 11 1f f9 f7 7f 00 00 mov    rdx, 7FF7F91F1118h
+        /// 0x00007ff7f9029eff e8 dc 0a ca 5f                       call    coreclr!JIT_ThrowMethodAccessException (0x00007ff858cca9e0)
+        /// 0x00007ff7f9029f04 48 8b 4d b0                          mov     rcx, qword ptr [rbp-50h]
+        ///
+        /// Will be came:
+        /// 0x00007ff7f9029eeb EB 17                                jmp
+        /// [ignored] 0x00007ff7f9029ef5 - 0x00007ff7f9029eff
+        /// 0x00007ff7f9029f04 48 8b 4d b0                          mov     rcx, qword ptr [rbp-50h]
+        /// 
+        /// </remarks>
+        /// <param name="origin">Original method.</param>
+        /// <param name="dest">Method to be validated.</param>
+        ///
+        /// --- Destination method should be the first method validated on native code.
+        private void RemoveAccessValidation(MethodBase origin, MethodBase dest)
+        {
+            NativeCode native = MethodHelper.GetNativeCode(origin);
+
+            Span<byte> nativeCode;
+
+            unsafe
+            {
+                nativeCode = new Span<byte>(native.Address.ToPointer(), native.Size);
+            }
+
+            ByteArrayCodeReader codeReader = new ByteArrayCodeReader(nativeCode.ToArray());
+
+            Decoder decoder = Decoder.Create(64, codeReader, (ulong)native.Address.ToInt64());
+            ulong endIp = decoder.IP + (ulong)native.Size;
+
+            ulong handleOrigin = (ulong)MethodHelper.GetMethodHandle(origin).Value.ToInt64();
+            ulong handleDest = (ulong)MethodHelper.GetMethodHandle(dest).Value.ToInt64();
+
+            //mov method handle (10)
+            //mov method handle (10)
+            const int movSize = 20;
+
+            //mov + call MethodAccessException
+            const int callSize = movSize + 5;
+
+            do
+            {
+                bool writeAddress = false;
+                IntPtr startInstruction = IntPtr.Zero;
+
+                Instruction instruction = decoder.Decode();
+
+                if (_methodAccessExceptionAddress == 0 && instruction.Mnemonic == Mnemonic.Mov && instruction.Immediate64 == handleOrigin)
+                {
+                    Instruction nextInstruction = decoder.Decode();
+
+                    if (nextInstruction.Mnemonic == Mnemonic.Mov && nextInstruction.Immediate64 == handleDest)
+                    {
+                        Instruction callInstruction = decoder.Decode();
+
+                        if (callInstruction.Mnemonic != Mnemonic.Call)
+                            continue;
+
+                        _methodAccessExceptionAddress = callInstruction.Immediate64;
+                        startInstruction = new IntPtr((long)instruction.IP);
+                        writeAddress = true;
+                    }
+                }
+                else if (instruction.Mnemonic == Mnemonic.Call && instruction.Immediate64 == _methodAccessExceptionAddress)
+                {
+                    startInstruction = new IntPtr((long)instruction.IP - movSize);
+                    writeAddress = true;
+                }
+
+                if (writeAddress)
+                {
+                    byte[] nopInstructions = new byte[2];
+                    nopInstructions[0] = 0xEB;
+                    nopInstructions[1] = callSize - 2;
+
+                    Marshal.Copy(nopInstructions, 0, startInstruction, nopInstructions.Length);
+                }
+            } while (decoder.IP < endIp);
         }
     }
 }

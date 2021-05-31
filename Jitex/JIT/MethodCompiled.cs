@@ -10,8 +10,8 @@ namespace Jitex.JIT
     {
         public IntPtr CILJit { get; }
         public MethodBase Method { get; }
-        public IntPtr NativeCodeAddress { get; }
-        public int NativeCodeSize { get; }
+        public IntPtr NativeCodeAddress { get; set; }
+        public int NativeCodeSize { get; set; }
         public IntPtr Handle { get; }
         public IntPtr Comp { get; }
         public uint Flags { get; }

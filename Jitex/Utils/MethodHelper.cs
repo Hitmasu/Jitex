@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
+using Jitex.Runtime;
 
 namespace Jitex.Utils
 {
@@ -11,6 +13,7 @@ namespace Jitex.Utils
         private static readonly MethodInfo GetMethodBase;
         private static readonly Type? CanonType;
         private static readonly MethodInfo? GetMethodDescriptorInfo;
+        private static readonly ConcurrentDictionary<IntPtr, MethodBase> HandleCache = new ConcurrentDictionary<IntPtr, MethodBase>();
 
         static MethodHelper()
         {
@@ -34,13 +37,6 @@ namespace Jitex.Utils
                             ?? throw new MethodAccessException("Method GetMethodBase from RuntimeType was not found!");
 
             GetMethodDescriptorInfo = typeof(DynamicMethod).GetMethod("GetMethodDescriptor", BindingFlags.NonPublic | BindingFlags.Instance);
-        }
-
-        public static MethodBase? GetMethodFromHandle(IntPtr methodHandle)
-        {
-            object? handle = GetRuntimeMethodHandle(methodHandle);
-            MethodBase? method = GetMethodBase.Invoke(null, new[] {null, handle}) as MethodBase;
-            return method;
         }
 
         private static object? GetRuntimeMethodHandle(IntPtr methodHandle)
@@ -75,6 +71,22 @@ namespace Jitex.Utils
 
             return method.MethodHandle;
         }
+
+        public static MethodBase? GetMethodFromHandle(IntPtr methodHandle)
+        {
+            if (HandleCache.TryGetValue(methodHandle, out MethodBase? method))
+                return method;
+
+            object? handle = GetRuntimeMethodHandle(methodHandle);
+            method = GetMethodBase.Invoke(null, new[] {null, handle}) as MethodBase;
+
+            if (method != null)
+                HandleCache.TryAdd(methodHandle, method);
+
+            return method;
+        }
+
+        public static NativeCode GetNativeCode(MethodBase method) => RuntimeMethodCache.GetNativeCode(method);
 
         public static void PrepareMethod(MethodBase method)
         {

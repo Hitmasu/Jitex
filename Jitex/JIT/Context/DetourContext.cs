@@ -25,13 +25,16 @@ namespace Jitex.JIT.Context
         /// Address of Native Code
         /// </summary>
         internal IntPtr MethodAddress { get; set; }
-        
+
         internal DetourContext(IntPtr address)
         {
             _trampolineCode = Trampoline.GetTrampoline(address);
         }
 
-        internal DetourContext(MethodBase methodInterceptor) : this(RuntimeMethodCache.GetNativeAddress(methodInterceptor)){}
+        internal DetourContext(MethodBase methodInterceptor) : this(MethodHelper.GetNativeCode(methodInterceptor).Address)
+        {
+
+        }
 
         internal void WriteDetour()
         {

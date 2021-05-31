@@ -316,11 +316,14 @@ namespace Jitex.JIT
                 }
                 else if (methodContext?.Mode == MethodContext.ResolveMode.Entry)
                 {
-                    EntryContext entryContext = methodContext.EntryContext;
-                    nativeEntry = entryContext.NativeEntry;
+                    NativeCode entryContext = methodContext.EntryContext!;
+                    nativeEntry = entryContext.Address;
 
                     if (entryContext.Size > 0)
                         nativeSizeOfCode = entryContext.Size;
+
+                    methodCompiled.NativeCodeAddress = nativeEntry;
+                    methodCompiled.NativeCodeSize = nativeSizeOfCode;
                 }
                 else if (methodContext?.Mode == MethodContext.ResolveMode.Intercept)
                 {
@@ -394,7 +397,7 @@ namespace Jitex.JIT
                 ResolvedToken resolvedToken = new ResolvedToken(pResolvedToken);
 
                 IntPtr sourceAddress = Marshal.ReadIntPtr(thisHandle, IntPtr.Size * 2);
-                MethodBase? source = RuntimeMethodCache.GetMethodFromHandle(sourceAddress);
+                MethodBase? source = MethodHelper.GetMethodFromHandle(sourceAddress);
                 bool hasSource = source != null;
 
                 TokenContext context = new TokenContext(ref resolvedToken, source, hasSource);
