@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
@@ -11,7 +12,7 @@ namespace Jitex.Utils
     {
         private static readonly ConstructorInfo CtorHandle;
         private static readonly MethodInfo GetMethodBase;
-        private static readonly Type? CanonType;
+        private static readonly Type CanonType;
         private static readonly MethodInfo? GetMethodDescriptorInfo;
         private static readonly ConcurrentDictionary<IntPtr, MethodBase> HandleCache = new ConcurrentDictionary<IntPtr, MethodBase>();
 
@@ -29,11 +30,11 @@ namespace Jitex.Utils
             if (runtimeType == null)
                 throw new TypeLoadException("Type System.RuntimeType was not found!");
 
-            CtorHandle = runtimeMethodHandleInternalType.GetConstructor(BindingFlags.NonPublic | BindingFlags.Instance, null, new[] {typeof(IntPtr)}, null)
+            CtorHandle = runtimeMethodHandleInternalType.GetConstructor(BindingFlags.NonPublic | BindingFlags.Instance, null, new[] { typeof(IntPtr) }, null)
                          ?? throw new MethodAccessException("Constructor from RuntimeMethodHandleInternal was not found!");
 
             GetMethodBase = runtimeType
-                                .GetMethod("GetMethodBase", BindingFlags.NonPublic | BindingFlags.Static, null, CallingConventions.Any, new[] {runtimeType, runtimeMethodHandleInternalType}, null)
+                                .GetMethod("GetMethodBase", BindingFlags.NonPublic | BindingFlags.Static, null, CallingConventions.Any, new[] { runtimeType, runtimeMethodHandleInternalType }, null)
                             ?? throw new MethodAccessException("Method GetMethodBase from RuntimeType was not found!");
 
             GetMethodDescriptorInfo = typeof(DynamicMethod).GetMethod("GetMethodDescriptor", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -41,7 +42,7 @@ namespace Jitex.Utils
 
         private static object? GetRuntimeMethodHandle(IntPtr methodHandle)
         {
-            return CtorHandle!.Invoke(new object?[] {methodHandle});
+            return CtorHandle!.Invoke(new object?[] { methodHandle });
         }
 
         public static MethodInfo GetMethodGeneric(MethodInfo method)
@@ -64,10 +65,22 @@ namespace Jitex.Utils
             return hasCanon ? method.GetGenericMethodDefinition().MakeGenericMethod(genericArguments) : method;
         }
 
+        public static bool HasCannon(MethodBase method)
+        {
+            if (method.DeclaringType.IsGenericType && method.GetGenericArguments().Any(w => w == CanonType))
+                return true;
+
+            if (method is MethodInfo methodInfo)
+                return methodInfo.GetParameters().Select(w => w.ParameterType).Any(w => w == CanonType)
+                    || methodInfo.ReturnType == CanonType;
+
+            return false;
+        }
+
         public static RuntimeMethodHandle GetMethodHandle(MethodBase method)
         {
             if (method is DynamicMethod)
-                return (RuntimeMethodHandle) GetMethodDescriptorInfo.Invoke(method, null);
+                return (RuntimeMethodHandle)GetMethodDescriptorInfo.Invoke(method, null);
 
             return method.MethodHandle;
         }
@@ -78,7 +91,7 @@ namespace Jitex.Utils
                 return method;
 
             object? handle = GetRuntimeMethodHandle(methodHandle);
-            method = GetMethodBase.Invoke(null, new[] {null, handle}) as MethodBase;
+            method = GetMethodBase.Invoke(null, new[] { null, handle }) as MethodBase;
 
             if (method != null)
                 HandleCache.TryAdd(methodHandle, method);

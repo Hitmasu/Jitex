@@ -21,6 +21,8 @@ namespace Jitex.Intercept
         private Parameter? _returnValue;
         private Parameter? _instanceValue;
 
+        private readonly bool _hasCanon;
+
         /// <summary>
         /// Generic method.
         /// </summary>
@@ -130,7 +132,7 @@ namespace Jitex.Intercept
                 if (!Method.IsStatic)
                     rawParameters.Add(_instanceValue!);
 
-                if (Method.IsGenericMethod)
+                if (_hasCanon)
                     rawParameters.Add(_methodHandle!);
 
                 if (Parameters != null && Parameters.Any())
@@ -159,8 +161,9 @@ namespace Jitex.Intercept
                 _instanceValue = new Parameter(instanceAddress, Method.DeclaringType!);
             }
 
-            if (Method.IsGenericMethod)
+            if (MethodHelper.HasCannon(Method))
             {
+                _hasCanon = true;
                 IntPtr handle = (IntPtr) parameters[startIndex++];
                 _methodHandle = new Parameter(handle, typeof(IntPtr), false);
             }

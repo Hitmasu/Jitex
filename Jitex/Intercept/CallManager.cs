@@ -17,9 +17,9 @@ namespace Jitex.Intercept
 
         private readonly CallContext _context;
 
-        public CallManager(IntPtr handle, in object[] parameters, bool isGeneric, bool isStatic)
+        public CallManager(IntPtr handle, in object[] parameters, bool hasCannon, bool isStatic)
         {
-            if (isGeneric)
+            if (hasCannon)
             {
                 if (isStatic)
                     handle = (IntPtr)parameters[0];

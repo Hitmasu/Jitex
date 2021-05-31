@@ -25,6 +25,7 @@ namespace Jitex.Intercept
         private static ulong _methodAccessExceptionAddress;
         private static MethodInfo _firstMethodValidation;
 
+        private static readonly Type CanonType;
         private static readonly MethodInfo InterceptCallAsync;
         private static readonly MethodInfo InterceptAsyncCallAsync;
         private static readonly MethodInfo CompletedTask;
@@ -36,6 +37,7 @@ namespace Jitex.Intercept
 
         static InterceptBuilder()
         {
+            CanonType = Type.GetType("System.__Canon");
             ConstructorObject = typeof(object).GetConstructor(Type.EmptyTypes)!;
             CompletedTask = typeof(Task).GetProperty(nameof(Task.CompletedTask))!.GetGetMethod();
             ConstructorCallManager = typeof(CallManager).GetConstructors().First();
@@ -83,11 +85,7 @@ namespace Jitex.Intercept
         {
             string methodName = $"{_method.Name}Jitex";
             MethodInfo methodInfo = (MethodInfo)_method;
-
             MethodAttributes methodAttributes = MethodAttributes.Public;
-
-            if (methodInfo.IsStatic)
-                methodAttributes |= MethodAttributes.Static;
 
             MethodBuilder builder = _interceptorTypeBuilder.DefineMethod(methodName, methodAttributes,
                 CallingConventions.Standard, methodInfo.ReturnType, _parameters.Select(w => w.Type).ToArray());
@@ -97,8 +95,7 @@ namespace Jitex.Intercept
 
             TypeInfo type = _interceptorTypeBuilder.CreateTypeInfo();
 
-            MethodInfo interceptor = type.GetMethod(methodName)!;
-            return interceptor;
+            return type.GetMethod(methodName)!;
         }
 
 
@@ -159,7 +156,7 @@ namespace Jitex.Intercept
 
             Type returnTypeInterceptor;
 
-            if (returnType.IsPointer || returnType.IsByRef || returnType == typeof(void))
+            if (returnType.IsPointer || returnType.IsByRef || returnType == typeof(void) || returnType == CanonType)
                 returnTypeInterceptor = typeof(IntPtr);
             else if (isAwaitable && returnType.IsGenericType)
                 returnTypeInterceptor = returnType.GetGenericArguments().First();
@@ -175,7 +172,7 @@ namespace Jitex.Intercept
 
             generator.Emit(OpCodes.Ldloca_S, 0);
 
-            if (_method.IsGenericMethod || _method.DeclaringType!.IsGenericType)
+            if (MethodHelper.HasCannon(_method))
                 generator.Emit(OpCodes.Ldc_I4_1);
             else
                 generator.Emit(OpCodes.Ldc_I4_0);
@@ -265,10 +262,12 @@ namespace Jitex.Intercept
             if (!_method.IsStatic)
                 yield return new ParameterType(null, typeof(IntPtr));
 
-            if (_method.IsGenericMethod)
+            IReadOnlyCollection<Type> parameters = _method.GetParameters().Select(w => w.ParameterType).ToList();
+
+            if (_method.IsGenericMethod && MethodHelper.HasCannon((MethodInfo)_method))
                 yield return new ParameterType(typeof(IntPtr).MakeByRefType(), typeof(IntPtr));
 
-            foreach (Type parameterType in _method.GetParameters().Select(w => w.ParameterType))
+            foreach (Type parameterType in parameters)
             {
                 if (parameterType.IsPrimitive)
                     yield return new ParameterType(parameterType, parameterType);
