@@ -52,7 +52,7 @@ class Program {
 
 
 ## Support
-
+- [Intercept call method](#Intercept-Call#)
 - [Modify normal and generic methods](#Replace-Method)
 - [Detour method](#Detour-Method)
 - [Replace MSIL code (IL)](#Replace-MSIL)
@@ -67,8 +67,10 @@ class Program {
 
 ```c#
 public static void Main(){
-	JitexManager.AddMethodResolver (MethodResolver);
+    JitexManager.AddMethodResolver (MethodResolver);
     JitexManager.AddInterceptor (InteceptorCallAsync);
+    int result = SimpleSum (5, 5);
+    Console.WriteLine (result);
 }
 
 private static int SimpleSum(int n1, int n2) => n1+n2;
