@@ -7,6 +7,13 @@ namespace Jitex.Utils.Extension
 {
     internal static class TypeExtension
     {
+        private static readonly Type CanonType;
+        
+        static TypeExtension()
+        {
+            CanonType = Type.GetType("System.__Canon")!;
+        }
+        
         public static bool IsAwaitable(this Type type)
         {
             if (type.IsGenericType)
@@ -45,6 +52,9 @@ namespace Jitex.Utils.Extension
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int SizeOf(this Type type) => TypeHelper.SizeOf(type);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsCanon(this Type type) => type.IsClass || type == CanonType;
 
         public static IntPtr GetValueAddress(this Type type, IntPtr address, bool isDirectAddress = false)
         {

@@ -43,7 +43,7 @@ namespace Jitex.Intercept
             ConstructorCallManager = typeof(CallManager).GetConstructors().First();
             InterceptCallAsync = typeof(CallManager).GetMethods(BindingFlags.Public | BindingFlags.Instance).First(w => w.Name == nameof(CallManager.InterceptCallAsync) && !w.IsGenericMethod);
             InterceptAsyncCallAsync = typeof(CallManager).GetMethods(BindingFlags.Public | BindingFlags.Instance).First(w => w.Name == nameof(CallManager.InterceptCallAsync) && w.IsGenericMethod);
-            ConstructorIntPtrLong = typeof(IntPtr).GetConstructor(new[] { typeof(long) })!;
+            ConstructorIntPtrLong = typeof(IntPtr).GetConstructor(new[] {typeof(long)})!;
             CallDispose = typeof(CallManager).GetMethod(nameof(CallManager.Dispose), BindingFlags.Public | BindingFlags.Instance)!;
             GetReferenceFromTypedReference = typeof(MarshalHelper).GetMethod(nameof(MarshalHelper.GetReferenceFromTypedReference))!;
         }
@@ -84,7 +84,7 @@ namespace Jitex.Intercept
         private MethodInfo CreateMethodInterceptor()
         {
             string methodName = $"{_method.Name}Jitex";
-            MethodInfo methodInfo = (MethodInfo)_method;
+            MethodInfo methodInfo = (MethodInfo) _method;
             MethodAttributes methodAttributes = MethodAttributes.Public;
 
             MethodBuilder builder = _interceptorTypeBuilder.DefineMethod(methodName, methodAttributes,
@@ -140,7 +140,7 @@ namespace Jitex.Intercept
                     generator.Emit(OpCodes.Ldloc_0);
                     generator.Emit(OpCodes.Ldc_I4, argIndex);
 
-                    if (parameterType.OriginalType is { IsByRef: true })
+                    if (parameterType.OriginalType is {IsByRef: true})
                         generator.Emit(OpCodes.Ldarg_S, argIndex);
                     else
                         generator.Emit(OpCodes.Ldarga_S, argIndex);
@@ -221,7 +221,7 @@ namespace Jitex.Intercept
                     }
                     else
                     {
-                        ConstructorInfo ctorValueTask = returnType.GetConstructor(new[] { returnTypeInterceptor })!;
+                        ConstructorInfo ctorValueTask = returnType.GetConstructor(new[] {returnTypeInterceptor})!;
                         generator.Emit(OpCodes.Newobj, ctorValueTask);
                     }
                 }
@@ -264,7 +264,7 @@ namespace Jitex.Intercept
 
             IReadOnlyCollection<Type> parameters = _method.GetParameters().Select(w => w.ParameterType).ToList();
 
-            if (_method.IsGenericMethod && MethodHelper.HasCannon((MethodInfo)_method))
+            if (MethodHelper.HasCannon((MethodInfo) _method))
                 yield return new ParameterType(typeof(IntPtr).MakeByRefType(), typeof(IntPtr));
 
             foreach (Type parameterType in parameters)
@@ -281,7 +281,7 @@ namespace Jitex.Intercept
         /// </summary>
         /// <remarks>
         /// When a method is compiled, a lot of validation is added on native code. As MethodBuilder doesn't have skipVisibility like DynamicMethod, we need
-        /// remove them to gain access on not public class/struct.
+        /// remove those validation to gain access on not public class/struct.
         /// ----
         /// 
         /// Example of remove:
@@ -304,23 +304,19 @@ namespace Jitex.Intercept
         {
             NativeCode native = MethodHelper.GetNativeCode(origin);
 
-            Span<byte> nativeCode;
+            byte[] nativeCode = new byte[native.Size];
+            Marshal.Copy(native.Address, nativeCode, 0, native.Size);
 
-            unsafe
-            {
-                nativeCode = new Span<byte>(native.Address.ToPointer(), native.Size);
-            }
+            ByteArrayCodeReader codeReader = new ByteArrayCodeReader(nativeCode);
 
-            ByteArrayCodeReader codeReader = new ByteArrayCodeReader(nativeCode.ToArray());
+            Decoder decoder = Decoder.Create(64, codeReader, (ulong) native.Address.ToInt64());
+            ulong endIp = decoder.IP + (ulong) native.Size;
 
-            Decoder decoder = Decoder.Create(64, codeReader, (ulong)native.Address.ToInt64());
-            ulong endIp = decoder.IP + (ulong)native.Size;
+            ulong handleOrigin = (ulong) MethodHelper.GetMethodHandle(origin).Value.ToInt64();
+            ulong handleDest = (ulong) MethodHelper.GetMethodHandle(dest).Value.ToInt64();
 
-            ulong handleOrigin = (ulong)MethodHelper.GetMethodHandle(origin).Value.ToInt64();
-            ulong handleDest = (ulong)MethodHelper.GetMethodHandle(dest).Value.ToInt64();
-
-            //mov method handle (10)
-            //mov method handle (10)
+            //mov register methodHandle (have 10 bytes = 1 instruction | 1 register | 8 address)
+            //mov register methodHandle (have 10 bytes = 1 instruction | 1 register | 8 address)
             const int movSize = 20;
 
             //mov + call MethodAccessException
@@ -345,20 +341,20 @@ namespace Jitex.Intercept
                             continue;
 
                         _methodAccessExceptionAddress = callInstruction.Immediate64;
-                        startInstruction = new IntPtr((long)instruction.IP);
+                        startInstruction = new IntPtr((long) instruction.IP);
                         writeAddress = true;
                     }
                 }
                 else if (instruction.Mnemonic == Mnemonic.Call && instruction.Immediate64 == _methodAccessExceptionAddress)
                 {
-                    startInstruction = new IntPtr((long)instruction.IP - movSize);
+                    startInstruction = new IntPtr((long) instruction.IP - movSize);
                     writeAddress = true;
                 }
 
                 if (writeAddress)
                 {
                     byte[] nopInstructions = new byte[2];
-                    nopInstructions[0] = 0xEB;
+                    nopInstructions[0] = 0xEB; //jmp near short
                     nopInstructions[1] = callSize - 2;
 
                     Marshal.Copy(nopInstructions, 0, startInstruction, nopInstructions.Length);

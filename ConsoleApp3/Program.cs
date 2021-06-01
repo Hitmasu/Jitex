@@ -22,18 +22,26 @@ namespace ConsoleApp3
 
             JitexManager.AddInterceptor(async (context) => context.Parameters.SetParameterValue(1, "Flávio"));
 
-            var result = new Program().MethodGeneric<int, int>(10, "Julia");
-
-            Console.WriteLine(result);
+            MyClass<int> teste = new MyClass<int>();
+            var lp = teste.MethodGeneric<int>(20, "asd", new ());
+            Console.WriteLine(lp);
         }
+    }
 
-        T MethodGeneric<T,U>(int n1, string s) where T : new()
+    class MyClass<T> where T : new()
+    {
+        public Abc MethodGeneric<U>(int n1, string s, Abc t)
         {
             Console.WriteLine(n1);
             Console.WriteLine(s);
             Console.WriteLine(typeof(T).Name);
             Console.WriteLine(typeof(U).Name);
-            return new T();
+            return new Abc();
+        }
+
+        internal class Abc
+        {
+                
         }
     }
 }

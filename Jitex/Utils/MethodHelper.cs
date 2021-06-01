@@ -4,7 +4,9 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
+using Jitex.Builder.IL.Resolver;
 using Jitex.Runtime;
+using Jitex.Utils.Extension;
 
 namespace Jitex.Utils
 {
@@ -18,7 +20,7 @@ namespace Jitex.Utils
 
         static MethodHelper()
         {
-            CanonType = Type.GetType("System.__Canon");
+            CanonType = Type.GetType("System.__Canon")!;
 
             Type? runtimeMethodHandleInternalType = Type.GetType("System.RuntimeMethodHandleInternal");
 
@@ -30,11 +32,11 @@ namespace Jitex.Utils
             if (runtimeType == null)
                 throw new TypeLoadException("Type System.RuntimeType was not found!");
 
-            CtorHandle = runtimeMethodHandleInternalType.GetConstructor(BindingFlags.NonPublic | BindingFlags.Instance, null, new[] { typeof(IntPtr) }, null)
+            CtorHandle = runtimeMethodHandleInternalType.GetConstructor(BindingFlags.NonPublic | BindingFlags.Instance, null, new[] {typeof(IntPtr)}, null)
                          ?? throw new MethodAccessException("Constructor from RuntimeMethodHandleInternal was not found!");
 
             GetMethodBase = runtimeType
-                                .GetMethod("GetMethodBase", BindingFlags.NonPublic | BindingFlags.Static, null, CallingConventions.Any, new[] { runtimeType, runtimeMethodHandleInternalType }, null)
+                                .GetMethod("GetMethodBase", BindingFlags.NonPublic | BindingFlags.Static, null, CallingConventions.Any, new[] {runtimeType, runtimeMethodHandleInternalType}, null)
                             ?? throw new MethodAccessException("Method GetMethodBase from RuntimeType was not found!");
 
             GetMethodDescriptorInfo = typeof(DynamicMethod).GetMethod("GetMethodDescriptor", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -42,37 +44,62 @@ namespace Jitex.Utils
 
         private static object? GetRuntimeMethodHandle(IntPtr methodHandle)
         {
-            return CtorHandle!.Invoke(new object?[] { methodHandle });
+            return CtorHandle!.Invoke(new object?[] {methodHandle});
         }
 
-        public static MethodInfo GetMethodGeneric(MethodInfo method)
+        public static MethodInfo GetBaseMethodGeneric(MethodInfo method)
         {
-            Type[] genericArguments = method.GetGenericArguments();
-
             bool hasCanon = false;
+            Type[]? genericTypeArguments = null;
 
-            for (int i = 0; i < genericArguments.Length; i++)
+            if (method.DeclaringType is {IsGenericType: true})
             {
-                Type genericArgument = genericArguments[i];
+                genericTypeArguments = method.DeclaringType.GetGenericArguments();
 
-                if (genericArgument.IsClass)
-                {
-                    genericArguments[i] = CanonType;
+                if (ReadGenericTypes(ref genericTypeArguments))
                     hasCanon = true;
-                }
             }
 
-            return hasCanon ? method.GetGenericMethodDefinition().MakeGenericMethod(genericArguments) : method;
+            Type[]? genericMethodArguments = null;
+
+            if (method.IsGenericMethod)
+            {
+                genericMethodArguments = method.GetGenericArguments();
+                if (ReadGenericTypes(ref genericMethodArguments))
+                    hasCanon = true;
+            }
+
+            if (!hasCanon)
+                return method;
+
+            return (MethodInfo) method.Module.ResolveMethod(method.MetadataToken, genericTypeArguments, genericMethodArguments);
+
+            static bool ReadGenericTypes(ref Type[] types)
+            {
+                bool hasCanon = false;
+
+                for (int i = 0; i < types.Length; i++)
+                {
+                    Type type = types[i];
+
+                    if (type.IsCanon())
+                    {
+                        types[i] = CanonType;
+                        hasCanon = true;
+                    }
+                }
+
+                return hasCanon;
+            }
         }
 
         public static bool HasCannon(MethodBase method)
         {
-            if (method.DeclaringType.IsGenericType && method.GetGenericArguments().Any(w => w == CanonType))
+            if (method.DeclaringType is {IsGenericType: true} && method.DeclaringType.GetGenericArguments().Any(w => w.IsCanon()))
                 return true;
 
-            if (method is MethodInfo methodInfo)
-                return methodInfo.GetParameters().Select(w => w.ParameterType).Any(w => w == CanonType)
-                    || methodInfo.ReturnType == CanonType;
+            if (method is MethodInfo {IsGenericMethod: true} methodInfo)
+                return methodInfo.GetGenericArguments().Any(w => w.IsCanon());
 
             return false;
         }
@@ -80,7 +107,7 @@ namespace Jitex.Utils
         public static RuntimeMethodHandle GetMethodHandle(MethodBase method)
         {
             if (method is DynamicMethod)
-                return (RuntimeMethodHandle)GetMethodDescriptorInfo.Invoke(method, null);
+                return (RuntimeMethodHandle) GetMethodDescriptorInfo.Invoke(method, null);
 
             return method.MethodHandle;
         }
@@ -91,7 +118,7 @@ namespace Jitex.Utils
                 return method;
 
             object? handle = GetRuntimeMethodHandle(methodHandle);
-            method = GetMethodBase.Invoke(null, new[] { null, handle }) as MethodBase;
+            method = GetMethodBase.Invoke(null, new[] {null, handle}) as MethodBase;
 
             if (method != null)
                 HandleCache.TryAdd(methodHandle, method);

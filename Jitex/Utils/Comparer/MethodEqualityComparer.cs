@@ -19,10 +19,10 @@ namespace Jitex.Utils.Comparer
                 return false;
 
             if(x.IsGenericMethod)
-                x = MethodHelper.GetMethodGeneric((MethodInfo)x);
+                x = MethodHelper.GetBaseMethodGeneric((MethodInfo)x);
 
             if(y.IsGenericMethod)
-                y = MethodHelper.GetMethodGeneric((MethodInfo)y);
+                y = MethodHelper.GetBaseMethodGeneric((MethodInfo)y);
 
             return x == y;
         }
