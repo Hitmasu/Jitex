@@ -15,13 +15,23 @@ namespace Jitex.Utils.Comparer
             if (x == null || y == null)
                 return false;
 
-            if (x.IsGenericMethod != y.IsGenericMethod)
+            bool xHasCanon = MethodHelper.HasCannon(x);
+
+            if (x.DeclaringType != null)
+                xHasCanon |= TypeHelper.HasCanon(x.DeclaringType);
+
+            bool yHasCanon = MethodHelper.HasCannon(y);
+
+            if (y.DeclaringType != null)
+                yHasCanon |= TypeHelper.HasCanon(y.DeclaringType);
+
+            if (xHasCanon != yHasCanon)
                 return false;
 
-            if(x.IsGenericMethod)
+            if (xHasCanon)
                 x = MethodHelper.GetBaseMethodGeneric((MethodInfo)x);
 
-            if(y.IsGenericMethod)
+            if (yHasCanon)
                 y = MethodHelper.GetBaseMethodGeneric((MethodInfo)y);
 
             return x == y;

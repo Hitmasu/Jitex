@@ -32,11 +32,11 @@ namespace Jitex.Utils
             if (runtimeType == null)
                 throw new TypeLoadException("Type System.RuntimeType was not found!");
 
-            CtorHandle = runtimeMethodHandleInternalType.GetConstructor(BindingFlags.NonPublic | BindingFlags.Instance, null, new[] {typeof(IntPtr)}, null)
+            CtorHandle = runtimeMethodHandleInternalType.GetConstructor(BindingFlags.NonPublic | BindingFlags.Instance, null, new[] { typeof(IntPtr) }, null)
                          ?? throw new MethodAccessException("Constructor from RuntimeMethodHandleInternal was not found!");
 
             GetMethodBase = runtimeType
-                                .GetMethod("GetMethodBase", BindingFlags.NonPublic | BindingFlags.Static, null, CallingConventions.Any, new[] {runtimeType, runtimeMethodHandleInternalType}, null)
+                                .GetMethod("GetMethodBase", BindingFlags.NonPublic | BindingFlags.Static, null, CallingConventions.Any, new[] { runtimeType, runtimeMethodHandleInternalType }, null)
                             ?? throw new MethodAccessException("Method GetMethodBase from RuntimeType was not found!");
 
             GetMethodDescriptorInfo = typeof(DynamicMethod).GetMethod("GetMethodDescriptor", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -44,7 +44,7 @@ namespace Jitex.Utils
 
         private static object? GetRuntimeMethodHandle(IntPtr methodHandle)
         {
-            return CtorHandle!.Invoke(new object?[] {methodHandle});
+            return CtorHandle!.Invoke(new object?[] { methodHandle });
         }
 
         public static MethodInfo GetBaseMethodGeneric(MethodInfo method)
@@ -52,7 +52,7 @@ namespace Jitex.Utils
             bool hasCanon = false;
             Type[]? genericTypeArguments = null;
 
-            if (method.DeclaringType is {IsGenericType: true})
+            if (method.DeclaringType is { IsGenericType: true })
             {
                 genericTypeArguments = method.DeclaringType.GetGenericArguments();
 
@@ -72,7 +72,7 @@ namespace Jitex.Utils
             if (!hasCanon)
                 return method;
 
-            return (MethodInfo) method.Module.ResolveMethod(method.MetadataToken, genericTypeArguments, genericMethodArguments);
+            return (MethodInfo)method.Module.ResolveMethod(method.MetadataToken, genericTypeArguments, genericMethodArguments);
 
             static bool ReadGenericTypes(ref Type[] types)
             {
@@ -95,10 +95,7 @@ namespace Jitex.Utils
 
         public static bool HasCannon(MethodBase method)
         {
-            if (method.DeclaringType is {IsGenericType: true} && method.DeclaringType.GetGenericArguments().Any(w => w.IsCanon()))
-                return true;
-
-            if (method is MethodInfo {IsGenericMethod: true} methodInfo)
+            if (method is MethodInfo { IsGenericMethod: true } methodInfo)
                 return methodInfo.GetGenericArguments().Any(w => w.IsCanon());
 
             return false;
@@ -107,7 +104,7 @@ namespace Jitex.Utils
         public static RuntimeMethodHandle GetMethodHandle(MethodBase method)
         {
             if (method is DynamicMethod)
-                return (RuntimeMethodHandle) GetMethodDescriptorInfo.Invoke(method, null);
+                return (RuntimeMethodHandle)GetMethodDescriptorInfo.Invoke(method, null);
 
             return method.MethodHandle;
         }
@@ -118,12 +115,24 @@ namespace Jitex.Utils
                 return method;
 
             object? handle = GetRuntimeMethodHandle(methodHandle);
-            method = GetMethodBase.Invoke(null, new[] {null, handle}) as MethodBase;
+            method = GetMethodBase.Invoke(null, new[] { null, handle }) as MethodBase;
 
             if (method != null)
                 HandleCache.TryAdd(methodHandle, method);
 
             return method;
+        }
+
+        public static MethodBase? GetMethodFromHandle(IntPtr methodHandle, IntPtr typeHandle)
+        {
+            MethodBase? method = GetMethodFromHandle(methodHandle);
+            
+            if (method == null)
+                return null;
+
+            Type type = TypeHelper.GetTypeFromHandle(typeHandle);
+
+            return MethodBase.GetMethodFromHandle(method.MethodHandle, type.TypeHandle);
         }
 
         public static NativeCode GetNativeCode(MethodBase method) => RuntimeMethodCache.GetNativeCode(method);

@@ -1,46 +1,39 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Linq;
 using System.Reflection;
 using System.Threading;
 using Jitex.JIT;
 using Jitex.Utils;
-using Jitex.Utils.Comparer;
 
 namespace Jitex.Runtime
 {
     internal static class RuntimeMethodCache
     {
+        private static readonly ConcurrentDictionary<IntPtr, NativeCode> NativeCache = new ConcurrentDictionary<IntPtr, NativeCode>();
         private static readonly ConcurrentBag<MethodCompiled> CompiledMethods = new ConcurrentBag<MethodCompiled>();
 
         internal static void AddMethod(MethodCompiled methodCompiled)
         {
+            NativeCache.TryAdd(methodCompiled.Method.MethodHandle.Value, new NativeCode(methodCompiled.NativeCodeAddress, methodCompiled.NativeCodeSize));
             CompiledMethods.Add(methodCompiled);
         }
 
         public static NativeCode GetNativeCode(MethodBase method)
         {
-            MethodCompiled? methodCompiled = CompiledMethods.FirstOrDefault(w => MethodEqualityComparer.Instance.Equals(w.Method, method));
-
-            if (methodCompiled == null)
+            if (!NativeCache.TryGetValue(method.MethodHandle.Value, out NativeCode nativeCode))
             {
                 if (!JitexManager.IsLoaded)
                     throw new Exception("Jitex is not installed!");
 
                 RuntimeHelperExtension.InternalPrepareMethodAsync(method).Wait();
 
-                while (true)
-                {
-                    methodCompiled = CompiledMethods.FirstOrDefault(w => MethodEqualityComparer.Instance.Equals(w.Method, method));
-
-                    if (methodCompiled != null)
-                        break;
-
+                while (!NativeCache.TryGetValue(method.MethodHandle.Value, out nativeCode))
                     Thread.Sleep(50);
-                }
+
+                return nativeCode;
             }
 
-            return new NativeCode(methodCompiled.NativeCodeAddress, methodCompiled.NativeCodeSize);
+            return nativeCode;
         }
     }
 }

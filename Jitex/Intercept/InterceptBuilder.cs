@@ -22,6 +22,7 @@ namespace Jitex.Intercept
         private readonly MethodBase _method;
         private readonly bool _hasReturn;
         private readonly IReadOnlyCollection<ParameterType> _parameters;
+        private readonly bool _hasCanon;
         private static ulong _methodAccessExceptionAddress;
         private static MethodInfo _firstMethodValidation;
 
@@ -43,7 +44,7 @@ namespace Jitex.Intercept
             ConstructorCallManager = typeof(CallManager).GetConstructors().First();
             InterceptCallAsync = typeof(CallManager).GetMethods(BindingFlags.Public | BindingFlags.Instance).First(w => w.Name == nameof(CallManager.InterceptCallAsync) && !w.IsGenericMethod);
             InterceptAsyncCallAsync = typeof(CallManager).GetMethods(BindingFlags.Public | BindingFlags.Instance).First(w => w.Name == nameof(CallManager.InterceptCallAsync) && w.IsGenericMethod);
-            ConstructorIntPtrLong = typeof(IntPtr).GetConstructor(new[] {typeof(long)})!;
+            ConstructorIntPtrLong = typeof(IntPtr).GetConstructor(new[] { typeof(long) })!;
             CallDispose = typeof(CallManager).GetMethod(nameof(CallManager.Dispose), BindingFlags.Public | BindingFlags.Instance)!;
             GetReferenceFromTypedReference = typeof(MarshalHelper).GetMethod(nameof(MarshalHelper.GetReferenceFromTypedReference))!;
         }
@@ -67,6 +68,7 @@ namespace Jitex.Intercept
             else
                 _hasReturn = false;
 
+            _hasCanon = TypeHelper.HasCanon(_method.DeclaringType) || MethodHelper.HasCannon(_method);
             _parameters = BuildParameterType().ToList();
         }
 
@@ -77,14 +79,14 @@ namespace Jitex.Intercept
         public MethodBase Create()
         {
             MethodInfo interceptor = CreateMethodInterceptor();
-            RemoveAccessValidation(interceptor, _firstMethodValidation);
+            //RemoveAccessValidation(interceptor, _firstMethodValidation);
             return interceptor;
         }
 
         private MethodInfo CreateMethodInterceptor()
         {
             string methodName = $"{_method.Name}Jitex";
-            MethodInfo methodInfo = (MethodInfo) _method;
+            MethodInfo methodInfo = (MethodInfo)_method;
             MethodAttributes methodAttributes = MethodAttributes.Public;
 
             MethodBuilder builder = _interceptorTypeBuilder.DefineMethod(methodName, methodAttributes,
@@ -140,7 +142,7 @@ namespace Jitex.Intercept
                     generator.Emit(OpCodes.Ldloc_0);
                     generator.Emit(OpCodes.Ldc_I4, argIndex);
 
-                    if (parameterType.OriginalType is {IsByRef: true})
+                    if (parameterType.OriginalType is { IsByRef: true })
                         generator.Emit(OpCodes.Ldarg_S, argIndex);
                     else
                         generator.Emit(OpCodes.Ldarga_S, argIndex);
@@ -172,7 +174,12 @@ namespace Jitex.Intercept
 
             generator.Emit(OpCodes.Ldloca_S, 0);
 
-            if (MethodHelper.HasCannon(_method))
+            if (_hasCanon)
+                generator.Emit(OpCodes.Ldc_I4_1);
+            else
+                generator.Emit(OpCodes.Ldc_I4_0);
+
+            if (_method.IsGenericMethod)
                 generator.Emit(OpCodes.Ldc_I4_1);
             else
                 generator.Emit(OpCodes.Ldc_I4_0);
@@ -221,7 +228,7 @@ namespace Jitex.Intercept
                     }
                     else
                     {
-                        ConstructorInfo ctorValueTask = returnType.GetConstructor(new[] {returnTypeInterceptor})!;
+                        ConstructorInfo ctorValueTask = returnType.GetConstructor(new[] { returnTypeInterceptor })!;
                         generator.Emit(OpCodes.Newobj, ctorValueTask);
                     }
                 }
@@ -262,10 +269,10 @@ namespace Jitex.Intercept
             if (!_method.IsStatic)
                 yield return new ParameterType(null, typeof(IntPtr));
 
-            IReadOnlyCollection<Type> parameters = _method.GetParameters().Select(w => w.ParameterType).ToList();
-
-            if (MethodHelper.HasCannon((MethodInfo) _method))
+            if (_hasCanon)
                 yield return new ParameterType(typeof(IntPtr).MakeByRefType(), typeof(IntPtr));
+
+            IReadOnlyCollection<Type> parameters = _method.GetParameters().Select(w => w.ParameterType).ToList();
 
             foreach (Type parameterType in parameters)
             {
@@ -309,11 +316,11 @@ namespace Jitex.Intercept
 
             ByteArrayCodeReader codeReader = new ByteArrayCodeReader(nativeCode);
 
-            Decoder decoder = Decoder.Create(64, codeReader, (ulong) native.Address.ToInt64());
-            ulong endIp = decoder.IP + (ulong) native.Size;
+            Decoder decoder = Decoder.Create(64, codeReader, (ulong)native.Address.ToInt64());
+            ulong endIp = decoder.IP + (ulong)native.Size;
 
-            ulong handleOrigin = (ulong) MethodHelper.GetMethodHandle(origin).Value.ToInt64();
-            ulong handleDest = (ulong) MethodHelper.GetMethodHandle(dest).Value.ToInt64();
+            ulong handleOrigin = (ulong)MethodHelper.GetMethodHandle(origin).Value.ToInt64();
+            ulong handleDest = (ulong)MethodHelper.GetMethodHandle(dest).Value.ToInt64();
 
             //mov register methodHandle (have 10 bytes = 1 instruction | 1 register | 8 address)
             //mov register methodHandle (have 10 bytes = 1 instruction | 1 register | 8 address)
@@ -341,13 +348,13 @@ namespace Jitex.Intercept
                             continue;
 
                         _methodAccessExceptionAddress = callInstruction.Immediate64;
-                        startInstruction = new IntPtr((long) instruction.IP);
+                        startInstruction = new IntPtr((long)instruction.IP);
                         writeAddress = true;
                     }
                 }
                 else if (instruction.Mnemonic == Mnemonic.Call && instruction.Immediate64 == _methodAccessExceptionAddress)
                 {
-                    startInstruction = new IntPtr((long) instruction.IP - movSize);
+                    startInstruction = new IntPtr((long)instruction.IP - movSize);
                     writeAddress = true;
                 }
 

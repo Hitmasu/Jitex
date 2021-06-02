@@ -6,7 +6,6 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Threading.Tasks;
-using Jitex.Runtime;
 
 namespace Jitex.Intercept
 {
@@ -17,19 +16,37 @@ namespace Jitex.Intercept
 
         private readonly CallContext _context;
 
-        public CallManager(IntPtr handle, in object[] parameters, bool hasCannon, bool isStatic)
+        public CallManager(IntPtr handle, in object[] parameters, bool hasCannon, bool isGenericMethod, bool isStatic)
         {
-            if (hasCannon)
-            {
-                if (isStatic)
-                    handle = (IntPtr)parameters[0];
-                else
-                    handle = (IntPtr)parameters[1];
-            }
-
             if (!Cache.TryGetValue(handle, out CallCache cache))
             {
-                MethodBase? method = MethodHelper.GetMethodFromHandle(handle);
+                MethodBase? method;
+
+                if (hasCannon)
+                {
+                    IntPtr tempHandle;
+
+                    if (isStatic)
+                        tempHandle = (IntPtr)parameters[0];
+                    else
+                        tempHandle = (IntPtr)parameters[1];
+
+                    if (isGenericMethod)
+                    {
+                        method = MethodHelper.GetMethodFromHandle(tempHandle);
+                        handle = tempHandle;
+                    }
+                    else
+                    {
+                        method = MethodHelper.GetMethodFromHandle(handle, tempHandle);
+                    }
+                }
+                else
+                {
+                    method = MethodHelper.GetMethodFromHandle(handle);
+                }
+
+
                 if (method == null) throw new MethodNotFound(handle);
 
                 InterceptContext? interceptContext = InterceptManager.GetInterceptContext(method);

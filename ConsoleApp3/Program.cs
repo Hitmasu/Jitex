@@ -1,5 +1,6 @@
 ﻿using Jitex;
 using System;
+using System.Reflection;
 
 namespace ConsoleApp3
 {
@@ -20,23 +21,25 @@ namespace ConsoleApp3
                     context.InterceptCall();
             });
 
-            JitexManager.AddInterceptor(async (context) => context.Parameters.SetParameterValue(1, "Flávio"));
+            // MethodBase.GetMethodFromHandle()
+            JitexManager.AddInterceptor(async (context) => { });
 
-            MyClass<int> teste = new MyClass<int>();
-            var lp = teste.MethodGeneric<int>(20, "asd", new ());
+            var lp = MyClass<Program>.MethodGeneric();
             Console.WriteLine(lp);
+        }
+
+        public static T MethodGeneric<T>()
+        {
+            return default;
         }
     }
 
     class MyClass<T> where T : new()
     {
-        public Abc MethodGeneric<U>(int n1, string s, Abc t)
+        public string Name { get; set; }
+        public static T MethodGeneric()
         {
-            Console.WriteLine(n1);
-            Console.WriteLine(s);
-            Console.WriteLine(typeof(T).Name);
-            Console.WriteLine(typeof(U).Name);
-            return new Abc();
+            return new T();
         }
 
         internal class Abc

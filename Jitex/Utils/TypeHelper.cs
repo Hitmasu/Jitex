@@ -1,5 +1,8 @@
-﻿using System;
+﻿using Jitex.Utils.Extension;
+using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
 using System.Reflection.Emit;
 
 namespace Jitex.Utils
@@ -9,7 +12,13 @@ namespace Jitex.Utils
     /// </summary>
     internal static class TypeHelper
     {
+        private static readonly MethodInfo GetTypeFromHandleUnsafe;
         private static readonly IDictionary<Type, int> CacheSizeOf = new Dictionary<Type, int>();
+
+        static TypeHelper()
+        {
+            GetTypeFromHandleUnsafe = typeof(Type).GetMethod("GetTypeFromHandleUnsafe", BindingFlags.Static | BindingFlags.NonPublic);
+        }
 
         public static int SizeOf(Type type)
         {
@@ -34,6 +43,16 @@ namespace Jitex.Utils
             generator.Emit(OpCodes.Ret);
 
             return (Func<int>)dm.CreateDelegate(typeof(Func<int>));
+        }
+
+        public static bool HasCanon(Type type)
+        {
+            return type is { IsGenericType: true } && type.GetGenericArguments().Any(w => w.IsCanon());
+        }
+
+        public static Type GetTypeFromHandle(IntPtr handle)
+        {
+            return (Type)GetTypeFromHandleUnsafe.Invoke(null, new object[] { handle });
         }
     }
 }
