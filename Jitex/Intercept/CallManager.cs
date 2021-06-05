@@ -58,7 +58,7 @@ namespace Jitex.Intercept
                 Cache.Add(handle, cache);
             }
 
-            _context = new CallContext(cache.Method, cache.Delegate, parameters);
+            _context = new CallContext(cache.Method, cache.Delegate, hasCannon, parameters);
         }
 
         public async Task<IntPtr> InterceptCallAsync()

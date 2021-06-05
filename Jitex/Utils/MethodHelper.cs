@@ -50,29 +50,32 @@ namespace Jitex.Utils
         public static MethodInfo GetBaseMethodGeneric(MethodInfo method)
         {
             bool hasCanon = false;
-            Type[]? genericTypeArguments = null;
+
+            Type originalType = method.DeclaringType;
 
             if (method.DeclaringType is { IsGenericType: true })
             {
-                genericTypeArguments = method.DeclaringType.GetGenericArguments();
+                Type[]? genericTypeArguments = method.DeclaringType.GetGenericArguments();
 
                 if (ReadGenericTypes(ref genericTypeArguments))
                     hasCanon = true;
-            }
 
-            Type[]? genericMethodArguments = null;
+                originalType = originalType.GetGenericTypeDefinition().MakeGenericType(genericTypeArguments);
+            }
 
             if (method.IsGenericMethod)
             {
-                genericMethodArguments = method.GetGenericArguments();
+                Type[]? genericMethodArguments = method.GetGenericArguments();
                 if (ReadGenericTypes(ref genericMethodArguments))
                     hasCanon = true;
+
+                method = method.GetGenericMethodDefinition().MakeGenericMethod(genericMethodArguments);
             }
 
             if (!hasCanon)
                 return method;
 
-            return (MethodInfo)method.Module.ResolveMethod(method.MetadataToken, genericTypeArguments, genericMethodArguments);
+            return (MethodInfo)MethodBase.GetMethodFromHandle(method.MethodHandle, originalType.TypeHandle);
 
             static bool ReadGenericTypes(ref Type[] types)
             {
@@ -126,7 +129,7 @@ namespace Jitex.Utils
         public static MethodBase? GetMethodFromHandle(IntPtr methodHandle, IntPtr typeHandle)
         {
             MethodBase? method = GetMethodFromHandle(methodHandle);
-            
+
             if (method == null)
                 return null;
 

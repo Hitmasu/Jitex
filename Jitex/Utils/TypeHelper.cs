@@ -47,6 +47,9 @@ namespace Jitex.Utils
 
         public static bool HasCanon(Type type)
         {
+            if (type == null)
+                return false;
+
             return type is { IsGenericType: true } && type.GetGenericArguments().Any(w => w.IsCanon());
         }
 

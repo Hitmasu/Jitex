@@ -7,7 +7,6 @@ using System.Reflection.Emit;
 using Jitex.Exceptions;
 using Jitex.Framework;
 using Jitex.Utils.Extension;
-using IntPtr = System.IntPtr;
 
 namespace Jitex.Utils
 {
@@ -31,7 +30,7 @@ namespace Jitex.Utils
             if (!method.IsStatic)
                 parameters.Add(typeof(IntPtr));
 
-            if (MethodHelper.HasCannon(method))
+            if (MethodHelper.HasCannon(method) || TypeHelper.HasCanon(method.DeclaringType))
                 parameters.Add(typeof(IntPtr));
 
             foreach (ParameterInfo parameter in method.GetParameters())
@@ -84,12 +83,12 @@ namespace Jitex.Utils
                 }
                 else
                 {
-                    boxType = typeof(IntPtr);
-                    retType = typeof(object);
+                    //boxType = typeof(IntPtr);
+                    retType = typeof(IntPtr);
                 }
             }
 
-            DynamicMethod dm = new($"{method.Name}Original", retType, parametersArray, method.DeclaringType, true);
+            DynamicMethod dm = new($"{method.Name}Original", retType, parametersArray, method.Module, true);
             ILGenerator generator = dm.GetILGenerator();
 
             for (int i = 0; i < parameters.Count; i++)

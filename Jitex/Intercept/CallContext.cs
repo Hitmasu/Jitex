@@ -24,9 +24,9 @@ namespace Jitex.Intercept
         private readonly bool _hasCanon;
 
         /// <summary>
-        /// Generic method.
+        /// Handle for generic method or generic type.
         /// </summary>
-        private readonly Parameter? _methodHandle;
+        private readonly Parameter? _handle;
 
         /// <summary>
         /// Return case method has instance parameter.
@@ -133,7 +133,7 @@ namespace Jitex.Intercept
                     rawParameters.Add(_instanceValue!);
 
                 if (_hasCanon)
-                    rawParameters.Add(_methodHandle!);
+                    rawParameters.Add(_handle!);
 
                 if (Parameters != null && Parameters.Any())
                     rawParameters.AddRange(Parameters);
@@ -144,7 +144,7 @@ namespace Jitex.Intercept
 
         private object[] ParametersCall => RawParameters.Select(w => w.RealValue).ToArray()!;
 
-        internal CallContext(MethodBase method, Delegate call, in object[] parameters)
+        internal CallContext(MethodBase method, Delegate call, bool hasCanon, in object[] parameters)
         {
             Method = method;
             Call = call;
@@ -161,11 +161,12 @@ namespace Jitex.Intercept
                 _instanceValue = new Parameter(instanceAddress, Method.DeclaringType!);
             }
 
-            if (MethodHelper.HasCannon(Method))
+            if (hasCanon)
             {
                 _hasCanon = true;
-                IntPtr handle = (IntPtr) parameters[startIndex++];
-                _methodHandle = new Parameter(handle, typeof(IntPtr), false);
+
+                IntPtr handle = (IntPtr)parameters[startIndex++];
+                _handle = new Parameter(handle, typeof(IntPtr), false);
             }
 
             Parameter[] parametersInfo = new Parameter[parameters.Length - startIndex];
@@ -382,7 +383,7 @@ namespace Jitex.Intercept
         {
             _returnValue?.Dispose();
             _instanceValue?.Dispose();
-            _methodHandle?.Dispose();
+            _handle?.Dispose();
             Parameters?.Dispose();
         }
     }
