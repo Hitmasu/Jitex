@@ -24,7 +24,9 @@ namespace ConsoleApp3
             // MethodBase.GetMethodFromHandle()
             JitexManager.AddInterceptor(async (context) => { });
 
-            var lp = MyClass<Program>.MethodGeneric();
+            //Console.WriteLine(typeof(MyClass<Program>).TypeHandle.Value.ToString("X"));
+            //var lp = MyClass<Program>.MethodGeneric();
+            var lp = MethodGeneric<Program>();
             Console.WriteLine(lp);
         }
 
@@ -34,12 +36,12 @@ namespace ConsoleApp3
         }
     }
 
-    class MyClass<T> where T : new()
+    class MyClass
     {
         public string Name { get; set; }
-        public static T MethodGeneric()
+        public static T MethodGeneric<T>()
         {
-            return new T();
+            return default;
         }
 
         internal class Abc

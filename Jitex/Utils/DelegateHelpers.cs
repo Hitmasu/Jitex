@@ -83,12 +83,12 @@ namespace Jitex.Utils
                 }
                 else
                 {
-                    //boxType = typeof(IntPtr);
-                    retType = typeof(IntPtr);
+                    boxType = typeof(IntPtr);
+                    retType = typeof(object);
                 }
             }
 
-            DynamicMethod dm = new($"{method.Name}Original", retType, parametersArray, method.Module, true);
+            DynamicMethod dm = new($"{method.Name}Original", retType, parametersArray, method.DeclaringType,true);
             ILGenerator generator = dm.GetILGenerator();
 
             for (int i = 0; i < parameters.Count; i++)
@@ -117,8 +117,8 @@ namespace Jitex.Utils
                 generator.EmitCalli(OpCodes.Calli, CallingConventions.HasThis, retType, parametersArray.Skip(1).ToArray(), null);
             }
 
-            if (boxType != null && retType != typeof(void))
-                generator.Emit(OpCodes.Box, boxType);
+            //if (boxType != null && retType != typeof(void))
+            //    generator.Emit(OpCodes.Box, boxType);
 
             generator.Emit(OpCodes.Ret);
 
