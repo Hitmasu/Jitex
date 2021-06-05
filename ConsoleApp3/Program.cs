@@ -1,6 +1,12 @@
 ﻿using Jitex;
 using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Threading;
 
 namespace ConsoleApp3
 {
@@ -21,32 +27,38 @@ namespace ConsoleApp3
                     context.InterceptCall();
             });
 
-            // MethodBase.GetMethodFromHandle()
-            JitexManager.AddInterceptor(async (context) => { });
+            IEnumerable<Program> abc = new[] { new Program() };
 
-            //Console.WriteLine(typeof(MyClass<Program>).TypeHandle.Value.ToString("X"));
-            //var lp = MyClass<Program>.MethodGeneric();
-            var lp = MethodGeneric<Program>();
-            Console.WriteLine(lp);
-        }
+            JitexManager.AddInterceptor(async (context) =>
+            {
+                Type genericArgument = context.Method.DeclaringType.GetGenericArguments()[0];
 
-        public static T MethodGeneric<T>()
-        {
-            return default;
+                if (genericArgument == typeof(IEnumerable<Program>))
+                    context.ReturnValue = abc;
+                else if (genericArgument == typeof(int))
+                    context.ReturnValue = 40028922;
+            });
+
+            var lista = MyClass<IEnumerable<Program>>.MethodGeneric();
+            Console.WriteLine(lista.Count());
+
+            var numero = MyClass<int>.MethodGeneric();
+            Console.WriteLine(numero);
         }
     }
 
-    class MyClass
+    class MyClass<T>
     {
         public string Name { get; set; }
-        public static T MethodGeneric<T>()
+        public static T MethodGeneric()
         {
+            Console.WriteLine(typeof(T).Name);
             return default;
         }
 
         internal class Abc
         {
-                
+
         }
     }
 }

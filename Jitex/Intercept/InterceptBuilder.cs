@@ -79,7 +79,7 @@ namespace Jitex.Intercept
         public MethodBase Create()
         {
             MethodInfo interceptor = CreateMethodInterceptor();
-            RemoveAccessValidation(interceptor, _firstMethodValidation);
+            //RemoveAccessValidation(interceptor, _firstMethodValidation);
             return interceptor;
         }
 
@@ -169,7 +169,8 @@ namespace Jitex.Intercept
             MethodInfo getResult = typeof(TaskAwaiter<>).MakeGenericType(returnTypeInterceptor).GetMethod(nameof(TaskAwaiter.GetResult), BindingFlags.Public | BindingFlags.Instance)!;
             LocalBuilder awaiterVariable = generator.DeclareLocal(typeof(TaskAwaiter<>).MakeGenericType(returnTypeInterceptor));
 
-            generator.Emit(OpCodes.Ldc_I8, _method.MethodHandle.Value.ToInt64());
+            IntPtr methodHandle = MethodHelper.GetMethodHandle(_method).Value;
+            generator.Emit(OpCodes.Ldc_I8, methodHandle.ToInt64());
             generator.Emit(OpCodes.Newobj, ConstructorIntPtrLong);
 
             generator.Emit(OpCodes.Ldloca_S, 0);

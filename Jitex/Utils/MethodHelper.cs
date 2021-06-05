@@ -4,7 +4,6 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
-using Jitex.Builder.IL.Resolver;
 using Jitex.Runtime;
 using Jitex.Utils.Extension;
 
@@ -104,6 +103,7 @@ namespace Jitex.Utils
             return false;
         }
 
+        
         public static RuntimeMethodHandle GetMethodHandle(MethodBase method)
         {
             if (method is DynamicMethod)
@@ -135,7 +135,8 @@ namespace Jitex.Utils
 
             Type type = TypeHelper.GetTypeFromHandle(typeHandle);
 
-            return MethodBase.GetMethodFromHandle(method.MethodHandle, type.TypeHandle);
+            RuntimeMethodHandle handle = GetMethodHandle(method);
+            return MethodBase.GetMethodFromHandle(handle, type.TypeHandle);
         }
 
         public static NativeCode GetNativeCode(MethodBase method) => RuntimeMethodCache.GetNativeCode(method);
