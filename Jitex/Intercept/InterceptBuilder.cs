@@ -79,7 +79,7 @@ namespace Jitex.Intercept
         public MethodBase Create()
         {
             MethodInfo interceptor = CreateMethodInterceptor();
-            //RemoveAccessValidation(interceptor, _firstMethodValidation);
+            RemoveAccessValidation(interceptor, _firstMethodValidation);
             return interceptor;
         }
 
