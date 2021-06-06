@@ -1,8 +1,4 @@
-# Jitex
-
-![Jitex Build](https://github.com/Hitmasu/Jitex/workflows/Jitex%20Build/badge.svg) [![Nuget](https://img.shields.io/nuget/vpre/Jitex)](https://www.nuget.org/packages/Jitex/)
-
-------
+# ![](logos/jitex.svg) Jitex ![Jitex Build](https://github.com/Hitmasu/Jitex/workflows/Jitex%20Build/badge.svg) [![Nuget](https://img.shields.io/nuget/vpre/Jitex)](https://www.nuget.org/packages/Jitex/)
 
 A library to modify MSIL/Native code at runtime.
 
@@ -362,7 +358,7 @@ Replace methods was an idea to increase performance in .NET Applications. Search
 
 ## Support
 
-[![](/Support/jetbrains.svg)](https://www.jetbrains.com/?from=Jitex)
+[![](/logos/jetbrains.svg)](https://www.jetbrains.com/?from=Jitex)
 
 
 

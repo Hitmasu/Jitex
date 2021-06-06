@@ -55,6 +55,7 @@ jobs:
           dotnet-version: 5.0.x
 
       - run: |
+          cd src
           dotnet clean && dotnet nuget locals all --clear
           dotnet restore
 
@@ -79,7 +80,9 @@ jobs:
         uses: actions/setup-dotnet@v1
         with:
           dotnet-version: 5.0.x
+
       - run: |
+          cd src
           dotnet clean && dotnet nuget locals all --clear
           dotnet restore
 
