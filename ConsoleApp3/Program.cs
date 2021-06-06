@@ -7,6 +7,8 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using System.Threading.Tasks;
+using Jitex.Tests.Intercept;
 
 namespace ConsoleApp3
 {
@@ -19,28 +21,32 @@ namespace ConsoleApp3
             Name = "Asdasdasd";
         }
 
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
             JitexManager.AddMethodResolver((context) =>
             {
-                if (context.Method.Name == "MethodGeneric")
+                if (context.Method.Name == "SimpleCallValueTaskAsync")
                     context.InterceptCall();
             });
 
-            IEnumerable<Program> abc = new[] { new Program() };
-
             JitexManager.AddInterceptor(async (context) =>
             {
-                MethodInfo mi = (MethodInfo)context.Method;
-                object newInstance = Activator.CreateInstance(mi.ReturnType);
-
-                PropertyInfo propertyInfo = mi.ReturnType.GetProperty("Name");
-                propertyInfo.SetValue(newInstance,"Stivi");
-
-                context.ReturnValue = newInstance;
             });
 
-            var lp = MyClass<IEnumerable<Program>>.MethodGeneric();
+            await new Teste().Caller();
+        }
+    }
+
+    public class Teste
+    {
+        public async ValueTask Caller()
+        {
+            await SimpleCallValueTaskAsync();
+        }
+
+        public static async ValueTask SimpleCallValueTaskAsync()
+        {
+            Console.WriteLine("Called");
         }
     }
 

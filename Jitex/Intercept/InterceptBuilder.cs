@@ -57,7 +57,7 @@ namespace Jitex.Intercept
         {
             _method = method;
 
-            AssemblyName assemblyName = new AssemblyName($"{_method.Module.Assembly.GetName().Name}_{_method.Name}_Jitex");
+            AssemblyName assemblyName = new AssemblyName($"{_method.Module.Assembly.GetName().Name}_{_method.Name}Jitex");
             AssemblyBuilder assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run);
             ModuleBuilder moduleBuilder = assemblyBuilder.DefineDynamicModule($"{_method.Module.Name}.{_method.Name}.Jitex");
 
@@ -79,7 +79,7 @@ namespace Jitex.Intercept
         public MethodBase Create()
         {
             MethodInfo interceptor = CreateMethodInterceptor();
-            RemoveAccessValidation(interceptor, _firstMethodValidation);
+            //RemoveAccessValidation(interceptor, _firstMethodValidation);
             return interceptor;
         }
 
@@ -87,7 +87,11 @@ namespace Jitex.Intercept
         {
             string methodName = $"{_method.Name}Jitex";
             MethodInfo methodInfo = (MethodInfo)_method;
+
             MethodAttributes methodAttributes = MethodAttributes.Public;
+
+            if (_method.IsStatic)
+                methodAttributes |= MethodAttributes.Static;
 
             MethodBuilder builder = _interceptorTypeBuilder.DefineMethod(methodName, methodAttributes,
                 CallingConventions.Standard, methodInfo.ReturnType, _parameters.Select(w => w.Type).ToArray());
@@ -158,12 +162,14 @@ namespace Jitex.Intercept
 
             Type returnTypeInterceptor;
 
-            if (returnType.IsPointer || returnType.IsByRef || returnType == typeof(void) || returnType == CanonType || !returnType.IsPrimitive)
+            if (returnType.IsPointer || returnType.IsByRef || returnType == typeof(void) || returnType == CanonType)
                 returnTypeInterceptor = typeof(IntPtr);
             else if (isAwaitable && returnType.IsGenericType)
                 returnTypeInterceptor = returnType.GetGenericArguments().First();
-            else
+            else if (returnType.IsPrimitive || returnType.IsValueType)
                 returnTypeInterceptor = returnType;
+            else
+                returnTypeInterceptor = typeof(IntPtr);
 
             MethodInfo getAwaiter = typeof(Task<>).MakeGenericType(returnTypeInterceptor).GetMethod(nameof(Task.GetAwaiter), BindingFlags.Public | BindingFlags.Instance)!;
             MethodInfo getResult = typeof(TaskAwaiter<>).MakeGenericType(returnTypeInterceptor).GetMethod(nameof(TaskAwaiter.GetResult), BindingFlags.Public | BindingFlags.Instance)!;

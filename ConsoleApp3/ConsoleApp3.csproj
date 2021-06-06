@@ -6,6 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Jitex.Tests\Jitex.Tests.csproj" />
     <ProjectReference Include="..\Jitex\Jitex.csproj" />
   </ItemGroup>
 
