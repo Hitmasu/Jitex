@@ -21,10 +21,12 @@ namespace Jitex.Intercept
         private Parameter? _returnValue;
         private Parameter? _instanceValue;
 
+        private readonly bool _hasCanon;
+
         /// <summary>
-        /// Generic method.
+        /// Handle for generic method or generic type.
         /// </summary>
-        private readonly Parameter? _methodHandle;
+        private readonly Parameter? _handle;
 
         /// <summary>
         /// Return case method has instance parameter.
@@ -127,11 +129,11 @@ namespace Jitex.Intercept
             {
                 List<Parameter> rawParameters = new List<Parameter>();
 
-                if (Method.IsGenericMethod)
-                    rawParameters.Add(_methodHandle!);
-
                 if (!Method.IsStatic)
                     rawParameters.Add(_instanceValue!);
+
+                if (_hasCanon)
+                    rawParameters.Add(_handle!);
 
                 if (Parameters != null && Parameters.Any())
                     rawParameters.AddRange(Parameters);
@@ -142,7 +144,7 @@ namespace Jitex.Intercept
 
         private object[] ParametersCall => RawParameters.Select(w => w.RealValue).ToArray()!;
 
-        internal CallContext(MethodBase method, Delegate call, in object[] parameters)
+        internal CallContext(MethodBase method, Delegate call, bool hasCanon, in object[] parameters)
         {
             Method = method;
             Call = call;
@@ -153,16 +155,18 @@ namespace Jitex.Intercept
 
             int startIndex = 0;
 
-            if (Method.IsGenericMethod)
-            {
-                IntPtr handle = (IntPtr) parameters[startIndex++];
-                _methodHandle = new Parameter(handle, typeof(IntPtr), false);
-            }
-
             if (HasInstance)
             {
-                IntPtr instanceAddress = (IntPtr) parameters[startIndex++];
+                IntPtr instanceAddress = (IntPtr)parameters[startIndex++];
                 _instanceValue = new Parameter(instanceAddress, Method.DeclaringType!);
+            }
+
+            if (hasCanon)
+            {
+                _hasCanon = true;
+
+                IntPtr handle = (IntPtr)parameters[startIndex++];
+                _handle = new Parameter(handle, typeof(IntPtr), false);
             }
 
             Parameter[] parametersInfo = new Parameter[parameters.Length - startIndex];
@@ -174,7 +178,7 @@ namespace Jitex.Intercept
                 object parameter = parameters[i];
                 Type parameterType = parametersMethod[i - startIndex];
 
-                parametersInfo[i - startIndex] = new Parameter((IntPtr) parameter, parameterType);
+                parametersInfo[i - startIndex] = new Parameter((IntPtr)parameter, parameterType);
             }
 
             Parameters = new Parameters(parametersInfo);
@@ -204,7 +208,7 @@ namespace Jitex.Intercept
 
                             unsafe
                             {
-                                valueAddress = *(IntPtr*) reference;
+                                valueAddress = *(IntPtr*)reference;
                                 valueAddress += IntPtr.Size;
                             }
 
@@ -285,7 +289,7 @@ namespace Jitex.Intercept
             {
                 Type valueTaskType = typeof(ValueTask<>).MakeGenericType(_returnType!.GetGenericArguments().First());
                 MethodInfo asTask = valueTaskType!.GetMethod("AsTask", BindingFlags.Public | BindingFlags.Instance)!;
-                task = (Task) asTask.Invoke(returnValue, null);
+                task = (Task)asTask.Invoke(returnValue, null);
             }
 
             await task.ConfigureAwait(false);
@@ -310,7 +314,7 @@ namespace Jitex.Intercept
             if (returnValue == null)
                 return default;
 
-            return (TResult?) returnValue;
+            return (TResult?)returnValue;
         }
 
         /// <summary>
@@ -325,7 +329,7 @@ namespace Jitex.Intercept
             if (returnValue == null)
                 return default;
 
-            return (TResult?) returnValue;
+            return (TResult?)returnValue;
         }
 
 
@@ -344,14 +348,14 @@ namespace Jitex.Intercept
                     return returnValue;
                 }
 
-                IntPtr ptrReturn = (IntPtr) returnValue; //Address of instance/Value is returned.
+                IntPtr ptrReturn = (IntPtr)returnValue; //Address of instance/Value is returned.
                 IntPtr refReturn;
 
                 if (_returnType!.IsAwaitable() || Marshal.ReadIntPtr(ptrReturn) == _returnType!.TypeHandle.Value)
                 {
                     unsafe
                     {
-                        refReturn = (IntPtr) (&ptrReturn); //It's necessary create a reference to address of instance/value.
+                        refReturn = (IntPtr)(&ptrReturn); //It's necessary create a reference to address of instance/value.
                     }
                 }
                 else
@@ -379,7 +383,7 @@ namespace Jitex.Intercept
         {
             _returnValue?.Dispose();
             _instanceValue?.Dispose();
-            _methodHandle?.Dispose();
+            _handle?.Dispose();
             Parameters?.Dispose();
         }
     }

@@ -53,7 +53,7 @@ namespace Jitex.Intercept
             if (value == null)
                 return default;
 
-            return (T?) value;
+            return (T?)value;
         }
 
         /// <summary>
@@ -101,7 +101,7 @@ namespace Jitex.Intercept
 
             unsafe
             {
-                address = *(IntPtr*) &reference;
+                address = *(IntPtr*)&reference;
             }
 
             SetParameterValue(index, address, readValue);
@@ -133,7 +133,7 @@ namespace Jitex.Intercept
 
         public unsafe void OverrideParameterValue(int index, TypedReference reference)
         {
-            IntPtr referenceAddress = *(IntPtr*) &reference;
+            IntPtr referenceAddress = *(IntPtr*)&reference;
             IntPtr address = Marshal.ReadIntPtr(referenceAddress);
 
             Parameter parameter = GetParameter(index);
@@ -276,6 +276,10 @@ namespace Jitex.Intercept
                     _value = Marshal.PtrToStructure(address, ElementType);
                 else
                     _value = MarshalHelper.GetObjectFromAddress(address, ElementType);
+            }
+            else
+            {
+                _value = address;
             }
         }
 

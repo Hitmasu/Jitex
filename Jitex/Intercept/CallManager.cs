@@ -16,14 +16,37 @@ namespace Jitex.Intercept
 
         private readonly CallContext _context;
 
-        public CallManager(IntPtr handle, in object[] parameters, bool isGeneric)
+        public CallManager(IntPtr handle, in object[] parameters, bool hasCannon, bool isGenericMethod, bool isStatic)
         {
-            if (isGeneric)
-                handle = (IntPtr) parameters[0];
-
             if (!Cache.TryGetValue(handle, out CallCache cache))
             {
-                MethodBase? method = MethodHelper.GetMethodFromHandle(handle);
+                MethodBase? method;
+
+                if (hasCannon)
+                {
+                    IntPtr tempHandle;
+
+                    if (isStatic)
+                        tempHandle = (IntPtr)parameters[0];
+                    else
+                        tempHandle = (IntPtr)parameters[1];
+
+                    if (isGenericMethod)
+                    {
+                        method = MethodHelper.GetMethodFromHandle(tempHandle);
+                        handle = tempHandle;
+                    }
+                    else
+                    {
+                        method = MethodHelper.GetMethodFromHandle(handle, tempHandle);
+                    }
+                }
+                else
+                {
+                    method = MethodHelper.GetMethodFromHandle(handle);
+                }
+
+
                 if (method == null) throw new MethodNotFound(handle);
 
                 InterceptContext? interceptContext = InterceptManager.GetInterceptContext(method);
@@ -35,7 +58,7 @@ namespace Jitex.Intercept
                 Cache.Add(handle, cache);
             }
 
-            _context = new CallContext(cache.Method, cache.Delegate, parameters);
+            _context = new CallContext(cache.Method, cache.Delegate, hasCannon, parameters);
         }
 
         public async Task<IntPtr> InterceptCallAsync()
@@ -45,7 +68,7 @@ namespace Jitex.Intercept
 
             if (_context.ProceedCall)
                 await _context.ContinueFlowAsync().ConfigureAwait(false);
-            
+
             return _context.HasReturn ? _context.ReturnAddress : IntPtr.Zero;
         }
 
@@ -58,7 +81,7 @@ namespace Jitex.Intercept
                 await _context.ContinueFlowAsync().ConfigureAwait(false);
 
             if (_context.HasReturn && _context.ReturnValue != null)
-                return (TResult) _context.ReturnValue;
+                return (TResult)_context.ReturnValue;
 
             return default;
         }

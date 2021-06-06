@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using Jitex.Intercept;
+using Jitex.Runtime;
 using Jitex.Utils;
 using MethodBody = Jitex.Builder.Method.MethodBody;
 
@@ -72,7 +74,7 @@ namespace Jitex.JIT.Context
         /// </summary>
         internal byte[]? NativeCode { get; private set; }
 
-        internal EntryContext? EntryContext { get; private set; }
+        internal NativeCode? EntryContext { get; private set; }
 
         internal DetourContext? DetourContext { get; private set; }
 
@@ -186,9 +188,11 @@ namespace Jitex.JIT.Context
         /// </summary>
         /// <param name="address">Address to native code.</param>
         /// <param name="size">Size of native code.</param>
-        public void ResolveEntry(IntPtr address, int size = 0)
+        public void ResolveEntry(IntPtr address, int size = 0) => ResolveEntry(new NativeCode(address, size));
+
+        internal void ResolveEntry(NativeCode nativeCode)
         {
-            EntryContext = new EntryContext(address, size);
+            EntryContext = nativeCode;
             IsResolved = true;
             Mode = ResolveMode.Entry;
         }
@@ -200,6 +204,7 @@ namespace Jitex.JIT.Context
         {
             InterceptBuilder builder = new InterceptBuilder(Method);
             MethodBase interceptMethod = builder.Create();
+
             InterceptContext = new InterceptContext(Method, interceptMethod);
 
             IsResolved = true;

@@ -364,7 +364,7 @@ namespace Jitex.Tests.Intercept
             CallsIntercepted.TryRemove(nameof(TaskNonGeneric), out _);
             MethodsCalled.TryRemove(nameof(TaskNonGeneric), out _);
         }
-
+        
         #if !NETCOREAPP2
         [Fact]
         public async Task ValueTaskNonGeneric()
@@ -525,11 +525,11 @@ namespace Jitex.Tests.Intercept
             await Task.Delay(10);
             AddMethodCall(nameof(SimpleCallTaskAsync), caller: nameof(TaskNonGeneric));
         }
-
+        
 #if !NETCOREAPP2
         [InterceptCall]
         [MethodImpl(MethodImplOptions.NoInlining)]
-        private static async ValueTask SimpleCallValueTaskAsync()
+        public static async ValueTask SimpleCallValueTaskAsync()
         {
             await Task.Delay(10);
             AddMethodCall(nameof(SimpleCallValueTaskAsync), caller: nameof(ValueTaskNonGeneric));

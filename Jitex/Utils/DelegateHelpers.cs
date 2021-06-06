@@ -4,11 +4,9 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Reflection.Emit;
-using System.Threading.Tasks;
 using Jitex.Exceptions;
 using Jitex.Framework;
 using Jitex.Utils.Extension;
-using IntPtr = System.IntPtr;
 
 namespace Jitex.Utils
 {
@@ -25,14 +23,14 @@ namespace Jitex.Utils
             CanBuildStaticValueTask = framework.FrameworkVersion >= new Version(3, 0, 0);
         }
 
-        private static IList<Type> CreateParameters(MethodBase method)
+        public static IList<Type> CreateParameters(MethodBase method)
         {
             IList<Type> parameters = new List<Type>();
 
             if (!method.IsStatic)
                 parameters.Add(typeof(IntPtr));
 
-            if (method.IsGenericMethod)
+            if (MethodHelper.HasCannon(method) || TypeHelper.HasCanon(method.DeclaringType))
                 parameters.Add(typeof(IntPtr));
 
             foreach (ParameterInfo parameter in method.GetParameters())
@@ -70,9 +68,8 @@ namespace Jitex.Utils
                 //TODO: Find a way to intercept.
                 if (!CanBuildStaticValueTask && method.IsStatic && returnType.IsValueTask())
                     throw new InvalidMethodException("Method with signature Static and ValueTask can be only created on .NET Core 3.0 or above.");
-                
-                if (returnType.IsValueTask() && !methodInfo.IsStatic
-                                             && parametersArray.Length > 1 && parametersArray[2].CanBeInline() || returnType.IsPrimitive)
+
+                if (returnType.IsValueTask() && !methodInfo.IsStatic || returnType.IsPrimitive)
                 {
                     retType = returnType;
                 }

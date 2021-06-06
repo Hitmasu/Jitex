@@ -13,10 +13,10 @@
 	    <PackageLicenseFile></PackageLicenseFile>
 	    <PackageLicenseExpression>MIT</PackageLicenseExpression>
 	    <PackageTags>JIT</PackageTags>
-	    <Version>1.0.1-alpha</Version>
-	    <Platforms>AnyCPU;x64</Platforms>
-	    <PackageVersion>1.0.2-alpha</PackageVersion>
+	    <Platforms>x64</Platforms>
+	    <PackageVersion>1.0.3</PackageVersion>
 	    <LangVersion>default</LangVersion>
+	    <Version>1.0.3</Version>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">

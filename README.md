@@ -52,7 +52,7 @@ class Program {
 
 
 ## Support
-
+- [Intercept call method](#Intercept-Call)
 - [Modify normal and generic methods](#Replace-Method)
 - [Detour method](#Detour-Method)
 - [Replace MSIL code (IL)](#Replace-MSIL)
@@ -67,8 +67,10 @@ class Program {
 
 ```c#
 public static void Main(){
-	JitexManager.AddMethodResolver (MethodResolver);
+    JitexManager.AddMethodResolver (MethodResolver);
     JitexManager.AddInterceptor (InteceptorCallAsync);
+    int result = SimpleSum (5, 5);
+    Console.WriteLine (result); //Output is 10
 }
 
 private static int SimpleSum(int n1, int n2) => n1+n2;
@@ -79,17 +81,9 @@ private static async ValueTask InteceptorCallAsync(CallContext context)
     int n1 = context.Parameters.GetParameterValue<int>(0);
     int n2 = context.Parameters.GetParameterValue<int>(1);
     
-    //Set new parameters value to call
-    context.Parameters.SetParameterValue(0,999);
-    context.Parameters.SetParameterValue(1,1)
-    //Set return value;
-    context.ReturnValue = 50;
-    
-    //Prevent method original to be called
-    context.ProceedCall = false;
-    
-    //Continue original call
-    int result = await context.ContinueAsync<int>();
+    //Set new parameters values
+    context.Parameters.SetParameterValue(0,10);
+    context.Parameters.SetParameterValue(1,10);
 }
 
 private static void MethodResolver(MethodContext context)
