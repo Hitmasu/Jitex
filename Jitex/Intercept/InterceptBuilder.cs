@@ -79,7 +79,7 @@ namespace Jitex.Intercept
         public MethodBase Create()
         {
             MethodInfo interceptor = CreateMethodInterceptor();
-            //RemoveAccessValidation(interceptor, _firstMethodValidation);
+            RemoveAccessValidation(interceptor, _firstMethodValidation);
             return interceptor;
         }
 
@@ -158,7 +158,7 @@ namespace Jitex.Intercept
 
             Type returnTypeInterceptor;
 
-            if (returnType.IsPointer || returnType.IsByRef || returnType == typeof(void) || returnType == CanonType)
+            if (returnType.IsPointer || returnType.IsByRef || returnType == typeof(void) || returnType == CanonType || !returnType.IsPrimitive)
                 returnTypeInterceptor = typeof(IntPtr);
             else if (isAwaitable && returnType.IsGenericType)
                 returnTypeInterceptor = returnType.GetGenericArguments().First();

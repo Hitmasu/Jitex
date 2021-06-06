@@ -31,34 +31,30 @@ namespace ConsoleApp3
 
             JitexManager.AddInterceptor(async (context) =>
             {
-                Type genericArgument = context.Method.DeclaringType.GetGenericArguments()[0];
+                MethodInfo mi = (MethodInfo)context.Method;
+                object newInstance = Activator.CreateInstance(mi.ReturnType);
 
-                if (genericArgument == typeof(IEnumerable<Program>))
-                    context.ReturnValue = abc;
-                else if (genericArgument == typeof(int))
-                    context.ReturnValue = 40028922;
+                PropertyInfo propertyInfo = mi.ReturnType.GetProperty("Name");
+                propertyInfo.SetValue(newInstance,"Stivi");
+
+                context.ReturnValue = newInstance;
             });
 
-            var lista = MyClass<IEnumerable<Program>>.MethodGeneric();
-            Console.WriteLine(lista.Count());
-
-            var numero = MyClass<int>.MethodGeneric();
-            Console.WriteLine(numero);
+            var lp = MyClass<IEnumerable<Program>>.MethodGeneric();
         }
     }
 
     class MyClass<T>
     {
         public string Name { get; set; }
-        public static T MethodGeneric()
+        public static Abc MethodGeneric()
         {
-            Console.WriteLine(typeof(T).Name);
-            return default;
+            return new() { Name = "Flavio" };
         }
 
         internal class Abc
         {
-
+            public string Name { get; set; }
         }
     }
 }
