@@ -1,4 +1,4 @@
-# <img src="logos/jitex.svg" width="60" style="margin-bottom: 18px"> Jitex ![Jitex Build](https://github.com/Hitmasu/Jitex/workflows/Jitex%20Build/badge.svg) [![Nuget](https://img.shields.io/nuget/vpre/Jitex)](https://www.nuget.org/packages/Jitex/)
+# ![](logos/jitex.svg | width=50) Jitex ![Jitex Build](https://github.com/Hitmasu/Jitex/workflows/Jitex%20Build/badge.svg) [![Nuget](https://img.shields.io/nuget/vpre/Jitex)](https://www.nuget.org/packages/Jitex/)
 
 A library to modify MSIL/Native code at runtime.
 
