@@ -2,6 +2,8 @@
 
 A library to modify MSIL/Native code at runtime.
 
+
+
 It's a library built in .NET Standard 2.0, works on all version >=.NET Core 2.0.
 
 
@@ -360,6 +362,12 @@ Replace methods was an idea to increase performance in .NET Applications. Search
 ## Support
 
 [![](/logos/jetbrains.svg)](https://www.jetbrains.com/?from=Jitex)
+
+
+
+## Logo
+
+<div>Icons made by <a href="https://www.flaticon.com/authors/iconixar" title="iconixar">iconixar</a> from <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a></div>
 
 
 
