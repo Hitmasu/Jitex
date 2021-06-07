@@ -1,12 +1,11 @@
-# Jitex
-
-![Jitex Build](https://github.com/Hitmasu/Jitex/workflows/Jitex%20Build/badge.svg) [![Nuget](https://img.shields.io/nuget/vpre/Jitex)](https://www.nuget.org/packages/Jitex/)
-
-------
+# <img src="logos/jitex.svg" width="100" align="left"/> Jitex ![Jitex Build](https://github.com/Hitmasu/Jitex/workflows/Jitex%20Build/badge.svg) [![Nuget](https://img.shields.io/nuget/vpre/Jitex)](https://www.nuget.org/packages/Jitex/)
 
 A library to modify MSIL/Native code at runtime.
 
-It's a library built in .NET Standard 2.0, works on all version >=.NET Core 2.0. 
+
+
+It's a library built in .NET Standard 2.0, works on all version >=.NET Core 2.0.
+
 
 |             | .NET Core (2.0 ~ 3.1) | .NET 5             | .NET Framework (4.6.1 ~ 4.8)           | Mono              |
 | ----------- | --------------------- | ------------------ | -------------------------------------- | ----------------- |
@@ -52,7 +51,7 @@ class Program {
 
 
 ## Support
-- [Intercept call method](#Intercept-Call#)
+- [Intercept call method](#Intercept-Call)
 - [Modify normal and generic methods](#Replace-Method)
 - [Detour method](#Detour-Method)
 - [Replace MSIL code (IL)](#Replace-MSIL)
@@ -70,7 +69,7 @@ public static void Main(){
     JitexManager.AddMethodResolver (MethodResolver);
     JitexManager.AddInterceptor (InteceptorCallAsync);
     int result = SimpleSum (5, 5);
-    Console.WriteLine (result);
+    Console.WriteLine (result); //Output is 10
 }
 
 private static int SimpleSum(int n1, int n2) => n1+n2;
@@ -81,17 +80,9 @@ private static async ValueTask InteceptorCallAsync(CallContext context)
     int n1 = context.Parameters.GetParameterValue<int>(0);
     int n2 = context.Parameters.GetParameterValue<int>(1);
     
-    //Set new parameters value to call
-    context.Parameters.SetParameterValue(0,999);
-    context.Parameters.SetParameterValue(1,1)
-    //Set return value;
-    context.ReturnValue = 50;
-    
-    //Prevent method original to be called
-    context.ProceedCall = false;
-    
-    //Continue original call
-    int result = await context.ContinueAsync<int>();
+    //Set new parameters values
+    context.Parameters.SetParameterValue(0,10);
+    context.Parameters.SetParameterValue(1,10);
 }
 
 private static void MethodResolver(MethodContext context)
@@ -370,7 +361,13 @@ Replace methods was an idea to increase performance in .NET Applications. Search
 
 ## Support
 
-[![](/Support/jetbrains.svg)](https://www.jetbrains.com/?from=Jitex)
+[![](/logos/jetbrains.svg)](https://www.jetbrains.com/?from=Jitex)
+
+
+
+## Logo
+
+<div>Icon made by <a href="https://www.flaticon.com/authors/iconixar" title="iconixar">iconixar</a> from <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a></div>
 
 
 

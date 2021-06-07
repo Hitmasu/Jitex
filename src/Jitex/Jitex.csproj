@@ -1,0 +1,61 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>netstandard2.0</TargetFramework>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<Nullable>enable</Nullable>
+		<Platforms>AnyCPU;x64</Platforms>
+		<Authors>Hitmasu</Authors>
+		<Company />
+		<Description>A library to modify MSIL and native code at runtime.</Description>
+		<PackageProjectUrl>https://github.com/Hitmasu/Jitex</PackageProjectUrl>
+		<RepositoryUrl>https://github.com/Hitmasu/Jitex</RepositoryUrl>
+		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+		<PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+		<PackageLicenseFile></PackageLicenseFile>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<PackageTags>JIT</PackageTags>
+		<LangVersion>9</LangVersion>
+		<AssemblyName>Jitex</AssemblyName>
+		<PackageVersion>6.0.1</PackageVersion>
+		<PackageIcon>nuget.png</PackageIcon>
+		<Version>6.0.1</Version>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<PlatformTarget>x64</PlatformTarget>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+	  <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+	  <PlatformTarget>x64</PlatformTarget>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<PlatformTarget>x64</PlatformTarget>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+	  <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+	  <PlatformTarget>x64</PlatformTarget>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Iced" Version="1.11.3" />
+		<PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
+		<PackageReference Include="System.Memory" Version="4.5.4" />
+		<PackageReference Include="Mono.Posix.NETStandard" Version="1.0.0" />
+		<PackageReference Include="System.Threading.Tasks.Extensions" Version="4.5.4" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Include="..\..\logos\nuget.png" Pack="true" PackagePath=""/>
+	</ItemGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\Jitex.Builder\Jitex.Builder.csproj" />
+	</ItemGroup>
+
+</Project>
