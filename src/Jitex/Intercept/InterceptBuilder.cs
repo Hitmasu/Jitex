@@ -359,7 +359,7 @@ namespace Jitex.Intercept
                         writeAddress = true;
                     }
                 }
-                else if (instruction.Mnemonic == Mnemonic.Call && instruction.Immediate64 == _methodAccessExceptionAddress)
+                else if (instruction.Mnemonic == Mnemonic.Call && instruction.Immediate64 == _methodAccessExceptionAddress && instruction.Immediate64 != 0)
                 {
                     startInstruction = new IntPtr((long)instruction.IP - movSize);
                     writeAddress = true;
