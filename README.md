@@ -1,8 +1,11 @@
-# ![](logos/jitex.svg) Jitex ![Jitex Build](https://github.com/Hitmasu/Jitex/workflows/Jitex%20Build/badge.svg) [![Nuget](https://img.shields.io/nuget/vpre/Jitex)](https://www.nuget.org/packages/Jitex/)
+# <img src="logos/jitex.svg" width="100" align="left"/> Jitex ![Jitex Build](https://github.com/Hitmasu/Jitex/workflows/Jitex%20Build/badge.svg) [![Nuget](https://img.shields.io/nuget/vpre/Jitex)](https://www.nuget.org/packages/Jitex/)
 
 A library to modify MSIL/Native code at runtime.
 
-It's a library built in .NET Standard 2.0, works on all version >=.NET Core 2.0. 
+
+
+It's a library built in .NET Standard 2.0, works on all version >=.NET Core 2.0.
+
 
 |             | .NET Core (2.0 ~ 3.1) | .NET 5             | .NET Framework (4.6.1 ~ 4.8)           | Mono              |
 | ----------- | --------------------- | ------------------ | -------------------------------------- | ----------------- |
@@ -359,6 +362,12 @@ Replace methods was an idea to increase performance in .NET Applications. Search
 ## Support
 
 [![](/logos/jetbrains.svg)](https://www.jetbrains.com/?from=Jitex)
+
+
+
+## Logo
+
+<div>Icons made by <a href="https://www.flaticon.com/authors/iconixar" title="iconixar">iconixar</a> from <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a></div>
 
 
 

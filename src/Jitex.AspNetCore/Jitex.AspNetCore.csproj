@@ -15,6 +15,7 @@
 	    <PackageTags>JIT</PackageTags>
 	    <Platforms>x64</Platforms>
 	    <PackageVersion>1.0.3</PackageVersion>
+	    <PackageIcon>nuget.png</PackageIcon>
 	    <LangVersion>default</LangVersion>
 	    <Version>1.0.3</Version>
     </PropertyGroup>
@@ -45,4 +46,7 @@
       <ProjectReference Include="..\Jitex\Jitex.csproj" />
     </ItemGroup>
 
+	<ItemGroup>
+		<None Include="..\..\logos\nuget.png" Pack="true" PackagePath=""/>
+	</ItemGroup>
 </Project>
