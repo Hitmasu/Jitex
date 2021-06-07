@@ -3,9 +3,13 @@ name: Jitex Build
 on:
   push:
     branches: [master]
+    paths:
+      - "src"
   pull_request:
     branches: [master]
     types: [assigned, opened, synchronize, reopened]
+    paths:
+      - "src"
   release:
     types:
       - published
@@ -16,6 +20,10 @@ env:
   NUGET_FEED: https://api.nuget.org/v3/index.json
   NUGET_KEY: ${{ secrets.NUGET_KEY }}
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+defaults:
+  run:
+    working-directory: src
 
 jobs:
   build:
@@ -55,7 +63,6 @@ jobs:
           dotnet-version: 5.0.x
 
       - run: |
-          cd src
           dotnet clean && dotnet nuget locals all --clear
           dotnet restore
 
