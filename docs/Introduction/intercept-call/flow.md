@@ -1,0 +1,1 @@
+Ao interceptar um método, você pode desejar definir se você quer continuar o fluxo original da chamada ou se você quer dar um fim à ele. 

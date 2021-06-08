@@ -93,3 +93,45 @@ Desta forma, a variável de origem também apontará para a referência passada 
 
 Quando uma chamada é interceptada no Jitex, é feito um trabalho para tornar os parâmetros mais "abstratos" e fáceis de serem utilizados. Porém, sabemos que muitas vezes há a necessidade de ver como o parâmetro foi passado originalmente. É possível obter os parâmetros passado em uma chamada em sua pura forma, utilizando a propriedade `RawParameters` do contexto:
 
+```csharp
+class Person
+{
+    public int Age { get; set; }
+
+    public int SumAge<T>(int num)
+    {
+        Console.WriteLine(typeof(T).Name);
+        return Age + num;
+    }
+}
+```
+
+```csharp
+JitexManager.AddMethodResolver(context =>
+{
+    if (context.Method.Name == "SumAge")
+        context.InterceptCall();
+});
+
+JitexManager.AddInterceptor(async context =>
+{
+    IEnumerable<Parameter> parameters =  context.RawParameters;
+});
+
+Person person = new Person {Age = 10};
+person.SumAge<Program>(20);
+```
+
+
+> Ignore a funcionalidade do código, é apenas demonstrativo
+
+No exemplo acima, temos o método SumAge, que é de instância, genérico e recebe um parâmetro de inteiro. Chamando o RawParameters, você terá de retorno uma lista com 3 itens:
+
+
+```
+[0] = (IntPtr) Valor da instância
+[1] = (IntPtr) Handle do método
+[2] = (int) Parâmetro num do método
+```
+
+Esses três valores são os que são passados para o método em tempo de execução.
