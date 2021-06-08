@@ -17,6 +17,10 @@ env:
   NUGET_KEY: ${{ secrets.NUGET_KEY }}
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+defaults:
+  run:
+    working-directory: src
+
 jobs:
   build:
     runs-on: ${{matrix.os}}
@@ -79,6 +83,7 @@ jobs:
         uses: actions/setup-dotnet@v1
         with:
           dotnet-version: 5.0.x
+
       - run: |
           dotnet clean && dotnet nuget locals all --clear
           dotnet restore
