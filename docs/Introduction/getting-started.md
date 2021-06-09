@@ -10,7 +10,7 @@ Package Manager:
 
 `Install-Package Jitex`
 
-> Aplicações feita em .NET Framework também devem instalar o pacote .NETStandard.Library e o Mono.Posix.NETFramework.
+> Aplicações em .NET Framework também devem instalar o pacote .NETStandard.Library e o Mono.Posix.NETFramework.
 
 # Iniciando
 
