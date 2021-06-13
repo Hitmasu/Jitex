@@ -1,12 +1,14 @@
 ﻿using System;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using Jitex.Runtime;
 using Jitex.Utils;
 
 namespace Jitex.JIT.Context
 {
-    internal class DetourContext
+    /// <summary>
+    /// Context of a detoured method.
+    /// </summary>
+    public class DetourContext
     {
         /// <summary>
         /// Original Native Code
@@ -18,8 +20,10 @@ namespace Jitex.JIT.Context
         /// </summary>
         private readonly byte[] _trampolineCode;
 
-
-        private bool _isDetoured;
+        /// <summary>
+        /// If context is already detoured.
+        /// </summary>
+        public bool IsEnabled {get; set; }
 
         /// <summary>
         /// Address of Native Code
@@ -36,8 +40,15 @@ namespace Jitex.JIT.Context
 
         }
 
-        internal void WriteDetour()
+        /// <summary>
+        /// Enable detour on method
+        /// </summary>
+        /// <returns>True if was success otherwise false if already enabled.</returns>
+        public bool Enable()
         {
+            if (IsEnabled)
+                return false;
+
             if (_originalNativeCode == null)
             {
                 _originalNativeCode = new byte[Trampoline.Size];
@@ -48,16 +59,22 @@ namespace Jitex.JIT.Context
 
             //Write trampoline
             Marshal.Copy(_trampolineCode!, 0, MethodAddress, _trampolineCode!.Length);
-            _isDetoured = true;
+            IsEnabled = true;
+            return true;
         }
 
-        internal void RemoveDetour()
+        /// <summary>
+        /// Disable detour on method
+        /// </summary>
+        /// <returns>True if was success otherwise false if not enabled.</returns>
+        public bool Disable()
         {
-            if (!_isDetoured)
-                throw new InvalidOperationException("Method was not detoured!");
+            if(!IsEnabled)
+                return false;
 
             Marshal.Copy(_originalNativeCode!, 0, MethodAddress, _originalNativeCode!.Length);
-            _isDetoured = false;
+            IsEnabled = false;
+            return true;
         }
     }
 }

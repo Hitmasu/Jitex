@@ -312,19 +312,19 @@ namespace Jitex.JIT
                 {
                     DetourContext detourContext = methodContext.DetourContext;
                     detourContext.MethodAddress = nativeEntry;
-                    detourContext.WriteDetour();
+                    detourContext.Enable();
                 }
-                else if (methodContext?.Mode == MethodContext.ResolveMode.Entry)
-                {
-                    NativeCode entryContext = methodContext.EntryContext!;
-                    nativeEntry = entryContext.Address;
+                //else if (methodContext?.Mode == MethodContext.ResolveMode.Entry)
+                //{
+                //    NativeCode entryContext = methodContext.EntryContext!;
+                //    nativeEntry = entryContext.Address;
 
-                    if (entryContext.Size > 0)
-                        nativeSizeOfCode = entryContext.Size;
+                //    if (entryContext.Size > 0)
+                //        nativeSizeOfCode = entryContext.Size;
 
-                    methodCompiled.NativeCodeAddress = nativeEntry;
-                    methodCompiled.NativeCodeSize = nativeSizeOfCode;
-                }
+                //    methodCompiled.NativeCodeAddress = nativeEntry;
+                //    methodCompiled.NativeCodeSize = nativeSizeOfCode;
+                //}
                 else if (methodContext?.Mode == MethodContext.ResolveMode.Intercept)
                 {
                     //To make intercept possible, we need compile method 2 times:

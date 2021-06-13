@@ -4,12 +4,13 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 using Jitex.Runtime;
 using Jitex.Utils.Extension;
 
 namespace Jitex.Utils
 {
-    internal static class MethodHelper
+    public static class MethodHelper
     {
         private static readonly ConstructorInfo CtorHandle;
         private static readonly MethodInfo GetMethodBase;
@@ -46,7 +47,7 @@ namespace Jitex.Utils
             return CtorHandle!.Invoke(new object?[] { methodHandle });
         }
 
-        public static MethodInfo GetBaseMethodGeneric(MethodInfo method)
+        internal static MethodInfo GetBaseMethodGeneric(MethodInfo method)
         {
             bool hasCanon = false;
 
@@ -95,15 +96,19 @@ namespace Jitex.Utils
             }
         }
 
-        public static bool HasCannon(MethodBase method)
+        internal static bool HasCannon(MethodBase method)
         {
             if (method is MethodInfo { IsGenericMethod: true } methodInfo)
                 return methodInfo.GetGenericArguments().Any(w => w.IsCanon());
 
             return false;
         }
-
         
+        /// <summary>
+        /// Get handle from a method.
+        /// </summary>
+        /// <param name="method">Method to get handle.</param>
+        /// <returns>Handle from method.</returns>
         public static RuntimeMethodHandle GetMethodHandle(MethodBase method)
         {
             if (method is DynamicMethod)
@@ -112,6 +117,11 @@ namespace Jitex.Utils
             return method.MethodHandle;
         }
 
+        /// <summary>
+        /// Get method from a handle.
+        /// </summary>
+        /// <param name="methodHandle">Handle of method.</param>
+        /// <returns>Method from handle.</returns>
         public static MethodBase? GetMethodFromHandle(IntPtr methodHandle)
         {
             if (HandleCache.TryGetValue(methodHandle, out MethodBase? method))
@@ -126,6 +136,12 @@ namespace Jitex.Utils
             return method;
         }
 
+        /// <summary>
+        /// Get method from handle and type.
+        /// </summary>
+        /// <param name="methodHandle">Handle of method.</param>
+        /// <param name="typeHandle">Handle of type.</param>
+        /// <returns>Method from handle and type.</returns>
         public static MethodBase? GetMethodFromHandle(IntPtr methodHandle, IntPtr typeHandle)
         {
             MethodBase? method = GetMethodFromHandle(methodHandle);
@@ -139,9 +155,16 @@ namespace Jitex.Utils
             return MethodBase.GetMethodFromHandle(handle, type.TypeHandle);
         }
 
-        public static NativeCode GetNativeCode(MethodBase method) => RuntimeMethodCache.GetNativeCode(method);
+        internal static NativeCode GetNativeCode(MethodBase method) => RuntimeMethodCache.GetNativeCodeAsync(method).GetAwaiter().GetResult();
+        
+        /// <summary>
+        /// Get native code info from a method.
+        /// </summary>
+        /// <param name="method"></param>
+        /// <returns>Native code info from method.</returns>
+        public static Task<NativeCode> GetNativeCodeAsync(MethodBase method) => RuntimeMethodCache.GetNativeCodeAsync(method);
 
-        public static void PrepareMethod(MethodBase method)
+        internal static void PrepareMethod(MethodBase method)
         {
             RuntimeMethodHandle handle = GetMethodHandle(method);
             RuntimeHelpers.PrepareMethod(handle);
