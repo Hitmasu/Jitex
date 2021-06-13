@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
+using System.Threading.Tasks;
 using Jitex.JIT;
 using Jitex.Utils;
 using Jitex.Utils.Comparer;
@@ -17,12 +17,10 @@ namespace Jitex.Runtime
 
         internal static void AddMethod(MethodCompiled methodCompiled)
         {
-            IntPtr methodHandle = MethodHelper.GetMethodHandle(methodCompiled.Method).Value;
-            NativeCache.TryAdd(methodHandle, new NativeCode(methodCompiled.NativeCodeAddress, methodCompiled.NativeCodeSize));
             CompiledMethods.Add(methodCompiled);
         }
 
-        public static NativeCode GetNativeCode(MethodBase method)
+        public static async Task<NativeCode> GetNativeCodeAsync(MethodBase method)
         {
             IntPtr methodHandle = MethodHelper.GetMethodHandle(method).Value;
 
@@ -31,7 +29,7 @@ namespace Jitex.Runtime
                 if (!JitexManager.IsLoaded)
                     throw new Exception("Jitex is not installed!");
 
-                RuntimeHelperExtension.InternalPrepareMethodAsync(method).Wait();
+                await RuntimeHelperExtension.InternalPrepareMethodAsync(method);
 
                 while (!NativeCache.TryGetValue(methodHandle, out nativeCode))
                 {
