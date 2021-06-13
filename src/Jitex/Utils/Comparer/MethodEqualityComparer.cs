@@ -14,7 +14,7 @@ namespace Jitex.Utils.Comparer
 
             if (x == null || y == null)
                 return false;
-
+            
             bool xHasCanon = MethodHelper.HasCannon(x);
 
             if (x.DeclaringType != null)
@@ -28,11 +28,11 @@ namespace Jitex.Utils.Comparer
             if (xHasCanon != yHasCanon)
                 return false;
 
-            if (xHasCanon)
-                x = MethodHelper.GetBaseMethodGeneric((MethodInfo)x);
+            if (xHasCanon && x is MethodInfo xMethodInfo)
+                x = MethodHelper.GetBaseMethodGeneric(xMethodInfo);
 
-            if (yHasCanon)
-                y = MethodHelper.GetBaseMethodGeneric((MethodInfo)y);
+            if (yHasCanon && y is MethodInfo yMethodInfo)
+                y = MethodHelper.GetBaseMethodGeneric(yMethodInfo);
 
             return x == y;
         }

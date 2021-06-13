@@ -23,14 +23,14 @@ namespace Jitex.Runtime
         public static async Task<NativeCode> GetNativeCodeAsync(MethodBase method)
         {
             IntPtr methodHandle = MethodHelper.GetMethodHandle(method).Value;
-
+            
             if (!NativeCache.TryGetValue(methodHandle, out NativeCode nativeCode))
             {
                 if (!JitexManager.IsLoaded)
                     throw new Exception("Jitex is not installed!");
 
                 await RuntimeHelperExtension.InternalPrepareMethodAsync(method);
-
+                
                 while (!NativeCache.TryGetValue(methodHandle, out nativeCode))
                 {
                     Thread.Sleep(50);
