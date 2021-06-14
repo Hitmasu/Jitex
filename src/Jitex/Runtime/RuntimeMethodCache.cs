@@ -1,53 +1,53 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using Jitex.JIT;
 using Jitex.Utils;
-using Jitex.Utils.Comparer;
 
 namespace Jitex.Runtime
 {
     internal static class RuntimeMethodCache
     {
-        private static readonly ConcurrentDictionary<IntPtr, NativeCode> NativeCache = new ConcurrentDictionary<IntPtr, NativeCode>();
-        private static readonly ConcurrentBag<MethodCompiled> CompiledMethods = new ConcurrentBag<MethodCompiled>();
+        private static readonly ConcurrentDictionary<IntPtr, MethodCompiled> CompiledMethods = new ConcurrentDictionary<IntPtr, MethodCompiled>();
 
         internal static void AddMethod(MethodCompiled methodCompiled)
         {
-            CompiledMethods.Add(methodCompiled);
+            CompiledMethods.TryAdd(methodCompiled.Handle, methodCompiled);
         }
 
         public static async Task<NativeCode> GetNativeCodeAsync(MethodBase method)
         {
-            IntPtr methodHandle = MethodHelper.GetMethodHandle(method).Value;
-            
-            if (!NativeCache.TryGetValue(methodHandle, out NativeCode nativeCode))
+            if (MethodHelper.HasCannon(method))
+                method = MethodHelper.GetBaseMethodGeneric(method);
+
+            MethodCompiled? methodCompiled = GetMethodCompiledInfo(method);
+
+            if (methodCompiled == null)
             {
-                if (!JitexManager.IsLoaded)
-                    throw new Exception("Jitex is not installed!");
-
                 await RuntimeHelperExtension.InternalPrepareMethodAsync(method);
-                
-                while (!NativeCache.TryGetValue(methodHandle, out nativeCode))
+
+                do
                 {
-                    Thread.Sleep(50);
-
-                    MethodCompiled? methodCompiled = CompiledMethods.FirstOrDefault(w => MethodEqualityComparer.Instance.Equals(w.Method, method));
-
-                    if (methodCompiled != null)
-                    {
-                        nativeCode = new NativeCode(methodCompiled.NativeCodeAddress, methodCompiled.NativeCodeSize);
-                        NativeCache.TryAdd(methodHandle, nativeCode);
-
-                        return nativeCode;
-                    }
-                }
+                    Thread.Sleep(100);
+                    methodCompiled = GetMethodCompiledInfo(method);
+                } while (methodCompiled == null);
             }
 
-            return nativeCode;
+            return new NativeCode(methodCompiled.NativeCodeAddress, methodCompiled.NativeCodeSize);
+        }
+
+        public static MethodCompiled? GetMethodCompiledInfo(MethodBase method)
+        {
+            IntPtr methodHandle = MethodHelper.GetMethodHandle(method).Value;
+
+            if (CompiledMethods.TryGetValue(methodHandle, out MethodCompiled methodCompiled))
+                return methodCompiled;
+
+            return null;
         }
     }
 }

@@ -1,10 +1,13 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Reflection;
 
 namespace Jitex.Utils.Comparer
 {
     internal class MethodEqualityComparer : IEqualityComparer<MethodBase>
     {
+        private readonly ConcurrentDictionary<IntPtr, IntPtr> _methodCache = new ConcurrentDictionary<IntPtr, IntPtr>();
         public static MethodEqualityComparer Instance => new MethodEqualityComparer();
 
         public bool Equals(MethodBase x, MethodBase y)
@@ -14,27 +17,51 @@ namespace Jitex.Utils.Comparer
 
             if (x == null || y == null)
                 return false;
-            
-            bool xHasCanon = MethodHelper.HasCannon(x);
 
-            if (x.DeclaringType != null)
-                xHasCanon |= TypeHelper.HasCanon(x.DeclaringType);
+            IntPtr xOriginalMethodHandle = MethodHelper.GetMethodHandle(x).Value;
+            IntPtr yOriginalMethodHandle = MethodHelper.GetMethodHandle(y).Value;
 
-            bool yHasCanon = MethodHelper.HasCannon(y);
+            if (!_methodCache.TryGetValue(xOriginalMethodHandle, out IntPtr xMethodHandle))
+            {
+                bool xHasCanon = MethodHelper.HasCannon(x);
 
-            if (y.DeclaringType != null)
-                yHasCanon |= TypeHelper.HasCanon(y.DeclaringType);
+                if (!xHasCanon && x.DeclaringType != null)
+                    xHasCanon = TypeHelper.HasCanon(x.DeclaringType);
 
-            if (xHasCanon != yHasCanon)
-                return false;
+                if (xHasCanon && x is MethodInfo xMethodInfo)
+                {
+                    x = MethodHelper.GetBaseMethodGeneric(xMethodInfo);
+                    xMethodHandle = x.MethodHandle.Value;
+                }
+                else
+                {
+                    xMethodHandle = xOriginalMethodHandle;
+                }
 
-            if (xHasCanon && x is MethodInfo xMethodInfo)
-                x = MethodHelper.GetBaseMethodGeneric(xMethodInfo);
+                _methodCache.TryAdd(xOriginalMethodHandle, xMethodHandle);
+            }
 
-            if (yHasCanon && y is MethodInfo yMethodInfo)
-                y = MethodHelper.GetBaseMethodGeneric(yMethodInfo);
+            if (!_methodCache.TryGetValue(yOriginalMethodHandle, out IntPtr yMethodHandle))
+            {
+                bool yHasCanon = MethodHelper.HasCannon(y);
 
-            return x == y;
+                if (!yHasCanon && y.DeclaringType != null)
+                    yHasCanon = TypeHelper.HasCanon(y.DeclaringType);
+
+                if (yHasCanon && y is MethodInfo yMethodInfo)
+                {
+                    y = MethodHelper.GetBaseMethodGeneric(yMethodInfo);
+                    yMethodHandle = y.MethodHandle.Value;
+                }
+                else
+                {
+                    yMethodHandle = yOriginalMethodHandle;
+                }
+
+                _methodCache.TryAdd(yOriginalMethodHandle, yMethodHandle);
+            }
+
+            return xMethodHandle == yMethodHandle;
         }
 
         public int GetHashCode(MethodBase obj)
