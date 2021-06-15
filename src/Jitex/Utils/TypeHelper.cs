@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Runtime.CompilerServices;
 
 namespace Jitex.Utils
 {
@@ -45,13 +46,16 @@ namespace Jitex.Utils
             return (Func<int>)dm.CreateDelegate(typeof(Func<int>));
         }
 
-        public static bool HasCanon(Type type)
+        public static bool HasCanon(Type? type)
         {
             if (type == null)
                 return false;
 
             return type is { IsGenericType: true } && type.GetGenericArguments().Any(w => w.IsCanon());
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsGeneric(Type? type) => type is {IsGenericType: true};
 
         public static Type GetTypeFromHandle(IntPtr handle)
         {

@@ -62,67 +62,36 @@ namespace Jitex.Utils
 
         internal static MethodBase GetBaseMethodGeneric(MethodBase method)
         {
-            bool hasCanon = false;
+            bool methodHasCanon = MethodHelper.HasCannon(method, false);
 
-            Type originalType = method.DeclaringType;
-
-            if (method.DeclaringType is { IsGenericType: true })
-            {
-                Type[] genericTypeArguments = method.DeclaringType.GetGenericArguments();
-
-                if (ReadGenericTypes(ref genericTypeArguments))
-                    hasCanon = true;
-
-                originalType = originalType.GetGenericTypeDefinition().MakeGenericType(genericTypeArguments);
-            }
-
-            if (method.IsGenericMethod)
-            {
-                Type[]? genericMethodArguments = method.GetGenericArguments();
-                if (ReadGenericTypes(ref genericMethodArguments))
-                    hasCanon = true;
-
-                method = ((MethodInfo)method).GetGenericMethodDefinition().MakeGenericMethod(genericMethodArguments);
-            }
-
-            if (!hasCanon)
+            if (!methodHasCanon && !TypeHelper.HasCanon(method.DeclaringType))
                 return method;
 
-            return MethodBase.GetMethodFromHandle(method.MethodHandle, originalType.TypeHandle);
+            IntPtr methodHandle = method.MethodHandle.Value;
 
-            static bool ReadGenericTypes(ref Type[] types)
-            {
-                bool hasCanon = false;
+            if(methodHasCanon)
+                methodHandle = Marshal.ReadIntPtr(methodHandle, IntPtr.Size);
 
-                for (int i = 0; i < types.Length; i++)
-                {
-                    Type type = types[i];
-
-                    if (type.IsCanon())
-                    {
-                        types[i] = CanonType;
-                        hasCanon = true;
-                    }
-                }
-
-                return hasCanon;
-            }
+            return GetMethodFromHandle(methodHandle)!;
         }
 
-        internal static MethodBase GetOriginalMethod(MethodBase method)
+        public static MethodBase GetOriginalMethod(MethodBase method)
         {
-            if (!HasCannon(method))
-                return method;
-
             return GetBaseMethodGeneric(method);
         }
 
-        internal static bool HasCannon(MethodBase method)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static bool IsGeneric(MethodBase method)
+        {
+            return method is { IsGenericMethod: true };
+        }
+
+        internal static bool HasCannon(MethodBase method, bool checkDeclaredType = true)
         {
             if (method is MethodInfo { IsGenericMethod: true } methodInfo)
                 return methodInfo.GetGenericArguments().Any(w => w.IsCanon());
 
-            if (method.DeclaringType != null)
+            if (checkDeclaredType && method.DeclaringType != null)
                 return TypeHelper.HasCanon(method.DeclaringType);
 
             return false;
@@ -224,10 +193,10 @@ namespace Jitex.Utils
             if (!IsCompiled(method))
                 return;
 
-            method = GetOriginalMethod(method);
-
             SetMethodToPrecodeFixup(method);
         }
+
+        internal static bool IsDynamicMethod(MethodBase method) => method is DynamicMethod;
 
         internal static void SetMethodToPrecodeFixup(MethodBase method)
         {
@@ -237,13 +206,29 @@ namespace Jitex.Utils
             IntPtr functionalPointer = handle.GetFunctionPointer();
 
             int jmpSize = (int)(PrecodeFixupThunkAddress.ToInt64() - functionalPointer.ToInt64() - 5);
+            int offset;
 
+            if (TypeHelper.HasCanon(method.DeclaringType))
+                methodHandle = Marshal.ReadIntPtr(methodHandle, IntPtr.Size);
+
+            if (IsGeneric(method) || TypeHelper.IsGeneric(method.DeclaringType))
+            {
+                if (HasCannon(method, false))
+                    offset = IntPtr.Size * 5;
+                else
+                    offset = IntPtr.Size;
+            }
+            else
+            {
+                offset = IntPtr.Size * 2;
+            }
+            
             //Write PrecodeFixupThunk
             Marshal.WriteByte(functionalPointer, 0xE8); //call instruction
             Marshal.WriteByte(functionalPointer, 5, 0x5E); //pop instruction
             Marshal.WriteInt32(functionalPointer, 1, jmpSize);
 
-            Marshal.WriteIntPtr(methodHandle, IntPtr.Size * 2, IntPtr.Zero);
+            Marshal.WriteIntPtr(methodHandle, offset, IntPtr.Zero);
         }
 
         internal static void PrepareMethod(MethodBase method)
