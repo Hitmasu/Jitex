@@ -69,7 +69,7 @@ namespace Jitex.Utils
 
             IntPtr methodHandle = method.MethodHandle.Value;
 
-            if(methodHasCanon)
+            if (methodHasCanon)
                 methodHandle = Marshal.ReadIntPtr(methodHandle, IntPtr.Size);
 
             return GetMethodFromHandle(methodHandle)!;
@@ -81,9 +81,39 @@ namespace Jitex.Utils
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static bool IsGeneric(MethodBase method)
+        internal static bool IsGeneric(MethodBase method, bool checkDeclaringType = true)
         {
-            return method is { IsGenericMethod: true };
+            bool typeIsGeneric = false;
+
+            if (checkDeclaringType)
+                typeIsGeneric = TypeHelper.IsGeneric(method.DeclaringType);
+
+            return typeIsGeneric || method is { IsGenericMethod: true };
+        }
+
+        internal static bool IsGenericInitialized(MethodBase method)
+        {
+            if (method.DeclaringType is { IsGenericType: true })
+            {
+                foreach (Type type in method.DeclaringType.GetGenericArguments())
+                {
+                    if (type.IsGenericParameter)
+                        return false;
+                }
+            }
+
+            if (method.IsGenericMethod)
+            {
+                MethodInfo methodInfo = (MethodInfo)method;
+
+                foreach (Type type in methodInfo.GetGenericArguments())
+                {
+                    if (type.IsGenericParameter)
+                        return false;
+                }
+            }
+
+            return true;
         }
 
         internal static bool HasCannon(MethodBase method, bool checkDeclaredType = true)
@@ -190,8 +220,20 @@ namespace Jitex.Utils
         {
             if (method == null) throw new ArgumentNullException(nameof(method));
 
+            if (!IsGenericInitialized(method))
+            {
+                MethodInfo methodInfo = (MethodInfo)method;
+
+                if (method == methodInfo.GetGenericMethodDefinition())
+                    throw new ArgumentException("Generic methods cannot be recompiled by generic method definition.\n" +
+                        "It's necessary substitute generic parameters types from generic definition: "
+                        + method.ToString());
+            }
+
             if (!IsCompiled(method))
                 return;
+
+            method = GetOriginalMethod(method);
 
             SetMethodToPrecodeFixup(method);
         }
@@ -211,18 +253,18 @@ namespace Jitex.Utils
             if (TypeHelper.HasCanon(method.DeclaringType))
                 methodHandle = Marshal.ReadIntPtr(methodHandle, IntPtr.Size);
 
-            if (IsGeneric(method) || TypeHelper.IsGeneric(method.DeclaringType))
+            if (IsGeneric(method))
             {
-                if (HasCannon(method, false))
-                    offset = IntPtr.Size * 5;
-                else
-                    offset = IntPtr.Size;
+                //if (!method.IsStatic || HasCannon(method, false))
+                offset = IntPtr.Size * 5;
+                //else
+                //    offset = IntPtr.Size;
             }
             else
             {
                 offset = IntPtr.Size * 2;
             }
-            
+
             //Write PrecodeFixupThunk
             Marshal.WriteByte(functionalPointer, 0xE8); //call instruction
             Marshal.WriteByte(functionalPointer, 5, 0x5E); //pop instruction

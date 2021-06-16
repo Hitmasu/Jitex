@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System;
+using System.Reflection;
 
 namespace Jitex.Tests
 {
@@ -7,6 +8,11 @@ namespace Jitex.Tests
         public static MethodInfo GetMethod<T>(string name)
         {
             return typeof(T).GetMethod(name, (BindingFlags) (-1)).GetBaseDefinition();
+        }
+
+        public static MethodInfo GetMethod(Type type, string name)
+        {
+            return type.GetMethod(name, (BindingFlags)(-1)).GetBaseDefinition();
         }
     }
 }
