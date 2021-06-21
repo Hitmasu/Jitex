@@ -7,18 +7,18 @@ using System.Text;
 namespace Jitex.Tests.Helpers.Recompile
 {
     [ClassRecompileTest]
-    class NonGenericInstanceClass
+    class GenericInstanceClass<T>
     {
         [MethodImpl(MethodImplOptions.NoInlining)]
         public void NonGeneric() { }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
-        public void Generic<T>() { }
+        public void Generic<U>() { }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
         public static void StaticNonGeneric() { }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
-        public static void StaticGeneric<T>() { }
+        public static void StaticGeneric<U>() { }
     }
 }

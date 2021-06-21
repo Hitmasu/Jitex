@@ -36,40 +36,24 @@ namespace Jitex.Tests.Helpers
             Assert.Equal(2, count);
         }
 
-        [Fact]
-        public void MethodInstanceGenericPrimitiveTest()
+        [Theory]
+        [InlineData(typeof(int))]
+        [InlineData(typeof(RecompileTests))]
+        public void MethodInstanceGenericTest(Type type)
         {
-            MethodInfo method = Utils.GetMethod<NonGenericInstanceClass>(nameof(NonGenericInstanceClass.GenericPrimitive));
-            method = method.MakeGenericMethod(typeof(int));
+            MethodInfo method = Utils.GetMethod<NonGenericInstanceClass>(nameof(NonGenericInstanceClass.Generic));
+            method = method.MakeGenericMethod(type);
 
             NonGenericInstanceClass instance = new NonGenericInstanceClass();
 
-            instance.GenericPrimitive<int>();
+            method.Invoke(instance, null);
 
             MethodHelper.ForceRecompile(method);
 
-            instance.GenericPrimitive<int>();
+            method.Invoke(instance, null);
 
-            int count = MethodsCompiled.Count(m => m.MetadataToken == method.MetadataToken);
-
-            Assert.Equal(2, count);
-        }
-
-        [Fact]
-        public void MethodInstanceGenericCanonTest()
-        {
-            MethodInfo method = Utils.GetMethod<NonGenericInstanceClass>(nameof(NonGenericInstanceClass.GenericCanon));
-            method = method.MakeGenericMethod(typeof(RecompileTests));
-
-            NonGenericInstanceClass instance = new NonGenericInstanceClass();
-
-            instance.GenericCanon<RecompileTests>();
-
-            MethodHelper.ForceRecompile(method);
-
-            instance.GenericCanon<RecompileTests>();
-
-            int count = MethodsCompiled.Count(m => m.MetadataToken == method.MetadataToken);
+            method = (MethodInfo)MethodHelper.GetOriginalMethod(method);
+            int count = MethodsCompiled.Count(m => m == method);
 
             Assert.Equal(2, count);
         }
@@ -90,36 +74,22 @@ namespace Jitex.Tests.Helpers
             Assert.Equal(2, count);
         }
 
-        [Fact]
-        public void MethodStaticGenericPrimitiveOnNonStaticTypeTest()
+        [Theory]
+        [InlineData(typeof(int))]
+        [InlineData(typeof(RecompileTests))]
+        public void MethodStaticGenericOnNonStaticTypeTest(Type type)
         {
-            MethodInfo method = Utils.GetMethod<NonGenericInstanceClass>(nameof(NonGenericInstanceClass.StaticGenericPrimitive));
-            method = method.MakeGenericMethod(typeof(int));
+            MethodInfo method = Utils.GetMethod<NonGenericInstanceClass>(nameof(NonGenericInstanceClass.StaticGeneric));
+            method = method.MakeGenericMethod(type);
 
-            NonGenericInstanceClass.StaticGenericPrimitive<int>();
+            method.Invoke(null, null);
 
             MethodHelper.ForceRecompile(method);
 
-            NonGenericInstanceClass.StaticGenericPrimitive<int>();
+            method.Invoke(null, null);
 
-            int count = MethodsCompiled.Count(m => m.MetadataToken == method.MetadataToken);
-
-            Assert.Equal(2, count);
-        }
-
-        [Fact]
-        public void MethodStaticGenericCanonOnNonStaticTypeTest()
-        {
-            MethodInfo method = Utils.GetMethod<NonGenericInstanceClass>(nameof(NonGenericInstanceClass.StaticGenericCanon));
-            method = method.MakeGenericMethod(typeof(RecompileTests));
-
-            NonGenericInstanceClass.StaticGenericCanon<RecompileTests>();
-
-            MethodHelper.ForceRecompile(method);
-
-            NonGenericInstanceClass.StaticGenericCanon<RecompileTests>();
-
-            int count = MethodsCompiled.Count(m => m.MetadataToken == method.MetadataToken);
+            method = (MethodInfo)MethodHelper.GetOriginalMethod(method);
+            int count = MethodsCompiled.Count(m => m == method);
 
             Assert.Equal(2, count);
         }
@@ -135,41 +105,27 @@ namespace Jitex.Tests.Helpers
 
             NonGenericStaticClass.NonGeneric();
 
-            int count = MethodsCompiled.Count(m => m.MetadataToken == method.MetadataToken);
+            int count = MethodsCompiled.Count(m => m == method);
 
             Assert.Equal(2, count);
         }
 
-        [Fact]
-        public void MethodStaticGenericPrimitiveTest()
+        [Theory]
+        [InlineData(typeof(int))]
+        [InlineData(typeof(RecompileTests))]
+        public void MethodStaticGenericTest(Type type)
         {
-            MethodInfo method = Utils.GetMethod(typeof(NonGenericStaticClass), nameof(NonGenericStaticClass.GenericPrimitive));
-            method = method.MakeGenericMethod(typeof(int));
+            MethodInfo method = Utils.GetMethod(typeof(NonGenericStaticClass), nameof(NonGenericStaticClass.Generic));
+            method = method.MakeGenericMethod(type);
 
-            NonGenericStaticClass.GenericPrimitive<int>();
+            method.Invoke(null, null);
 
             MethodHelper.ForceRecompile(method);
 
-            NonGenericStaticClass.GenericPrimitive<int>();
+            method.Invoke(null, null);
 
-            int count = MethodsCompiled.Count(m => m.MetadataToken == method.MetadataToken);
-
-            Assert.Equal(2, count);
-        }
-
-        [Fact]
-        public void MethodStaticGenericCanonTest()
-        {
-            MethodInfo method = Utils.GetMethod(typeof(NonGenericStaticClass), nameof(NonGenericStaticClass.GenericCanon));
-            method = method.MakeGenericMethod(typeof(RecompileTests));
-
-            NonGenericStaticClass.GenericCanon<RecompileTests>();
-
-            MethodHelper.ForceRecompile(method);
-
-            NonGenericStaticClass.GenericCanon<RecompileTests>();
-
-            int count = MethodsCompiled.Count(m => m.MetadataToken == method.MetadataToken);
+            method = (MethodInfo)MethodHelper.GetOriginalMethod(method);
+            int count = MethodsCompiled.Count(m => m == method);
 
             Assert.Equal(2, count);
         }

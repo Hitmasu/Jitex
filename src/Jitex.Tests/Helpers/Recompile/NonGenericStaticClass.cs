@@ -13,9 +13,6 @@ namespace Jitex.Tests.Helpers.Recompile
         public static void NonGeneric() { }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
-        public static void GenericPrimitive<T>() { }
-
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        public static void GenericCanon<T>() { }
+        public static void Generic<T>() { }
     }
 }
