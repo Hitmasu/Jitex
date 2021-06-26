@@ -30,7 +30,7 @@ namespace Jitex.Utils
             if (!method.IsStatic)
                 parameters.Add(typeof(IntPtr));
 
-            if (MethodHelper.HasCannon(method) || TypeHelper.HasCanon(method.DeclaringType))
+            if (MethodHelper.HasCanon(method) || TypeHelper.HasCanon(method.DeclaringType))
                 parameters.Add(typeof(IntPtr));
 
             foreach (ParameterInfo parameter in method.GetParameters())

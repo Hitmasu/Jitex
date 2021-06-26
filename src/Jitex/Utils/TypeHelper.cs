@@ -13,11 +13,13 @@ namespace Jitex.Utils
     /// </summary>
     internal static class TypeHelper
     {
+        private static readonly Type CanonType;
         private static readonly MethodInfo GetTypeFromHandleUnsafe;
         private static readonly IDictionary<Type, int> CacheSizeOf = new Dictionary<Type, int>();
 
         static TypeHelper()
         {
+            CanonType = Type.GetType("System.__Canon");
             GetTypeFromHandleUnsafe = typeof(Type).GetMethod("GetTypeFromHandleUnsafe", BindingFlags.Static | BindingFlags.NonPublic);
         }
 
@@ -46,20 +48,64 @@ namespace Jitex.Utils
             return (Func<int>)dm.CreateDelegate(typeof(Func<int>));
         }
 
-        public static bool HasCanon(Type? type)
+        internal static bool HasCanon(Type? type, bool ignoreCanonType = false)
         {
             if (type == null)
                 return false;
 
-            return type is { IsGenericType: true } && type.GetGenericArguments().Any(w => w.IsCanon());
+            if (!type.IsGenericType)
+                return false;
+
+            Type[] types = type.GetGenericArguments();
+
+            bool hasCanon = false;
+
+            foreach(Type t in types)
+            {
+                if (ignoreCanonType && t == CanonType)
+                    continue;
+
+                if (t.IsCanon())
+                {
+                    hasCanon = true;
+                    break;
+                }
+            }
+
+            return hasCanon;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsGeneric(Type? type) => type is {IsGenericType: true};
+        public static bool IsGeneric(Type? type) => type is { IsGenericType: true };
 
         public static Type GetTypeFromHandle(IntPtr handle)
         {
             return (Type)GetTypeFromHandleUnsafe.Invoke(null, new object[] { handle });
+        }
+
+        public static Type GetBaseTypeGeneric(Type type)
+        {
+            if (!type.IsGenericType)
+                return type;
+
+            Type[] genericArguments = type.GetGenericArguments();
+            bool hasCanon = false;
+
+            for (int i = 0; i < genericArguments.Length; i++)
+            {
+                Type genericArgument = genericArguments[i];
+
+                if (genericArgument.IsCanon())
+                {
+                    hasCanon = true;
+                    genericArguments[i] = CanonType;
+                }
+            }
+
+            if (hasCanon)
+                type = type.GetGenericTypeDefinition().MakeGenericType(genericArguments);
+
+            return type;
         }
     }
 }

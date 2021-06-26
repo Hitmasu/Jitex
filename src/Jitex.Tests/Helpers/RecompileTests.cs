@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using Jitex.JIT.Context;
 using Jitex.Tests.Helpers.Attributes;
 using Jitex.Tests.Helpers.Recompile;
@@ -31,7 +32,7 @@ namespace Jitex.Tests.Helpers
 
             instance.NonGeneric();
 
-            int count = MethodsCompiled.Count(m => m == method);
+            int count = MethodsCompiled.ToList().Count(m => m == method);
 
             Assert.Equal(2, count);
         }
@@ -53,7 +54,7 @@ namespace Jitex.Tests.Helpers
             method.Invoke(instance, null);
 
             method = (MethodInfo)MethodHelper.GetOriginalMethod(method);
-            int count = MethodsCompiled.Count(m => m == method);
+            int count = MethodsCompiled.ToList().Count(m => m == method);
 
             Assert.Equal(2, count);
         }
@@ -69,7 +70,7 @@ namespace Jitex.Tests.Helpers
 
             NonGenericInstanceClass.StaticNonGeneric();
 
-            int count = MethodsCompiled.Count(m => m == method);
+            int count = MethodsCompiled.ToList().Count(m => m == method);
 
             Assert.Equal(2, count);
         }
@@ -82,6 +83,8 @@ namespace Jitex.Tests.Helpers
             MethodInfo method = Utils.GetMethod<NonGenericInstanceClass>(nameof(NonGenericInstanceClass.StaticGeneric));
             method = method.MakeGenericMethod(type);
 
+            var pointer = MethodHelper.GetOriginalMethod(method).MethodHandle.Value;
+                    
             method.Invoke(null, null);
 
             MethodHelper.ForceRecompile(method);
@@ -89,7 +92,7 @@ namespace Jitex.Tests.Helpers
             method.Invoke(null, null);
 
             method = (MethodInfo)MethodHelper.GetOriginalMethod(method);
-            int count = MethodsCompiled.Count(m => m == method);
+            int count = MethodsCompiled.ToList().Count(m => m == method);
 
             Assert.Equal(2, count);
         }
@@ -105,7 +108,7 @@ namespace Jitex.Tests.Helpers
 
             NonGenericStaticClass.NonGeneric();
 
-            int count = MethodsCompiled.Count(m => m == method);
+            int count = MethodsCompiled.ToList().Count(m => m == method);
 
             Assert.Equal(2, count);
         }
@@ -125,7 +128,7 @@ namespace Jitex.Tests.Helpers
             method.Invoke(null, null);
 
             method = (MethodInfo)MethodHelper.GetOriginalMethod(method);
-            int count = MethodsCompiled.Count(m => m == method);
+            int count = MethodsCompiled.ToList().Count(m => m == method);
 
             Assert.Equal(2, count);
         }

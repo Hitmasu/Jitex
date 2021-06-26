@@ -21,7 +21,7 @@ namespace Jitex.Runtime
 
         public static async Task<NativeCode> GetNativeCodeAsync(MethodBase method)
         {
-            if (MethodHelper.HasCannon(method))
+            if (MethodHelper.HasCanon(method))
                 method = MethodHelper.GetBaseMethodGeneric(method);
 
             MethodCompiled? methodCompiled = GetMethodCompiledInfo(method);

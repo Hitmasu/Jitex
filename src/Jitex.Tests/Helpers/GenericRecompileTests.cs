@@ -13,7 +13,6 @@ namespace Jitex.Tests.Helpers
     public class GenericRecompileTests
     {
         private static IList<MethodBase> MethodsCompiled { get; } = new List<MethodBase>();
-        private readonly Type baseType = typeof(GenericInstanceClass<>);
 
         static GenericRecompileTests()
         {
@@ -25,6 +24,7 @@ namespace Jitex.Tests.Helpers
         [InlineData(typeof(GenericRecompileTests))]
         public void MethodInstanceNonGenericTest(Type type)
         {
+            Type baseType = typeof(GenericInstanceClass<>);
             MethodInfo method = Utils.GetMethodInfo(baseType, type, "NonGeneric");
             object instance = Utils.CreateInstance(baseType, type);
 
@@ -35,7 +35,7 @@ namespace Jitex.Tests.Helpers
             method.Invoke(instance, null);
 
             method = (MethodInfo)MethodHelper.GetOriginalMethod(method);
-            int count = MethodsCompiled.Count(m => m == method);
+            int count = MethodsCompiled.ToList().Count(m => m == method);
 
             Assert.Equal(2, count);
         }
@@ -47,9 +47,9 @@ namespace Jitex.Tests.Helpers
         [InlineData(typeof(GenericRecompileTests), typeof(GenericRecompileTests))]
         public void MethodInstanceGenericTest(Type baseTypeGenericParameter, Type methodGenericParameter)
         {
+            Type baseType = typeof(GenericInstanceClass<>);
             MethodInfo method = Utils.GetMethodInfo(baseType, baseTypeGenericParameter, "Generic");
             method = method.MakeGenericMethod(methodGenericParameter);
-
             object instance = Utils.CreateInstance(baseType, baseTypeGenericParameter);
 
             method.Invoke(instance, null);
@@ -59,44 +59,95 @@ namespace Jitex.Tests.Helpers
             method.Invoke(instance, null);
 
             method = (MethodInfo)MethodHelper.GetOriginalMethod(method);
-            int count = MethodsCompiled.Count(m => m == method);
+            int count = MethodsCompiled.ToList().Count(m => m == method);
 
             Assert.Equal(2, count);
         }
 
-        //[Fact]
-        //public void MethodStaticGenericPrimitiveOnNonStaticTypeTest()
-        //{
-        //    MethodInfo method = Utils.GetMethod<NonGenericInstanceClass>(nameof(NonGenericInstanceClass.StaticGenericPrimitive));
-        //    method = method.MakeGenericMethod(typeof(int));
+        [Theory]
+        [InlineData(typeof(int))]
+        [InlineData(typeof(GenericRecompileTests))]
+        public void MethodStaticNonGenericOnNonStaticType(Type type)
+        {
+            Type baseType = typeof(GenericInstanceClass<>);
+            MethodInfo method = Utils.GetMethodInfo(baseType, type, "StaticNonGeneric");
+            method.Invoke(null, null);
 
-        //    NonGenericInstanceClass.StaticGenericPrimitive<int>();
+            MethodHelper.ForceRecompile(method);
 
-        //    MethodHelper.ForceRecompile(method);
+            method.Invoke(null, null);
 
-        //    NonGenericInstanceClass.StaticGenericPrimitive<int>();
+            method = (MethodInfo)MethodHelper.GetOriginalMethod(method);
+            int count = MethodsCompiled.ToList().Count(m => m == method);
 
-        //    int count = MethodsCompiled.Count(m => m.MetadataToken == method.MetadataToken);
+            Assert.Equal(2, count);
+        }
 
-        //    Assert.Equal(2, count);
-        //}
+        [Theory]
+        [InlineData(typeof(int), typeof(int))]
+        [InlineData(typeof(GenericRecompileTests), typeof(int))]
+        [InlineData(typeof(int), typeof(GenericRecompileTests))]
+        [InlineData(typeof(GenericRecompileTests), typeof(GenericRecompileTests))]
+        public void MethodStaticGenericOnNonStaticType(Type baseTypeGenericParameter, Type methodGenericParameter)
+        {
+            Type baseType = typeof(GenericInstanceClass<>);
+            MethodInfo method = Utils.GetMethodInfo(baseType, baseTypeGenericParameter, "StaticGeneric");
+            method = method.MakeGenericMethod(methodGenericParameter);
 
-        //[Fact]
-        //public void MethodStaticGenericCanonOnNonStaticTypeTest()
-        //{
-        //    MethodInfo method = Utils.GetMethod<NonGenericInstanceClass>(nameof(NonGenericInstanceClass.StaticGenericCanon));
-        //    method = method.MakeGenericMethod(typeof(RecompileTests));
+            method.Invoke(null, null);
 
-        //    NonGenericInstanceClass.StaticGenericCanon<RecompileTests>();
+            MethodHelper.ForceRecompile(method);
 
-        //    MethodHelper.ForceRecompile(method);
+            method.Invoke(null, null);
 
-        //    NonGenericInstanceClass.StaticGenericCanon<RecompileTests>();
+            method = (MethodInfo)MethodHelper.GetOriginalMethod(method);
+            int count = MethodsCompiled.ToList().Count(m => m == method);
 
-        //    int count = MethodsCompiled.Count(m => m.MetadataToken == method.MetadataToken);
+            Assert.Equal(2, count);
+        }
 
-        //    Assert.Equal(2, count);
-        //}
+        [Theory]
+        [InlineData(typeof(int))]
+        [InlineData(typeof(GenericRecompileTests))]
+        public void MethodStaticNonGenericTest(Type type)
+        {
+            Type baseType = typeof(GenericStaticClass<>);
+            MethodInfo method = Utils.GetMethodInfo(baseType, type, "NonGeneric");
+
+            method.Invoke(null, null);
+
+            MethodHelper.ForceRecompile(method);
+
+            method.Invoke(null, null);
+
+            method = (MethodInfo)MethodHelper.GetOriginalMethod(method);
+            int count = MethodsCompiled.ToList().Count(m => m == method);
+
+            Assert.Equal(2, count);
+        }
+
+        [Theory]
+        [InlineData(typeof(int), typeof(int))]
+        [InlineData(typeof(GenericRecompileTests), typeof(int))]
+        [InlineData(typeof(int), typeof(GenericRecompileTests))]
+        [InlineData(typeof(GenericRecompileTests), typeof(GenericRecompileTests))]
+        public void MethodStaticGenericTest(Type baseTypeGenericParameter, Type methodGenericParameter)
+        {
+            Type baseType = typeof(GenericStaticClass<>);
+            MethodInfo method = Utils.GetMethodInfo(baseType, baseTypeGenericParameter, "Generic");
+            method = method.MakeGenericMethod(methodGenericParameter);
+
+            method.Invoke(null, null);
+
+            MethodHelper.ForceRecompile(method);
+
+            method.Invoke(null, null);
+
+            method = (MethodInfo)MethodHelper.GetOriginalMethod(method);
+            int count = MethodsCompiled.ToList().Count(m => m == method);
+
+            Assert.Equal(2, count);
+        }
 
         private static void MethodResolver(MethodContext context)
         {

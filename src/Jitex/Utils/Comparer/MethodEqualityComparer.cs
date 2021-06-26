@@ -23,7 +23,7 @@ namespace Jitex.Utils.Comparer
 
             if (!_methodCache.TryGetValue(xOriginalMethodHandle, out IntPtr xMethodHandle))
             {
-                bool xHasCanon = MethodHelper.HasCannon(x);
+                bool xHasCanon = MethodHelper.HasCanon(x);
 
                 if (!xHasCanon && x.DeclaringType != null)
                     xHasCanon = TypeHelper.HasCanon(x.DeclaringType);
@@ -43,7 +43,7 @@ namespace Jitex.Utils.Comparer
 
             if (!_methodCache.TryGetValue(yOriginalMethodHandle, out IntPtr yMethodHandle))
             {
-                bool yHasCanon = MethodHelper.HasCannon(y);
+                bool yHasCanon = MethodHelper.HasCanon(y);
 
                 if (!yHasCanon && y.DeclaringType != null)
                     yHasCanon = TypeHelper.HasCanon(y.DeclaringType);
