@@ -33,10 +33,10 @@ namespace Jitex.Intercept
         {
         }
 
-        public void AddIntercept(InterceptContext detourContext)
+        public void AddIntercept(InterceptContext interceptContext)
         {
-            _interceptedMethods.Add(detourContext);
-            EnableIntercept(detourContext.MethodIntercepted);
+            _interceptedMethods.Add(interceptContext);
+            EnableIntercept(interceptContext.MethodIntercepted);
         }
 
         public void EnableIntercept(MethodBase method)

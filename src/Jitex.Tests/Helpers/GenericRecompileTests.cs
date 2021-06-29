@@ -10,6 +10,7 @@ using Xunit;
 
 namespace Jitex.Tests.Helpers
 {
+#if NET5_0
     public class GenericRecompileTests
     {
         private static IList<MethodBase> MethodsCompiled { get; } = new List<MethodBase>();
@@ -156,4 +157,5 @@ namespace Jitex.Tests.Helpers
                 MethodsCompiled.Add(context.Method);
         }
     }
+#endif
 }

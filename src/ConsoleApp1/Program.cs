@@ -4,6 +4,7 @@ using System;
 using System.Diagnostics;
 using System.Reflection;
 
+
 namespace ConsoleApp1
 {
     class Program
@@ -17,31 +18,31 @@ namespace ConsoleApp1
             });
             //var sumMethod = typeof(Program).GetMethod("Sum");
 
-            var sumMethod = typeof(T<Program>).GetMethod("Sum", BindingFlags.Instance | BindingFlags.Public);
+            var sumMethod = typeof(T).GetMethod("Sum").MakeGenericMethod(typeof(int));
             var methodHandle = sumMethod.MethodHandle.Value;
             var pinter = sumMethod.MethodHandle.GetFunctionPointer();
 
-            T<Program> classp = new T<Program>();
-            classp.Sum();
 
-            //Debug.WriteLine("Pré compiled: " + methodHandle.ToString("X") + "|" + pinter.ToString("X"));
-            //Debugger.Break();
-            //Sum();
-            //Debug.WriteLine("After compiled: " + methodHandle.ToString("X") + "|" + pinter.ToString("X"));
-            //Debugger.Break();
+            Debug.WriteLine("Pré compiled: " + sumMethod.MethodHandle.Value.ToString("X") + "|" + sumMethod.MethodHandle.GetFunctionPointer().ToString("X"));
+            Debugger.Break();
+            T.Sum<int>();
+            Debug.WriteLine("After compiled: " + sumMethod.MethodHandle.Value.ToString("X") + "|" + sumMethod.MethodHandle.GetFunctionPointer().ToString("X"));
+            Debugger.Break();
             MethodHelper.ForceRecompile(sumMethod);
+            Debug.WriteLine("After write: " + sumMethod.MethodHandle.Value.ToString("X") + "|" + sumMethod.MethodHandle.GetFunctionPointer().ToString("X"));
+            Debugger.Break();
             //Debug.WriteLine("After recompile: " + methodHandle.ToString("X") + "|" + pinter.ToString("X"));
             //Debugger.Break();
             //Sum();
-            classp.Sum();
+            T.Sum<int>();
             Console.WriteLine("Finished!");
         }
 
-        public static void Sum() { }
+        public static void Sum<T>() { }
     }
 
-    class T<U>
+    class T
     {
-        public void Sum() { }
+        public static void Sum<T>() { }
     }
 }

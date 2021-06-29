@@ -2,18 +2,25 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.InteropServices;
 using Jitex.JIT.Context;
 using Jitex.Tests.Helpers.Attributes;
 using Jitex.Tests.Helpers.Recompile;
 using Jitex.Utils;
 using Xunit;
+using Xunit.Abstractions;
+using static Jitex.Tests.LogOutput;
 
 namespace Jitex.Tests.Helpers
 {
+    #if NET5_0
     public class RecompileTests
     {
         private static IList<MethodBase> MethodsCompiled { get; } = new List<MethodBase>();
+
+        public RecompileTests(ITestOutputHelper output)
+        {
+            Output = output;
+        }
 
         static RecompileTests()
         {
@@ -46,7 +53,6 @@ namespace Jitex.Tests.Helpers
             method = method.MakeGenericMethod(type);
 
             NonGenericInstanceClass instance = new NonGenericInstanceClass();
-
             method.Invoke(instance, null);
 
             MethodHelper.ForceRecompile(method);
@@ -82,9 +88,6 @@ namespace Jitex.Tests.Helpers
         {
             MethodInfo method = Utils.GetMethod<NonGenericInstanceClass>(nameof(NonGenericInstanceClass.StaticGeneric));
             method = method.MakeGenericMethod(type);
-
-            var pointer = MethodHelper.GetOriginalMethod(method).MethodHandle.Value;
-                    
             method.Invoke(null, null);
 
             MethodHelper.ForceRecompile(method);
@@ -140,4 +143,5 @@ namespace Jitex.Tests.Helpers
                 MethodsCompiled.Add(context.Method);
         }
     }
+    #endif   
 }

@@ -1,22 +1,24 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using Jitex.JIT;
 using Jitex.Utils;
+using Jitex.Utils.Comparer;
 
 namespace Jitex.Runtime
 {
     internal static class RuntimeMethodCache
     {
-        private static readonly ConcurrentDictionary<IntPtr, MethodCompiled> CompiledMethods = new ConcurrentDictionary<IntPtr, MethodCompiled>();
+        private static readonly ConcurrentBag<MethodCompiled> CompiledMethods = new();
 
         internal static void AddMethod(MethodCompiled methodCompiled)
         {
-            CompiledMethods.TryAdd(methodCompiled.Handle, methodCompiled);
+            CompiledMethods.Add(methodCompiled);
         }
 
         public static async Task<NativeCode> GetNativeCodeAsync(MethodBase method)
@@ -32,7 +34,7 @@ namespace Jitex.Runtime
 
                 do
                 {
-                    Thread.Sleep(100);
+                    await Task.Delay(100);
                     methodCompiled = GetMethodCompiledInfo(method);
                 } while (methodCompiled == null);
             }
@@ -42,12 +44,7 @@ namespace Jitex.Runtime
 
         public static MethodCompiled? GetMethodCompiledInfo(MethodBase method)
         {
-            IntPtr methodHandle = MethodHelper.GetMethodHandle(method).Value;
-
-            if (CompiledMethods.TryGetValue(methodHandle, out MethodCompiled methodCompiled))
-                return methodCompiled;
-
-            return null;
+            return CompiledMethods.FirstOrDefault(w => MethodEqualityComparer.Instance.Equals(w.Method, method));
         }
     }
 }
