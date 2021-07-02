@@ -6,7 +6,7 @@ using Jitex.Utils.NativeAPI.POSIX;
 
 namespace Jitex.Utils
 {
-    internal static class Memory
+    internal static class Trampoline
     {
         private static readonly byte[] TrampolineInstruction =
         {
@@ -14,18 +14,6 @@ namespace Jitex.Utils
             0x48, 0xB8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             // jmp rax
             0xFF, 0xE0
-        };
-
-        private static readonly byte[] CallInstruction =
-        {
-            // mov rax, 0000000000000000h ; absolute address
-            0x48, 0xB8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            // call rax
-            0xFF, 0xD0,
-
-            //pop rsi
-            0x5E,
-            0XC3
         };
 
         public static int Size => TrampolineInstruction.Length;
@@ -40,15 +28,15 @@ namespace Jitex.Utils
 
         public static IntPtr AllocateTrampoline(IntPtr address)
         {
-            byte[] trampoline = GetTrampoline(address);
             IntPtr jmpNative;
 
             if (OSHelper.IsPosix)
-                jmpNative = Mman.mmap(trampoline.Length, MmapProts.PROT_EXEC | MmapProts.PROT_WRITE, MmapFlags.MAP_ANON | MmapFlags.MAP_SHARED);
+                jmpNative = Mman.mmap(TrampolineInstruction.Length, MmapProts.PROT_EXEC | MmapProts.PROT_WRITE, MmapFlags.MAP_ANON | MmapFlags.MAP_SHARED);
             else
-                jmpNative = Kernel32.VirtualAlloc(trampoline.Length, Kernel32.AllocationType.Commit, Kernel32.MemoryProtection.EXECUTE_READ_WRITE);
-            
-            Marshal.Copy(trampoline, 0, jmpNative, trampoline.Length);
+                jmpNative = Kernel32.VirtualAlloc(TrampolineInstruction.Length, Kernel32.AllocationType.Commit, Kernel32.MemoryProtection.EXECUTE_READ_WRITE);
+
+            Marshal.Copy(TrampolineInstruction, 0, jmpNative, TrampolineInstruction.Length);
+            Marshal.WriteIntPtr(jmpNative, 2, address);
             return jmpNative;
         }
 

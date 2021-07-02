@@ -33,10 +33,10 @@ namespace Jitex.Intercept
         {
         }
 
-        public void AddIntercept(InterceptContext interceptContext)
+        public void AddIntercept(InterceptContext detourContext)
         {
-            _interceptedMethods.Add(interceptContext);
-            EnableIntercept(interceptContext.MethodIntercepted);
+            _interceptedMethods.Add(detourContext);
+            EnableIntercept(detourContext.MethodIntercepted);
         }
 
         public void EnableIntercept(MethodBase method)
@@ -45,7 +45,7 @@ namespace Jitex.Intercept
 
             if (interceptContext == null) throw new InterceptNotFound(method);
 
-            interceptContext.Enable();
+            interceptContext.WriteDetour();
         }
 
         public void RemoveIntercept(MethodBase method)
@@ -54,7 +54,7 @@ namespace Jitex.Intercept
 
             if (interceptContext == null) throw new InterceptNotFound(method);
 
-            interceptContext.Disable();
+            interceptContext.RemoveDetour();
         }
 
         public InterceptContext? GetInterceptContext(MethodBase method)

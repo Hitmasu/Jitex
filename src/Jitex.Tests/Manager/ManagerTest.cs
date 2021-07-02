@@ -26,7 +26,7 @@ namespace Jitex.Tests.Manager
         {
             JitexManager.AddMethodResolver(MethodResolver);
             JitexManager.AddTokenResolver(TokenResolver);
-            Assert.True(JitexManager.IsEnabled, "Jitex is not enabled!");
+            Assert.True(JitexManager.IsLoaded, "Jitex not loaded!");
         }
 
         [Fact, Order(2)]
@@ -68,7 +68,7 @@ namespace Jitex.Tests.Manager
             LoadJitexTest();
             JitexManager.Remove();
 
-            Assert.False(JitexManager.IsEnabled, "Jitex still enabled!");
+            Assert.False(JitexManager.IsLoaded, "Jitex still loaded!");
         }
 
         [Fact, Order(4)]
@@ -96,31 +96,6 @@ namespace Jitex.Tests.Manager
             Assert.False(called, "Token resolver called!");
         }
 
-        [Fact, Order(6)]
-        public void DisableTest()
-        {
-            LoadJitexTest();
-            JitexManager.DisableJitex();
-
-            MethodInfo method = GetMethod<ManagerTest>(nameof(MethodToCompileOnDisabled));
-            MethodToCompileOnDisabled();
-            bool called = MethodsCompiled.Contains(method);
-            Assert.False(called, "Method resolver called!");
-        }
-
-        [Fact,Order(7)]
-        public void EnableTest()
-        {
-            LoadJitexTest();
-            JitexManager.DisableJitex();
-            JitexManager.EnableJitex();
-
-            MethodInfo method = GetMethod<ManagerTest>(nameof(MethodToCompileOnEnable));
-            MethodToCompileOnEnable();
-            bool called = MethodsCompiled.Contains(method);
-            Assert.True(called, "Method resolver not called!");
-        }
-
         private void MethodResolver(MethodContext context)
         {
             if (context.Method.Module == GetType().Module)
@@ -138,36 +113,45 @@ namespace Jitex.Tests.Manager
         /// Method just to call resolver.
         /// </summary>
         [MethodImpl(MethodImplOptions.NoInlining)]
-        public void MethodToCompileOnLoad(){}
+        public void MethodToCompileOnLoad()
+        {
+        }
 
         /// <summary>
         /// Method just to call resolver.
         /// </summary>
-        public void MethodToCompileOnRemove(){}
+        public void MethodToCompileOnRemove()
+        {
+        }
 
         /// <summary>
         /// Method just to call resolver.
         /// </summary>
-        public void TokenToCompileOnLoad(){}
+        public void TokenToCompileOnLoad()
+        {
+        }
 
         /// <summary>
         /// Method just to call resolver.
         /// </summary>
-        public void TokenToCompileOnRemove(){}
+        public void TokenToCompileOnRemove()
+        {
+        }
 
         /// <summary>
         /// Method just to call token.
         /// </summary>
-        public void MethodToCallTokenOnRemove() => TokenToCompileOnRemove();
+        public void MethodToCallTokenOnLoad()
+        {
+            TokenToCompileOnLoad();
+        }
 
         /// <summary>
-        /// Method just to call resolver.
+        /// Method just to call token.
         /// </summary>
-        public void MethodToCompileOnDisabled(){}
-
-        /// <summary>
-        /// Method just to call resolver.
-        /// </summary>
-        public void MethodToCompileOnEnable(){}
+        public void MethodToCallTokenOnRemove()
+        {
+            TokenToCompileOnRemove();
+        }
     }
 }
