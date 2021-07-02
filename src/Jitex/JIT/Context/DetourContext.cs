@@ -1,14 +1,12 @@
 ﻿using System;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using Jitex.Runtime;
 using Jitex.Utils;
 
 namespace Jitex.JIT.Context
 {
-    /// <summary>
-    /// Context of a detoured method.
-    /// </summary>
-    public class DetourContext
+    internal class DetourContext
     {
         /// <summary>
         /// Original Native Code
@@ -20,10 +18,8 @@ namespace Jitex.JIT.Context
         /// </summary>
         private readonly byte[] _trampolineCode;
 
-        /// <summary>
-        /// If context is already detoured.
-        /// </summary>
-        public bool IsEnabled {get; set; }
+
+        private bool _isDetoured;
 
         /// <summary>
         /// Address of Native Code
@@ -32,7 +28,7 @@ namespace Jitex.JIT.Context
 
         internal DetourContext(IntPtr address)
         {
-            _trampolineCode = Memory.GetTrampoline(address);
+            _trampolineCode = Trampoline.GetTrampoline(address);
         }
 
         internal DetourContext(MethodBase methodInterceptor) : this(MethodHelper.GetNativeCode(methodInterceptor).Address)
@@ -40,41 +36,28 @@ namespace Jitex.JIT.Context
 
         }
 
-        /// <summary>
-        /// Enable detour on method
-        /// </summary>
-        /// <returns>True if was success otherwise false if already enabled.</returns>
-        public bool Enable()
+        internal void WriteDetour()
         {
-            if (IsEnabled)
-                return false;
-
             if (_originalNativeCode == null)
             {
-                _originalNativeCode = new byte[Memory.Size];
+                _originalNativeCode = new byte[Trampoline.Size];
 
                 //Create backup of original instructions
-                Marshal.Copy(MethodAddress, _originalNativeCode, 0, Memory.Size);
+                Marshal.Copy(MethodAddress, _originalNativeCode, 0, Trampoline.Size);
             }
 
             //Write trampoline
             Marshal.Copy(_trampolineCode!, 0, MethodAddress, _trampolineCode!.Length);
-            IsEnabled = true;
-            return true;
+            _isDetoured = true;
         }
 
-        /// <summary>
-        /// Disable detour on method
-        /// </summary>
-        /// <returns>True if was success otherwise false if not enabled.</returns>
-        public bool Disable()
+        internal void RemoveDetour()
         {
-            if(!IsEnabled)
-                return false;
+            if (!_isDetoured)
+                throw new InvalidOperationException("Method was not detoured!");
 
             Marshal.Copy(_originalNativeCode!, 0, MethodAddress, _originalNativeCode!.Length);
-            IsEnabled = false;
-            return true;
+            _isDetoured = false;
         }
     }
 }
