@@ -26,8 +26,8 @@ namespace Jitex.Runtime
             
             if (!NativeCache.TryGetValue(methodHandle, out NativeCode nativeCode))
             {
-                if (!JitexManager.IsLoaded)
-                    throw new Exception("Jitex is not installed!");
+                if (!JitexManager.IsEnabled)
+                    throw new Exception("Jitex is not enabled!");
 
                 await RuntimeHelperExtension.InternalPrepareMethodAsync(method);
                 
