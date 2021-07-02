@@ -30,7 +30,17 @@ namespace Jitex
         /// <summary>
         /// Returns if Jitex is loaded on application. 
         /// </summary>
-        public static bool IsLoaded => _jit is {IsLoaded: true};
+        public static bool IsEnabled => _jit is {IsEnabled: true};
+
+        /// <summary>
+        /// Enable Jitex
+        /// </summary>
+        public static void EnableJitex() => Jit.Enable();
+        
+        /// <summary>
+        /// Disable Jitex
+        /// </summary>
+        public static void DisableJitex() => Jit.Disable();
 
         /// <summary>
         /// Load module on Jitex.

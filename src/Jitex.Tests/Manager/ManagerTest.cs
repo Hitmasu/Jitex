@@ -26,7 +26,7 @@ namespace Jitex.Tests.Manager
         {
             JitexManager.AddMethodResolver(MethodResolver);
             JitexManager.AddTokenResolver(TokenResolver);
-            Assert.True(JitexManager.IsLoaded, "Jitex not loaded!");
+            Assert.True(JitexManager.IsEnabled, "Jitex not loaded!");
         }
 
         [Fact, Order(2)]
@@ -68,7 +68,7 @@ namespace Jitex.Tests.Manager
             LoadJitexTest();
             JitexManager.Remove();
 
-            Assert.False(JitexManager.IsLoaded, "Jitex still loaded!");
+            Assert.False(JitexManager.IsEnabled, "Jitex still loaded!");
         }
 
         [Fact, Order(4)]

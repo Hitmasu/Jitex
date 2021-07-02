@@ -92,9 +92,7 @@ namespace Jitex.JIT
 
         private TokenResolverHandler? _tokenResolvers;
 
-        public bool IsLoaded => _instance != null;
-
-        private bool IsEnabled { get; set; }
+        public bool IsEnabled { get; set; }
 
         /// <summary>
         ///     Prepare custom JIT.
@@ -146,36 +144,41 @@ namespace Jitex.JIT
 
         #region Future Feature (Enable/Disable)
 
-        //
-        // /// <summary>
-        // /// Enable Jitex hooks
-        // /// </summary>
-        // internal void Enable()
-        // {
-        //     lock (JitLock)
-        //     {
-        //         _hookManager.InjectHook(_framework.ICorJitCompileVTable, _compileMethod);
-        //         _hookManager.InjectHook(CEEInfo.ResolveTokenIndex, _resolveToken);
-        //         _hookManager.InjectHook(CEEInfo.ConstructStringLiteralIndex, _constructStringLiteral);
-        //     }
-        //
-        //     IsEnabled = true;
-        // }
-        //
-        // /// <summary>
-        // /// Disable Jitex hooks
-        // /// </summary>
-        // internal void Disable()
-        // {
-        //     lock (JitLock)
-        //     {
-        //         _hookManager.RemoveHook(_resolveToken);
-        //         _hookManager.RemoveHook(_compileMethod);
-        //         _hookManager.RemoveHook(_constructStringLiteral);
-        //     }
-        //
-        //     IsEnabled = false;
-        // }
+        /// <summary>
+        /// Enable Jitex hooks
+        /// </summary>
+        internal void Enable()
+        {
+            lock (JitLock)
+            {
+                if (IsEnabled)
+                    return;
+
+                _hookManager.InjectHook(_framework.ICorJitCompileVTable, _compileMethod!);
+                _hookManager.InjectHook(CEEInfo.ResolveTokenIndex, _resolveToken!);
+                _hookManager.InjectHook(CEEInfo.ConstructStringLiteralIndex, _constructStringLiteral!);
+            }
+
+            IsEnabled = true;
+        }
+
+        /// <summary>
+        /// Disable Jitex hooks
+        /// </summary>
+        internal void Disable()
+        {
+            lock (JitLock)
+            {
+                if (!IsEnabled)
+                    return;
+
+                _hookManager.RemoveHook(_resolveToken!);
+                _hookManager.RemoveHook(_compileMethod!);
+                _hookManager.RemoveHook(_constructStringLiteral!);
+            }
+
+            IsEnabled = false;
+        }
 
         #endregion
 
@@ -191,7 +194,6 @@ namespace Jitex.JIT
         private CorJitResult CompileMethod(IntPtr thisPtr, IntPtr comp, IntPtr info, uint flags, out IntPtr nativeEntry, out int nativeSizeOfCode)
         {
             _compileTls ??= new CompileTls();
-
 
             if (thisPtr == default)
             {
@@ -292,10 +294,10 @@ namespace Jitex.JIT
                         methodInfo.ILCodeSize = (uint) ilLength;
                     }
                 }
-
+                   
                 CorJitResult result = _framework.CompileMethod(thisPtr, comp, info, flags, out nativeEntry, out nativeSizeOfCode);
 
-                MethodCompiled methodCompiled = new MethodCompiled(methodFound, thisPtr, comp, info, flags, nativeEntry, nativeSizeOfCode);
+                MethodCompiled methodCompiled = new MethodCompiled(methodFound, thisPtr, comp, methodInfo.MethodHandle, flags, nativeEntry, nativeSizeOfCode);
                 RuntimeMethodCache.AddMethod(methodCompiled);
 
                 if (ilAddress != IntPtr.Zero)
@@ -583,9 +585,10 @@ namespace Jitex.JIT
 
                 if (IsEnabled)
                 {
-                    _hookManager.RemoveHook(_resolveToken!);
-                    _hookManager.RemoveHook(_constructStringLiteral!);
-                    _hookManager.RemoveHook(_compileMethod!);
+                    // _hookManager.RemoveHook(_resolveToken!);
+                    // _hookManager.RemoveHook(_constructStringLiteral!);
+                    // _hookManager.RemoveHook(_compileMethod!);
+                    Disable();
                 }
 
                 _methodResolvers = null;
