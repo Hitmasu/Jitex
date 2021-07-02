@@ -1,11 +1,8 @@
-﻿using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
+﻿using System.Collections.Concurrent;
 using System.Linq;
 using System.Reflection;
-using System.Threading;
 using System.Threading.Tasks;
+using Jitex.Exceptions;
 using Jitex.JIT;
 using Jitex.Utils;
 using Jitex.Utils.Comparer;
@@ -30,6 +27,9 @@ namespace Jitex.Runtime
 
             if (methodCompiled == null)
             {
+                if (!JitexManager.IsEnabled)
+                    throw new JitexNotEnabledException("Jitex is not enabled!");
+
                 await RuntimeHelperExtension.InternalPrepareMethodAsync(method);
 
                 do
