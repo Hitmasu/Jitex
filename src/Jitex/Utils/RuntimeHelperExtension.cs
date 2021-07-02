@@ -2,7 +2,7 @@
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
-using static Jitex.Utils.Trampoline;
+using static Jitex.Utils.Memory;
 
 namespace Jitex.Utils
 {

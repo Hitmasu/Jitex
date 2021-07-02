@@ -4,12 +4,12 @@ using System.Text;
 
 namespace Jitex.Runtime
 {
-    internal class NativeCode
+    public class NativeCode
     {
-        public IntPtr Address { get; set; }
-        public int Size { get; set; }
+        public IntPtr Address { get; internal set; }
+        public int Size { get; internal set; }
 
-        public NativeCode(IntPtr address, int size)
+        internal NativeCode(IntPtr address, int size)
         {
             Address = address;
             Size = size;
