@@ -68,7 +68,7 @@ namespace Jitex.Intercept
             else
                 _hasReturn = false;
 
-            _hasCanon = TypeHelper.HasCanon(_method.DeclaringType) || MethodHelper.HasCannon(_method);
+            _hasCanon = TypeHelper.HasCanon(_method.DeclaringType) || MethodHelper.HasCanon(_method);
             _parameters = BuildParameterType().ToList();
         }
 

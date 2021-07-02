@@ -30,7 +30,7 @@ namespace Jitex.Utils
             if (!method.IsStatic)
                 parameters.Add(typeof(IntPtr));
 
-            if (MethodHelper.HasCannon(method) || TypeHelper.HasCanon(method.DeclaringType))
+            if (MethodHelper.HasCanon(method) || TypeHelper.HasCanon(method.DeclaringType))
                 parameters.Add(typeof(IntPtr));
 
             foreach (ParameterInfo parameter in method.GetParameters())
@@ -67,7 +67,7 @@ namespace Jitex.Utils
                 //that is a because EmitCalli with Any will raise a CLR Invalid Program on build dynamic method.
                 //TODO: Find a way to intercept.
                 if (!CanBuildStaticValueTask && method.IsStatic && returnType.IsValueTask())
-                    throw new InvalidMethodException("Method with signature Static and ValueTask can be only created on .NET Core 3.0 or above.");
+                    throw new UnsupportedFrameworkVersion("Method with signature Static and ValueTask can be only created on .NET Core 3.0 or above.");
 
                 if (returnType.IsValueTask() && !methodInfo.IsStatic || returnType.IsPrimitive)
                 {

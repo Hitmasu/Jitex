@@ -1,10 +1,11 @@
 ﻿using System;
-using System.Collections.Concurrent;
-using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
+using Jitex.Exceptions;
+using Jitex.Framework;
 using Jitex.Runtime;
 using Jitex.Utils.Extension;
 
@@ -12,98 +13,128 @@ namespace Jitex.Utils
 {
     public static class MethodHelper
     {
-        private static readonly ConstructorInfo CtorHandle;
-        private static readonly MethodInfo GetMethodBase;
+        private static readonly RuntimeFramework Framework = RuntimeFramework.GetFramework();
+        private static readonly bool CanRecompileMethod;
+
         private static readonly Type CanonType;
-        private static readonly MethodInfo? GetMethodDescriptorInfo;
-        private static readonly ConcurrentDictionary<IntPtr, MethodBase> HandleCache = new ConcurrentDictionary<IntPtr, MethodBase>();
+        private static readonly IntPtr PrecodeFixupThunkAddress;
+        private static readonly ConstructorInfo CtorRuntimeMethodHandeInternal;
+        private static readonly MethodInfo GetMethodBase;
+        private static readonly MethodInfo GetMethodDescriptorInfo;
+        private static readonly MethodInfo GetFunctionPointerInternal;
 
         static MethodHelper()
         {
+            Type runtimeMethodHandleInternalType = Type.GetType("System.RuntimeMethodHandleInternal")!;
+            Type runtimeType = Type.GetType("System.RuntimeType")!;
+
             CanonType = Type.GetType("System.__Canon")!;
 
-            Type? runtimeMethodHandleInternalType = Type.GetType("System.RuntimeMethodHandleInternal");
+            CtorRuntimeMethodHandeInternal = runtimeMethodHandleInternalType.GetConstructor(BindingFlags.NonPublic | BindingFlags.Instance, null, new[] { typeof(IntPtr) }, null)!;
 
-            if (runtimeMethodHandleInternalType == null)
-                throw new TypeLoadException("Type System.RuntimeMethodHandleInternal was not found!");
+            GetMethodBase = runtimeType.GetMethod("GetMethodBase", BindingFlags.NonPublic | BindingFlags.Static, null, new[] { runtimeType, runtimeMethodHandleInternalType }, null)!;
 
-            Type? runtimeType = Type.GetType("System.RuntimeType");
+            GetMethodDescriptorInfo = typeof(DynamicMethod).GetMethod("GetMethodDescriptor", BindingFlags.NonPublic | BindingFlags.Instance)!;
 
-            if (runtimeType == null)
-                throw new TypeLoadException("Type System.RuntimeType was not found!");
+            GetFunctionPointerInternal = typeof(RuntimeMethodHandle).GetMethod("GetFunctionPointer", BindingFlags.Static | BindingFlags.NonPublic)!;
 
-            CtorHandle = runtimeMethodHandleInternalType.GetConstructor(BindingFlags.NonPublic | BindingFlags.Instance, null, new[] { typeof(IntPtr) }, null)
-                         ?? throw new MethodAccessException("Constructor from RuntimeMethodHandleInternal was not found!");
+            PrecodeFixupThunkAddress = GetPrecodeFixupThunkAddress();
 
-            GetMethodBase = runtimeType
-                                .GetMethod("GetMethodBase", BindingFlags.NonPublic | BindingFlags.Static, null, CallingConventions.Any, new[] { runtimeType, runtimeMethodHandleInternalType }, null)
-                            ?? throw new MethodAccessException("Method GetMethodBase from RuntimeType was not found!");
-
-            GetMethodDescriptorInfo = typeof(DynamicMethod).GetMethod("GetMethodDescriptor", BindingFlags.NonPublic | BindingFlags.Instance);
+            CanRecompileMethod = Framework.FrameworkVersion >= new Version(5, 0, 0);
         }
 
-        private static object? GetRuntimeMethodHandle(IntPtr methodHandle)
+        private static IntPtr GetPrecodeFixupThunkAddress()
         {
-            return CtorHandle!.Invoke(new object?[] { methodHandle });
+            MethodInfo methodStub = typeof(MethodHelper).GetMethod("MethodToNeverBeCalled", BindingFlags.Static | BindingFlags.NonPublic)!;
+            IntPtr functionPointer = methodStub.MethodHandle.GetFunctionPointer();
+            int jmpSize = Marshal.ReadInt32(functionPointer, 1);
+
+            return functionPointer + jmpSize + 5;
         }
 
-        internal static MethodInfo GetBaseMethodGeneric(MethodInfo method)
+        private static object? GetRuntimeMethodHandleInternal(IntPtr methodHandle)
         {
-            bool hasCanon = false;
+            return CtorRuntimeMethodHandeInternal!.Invoke(new object?[] { methodHandle });
+        }
 
-            Type originalType = method.DeclaringType;
+        internal static MethodBase GetBaseMethodGeneric(MethodBase method)
+        {
+            MethodBase originalMethod = method;
+            bool methodHasCanon = HasCanon(method, false);
+            bool typeHasCanon = TypeHelper.HasCanon(method.DeclaringType);
 
+            if (methodHasCanon || (typeHasCanon && (method.IsGenericMethod || method.IsStatic)))
+            {
+                IntPtr methodHandle = GetDirectMethodHandle(method);
+                originalMethod = GetMethodFromHandle(methodHandle)!;
+            }
+            else if (typeHasCanon)
+            {
+                Type typeCanon = TypeHelper.GetBaseTypeGeneric(method.DeclaringType!);
+                originalMethod = MethodBase.GetMethodFromHandle(method.MethodHandle, typeCanon.TypeHandle);
+            }
+
+            return originalMethod;
+        }
+
+        public static MethodBase GetOriginalMethod(MethodBase method)
+        {
+            return GetBaseMethodGeneric(method);
+        }
+
+        internal static bool IsGenericInitialized(MethodBase method)
+        {
             if (method.DeclaringType is { IsGenericType: true })
             {
-                Type[]? genericTypeArguments = method.DeclaringType.GetGenericArguments();
-
-                if (ReadGenericTypes(ref genericTypeArguments))
-                    hasCanon = true;
-
-                originalType = originalType.GetGenericTypeDefinition().MakeGenericType(genericTypeArguments);
+                foreach (Type type in method.DeclaringType.GetGenericArguments())
+                {
+                    if (type.IsGenericParameter)
+                        return false;
+                }
             }
 
             if (method.IsGenericMethod)
             {
-                Type[]? genericMethodArguments = method.GetGenericArguments();
-                if (ReadGenericTypes(ref genericMethodArguments))
-                    hasCanon = true;
+                MethodInfo methodInfo = (MethodInfo)method;
 
-                method = method.GetGenericMethodDefinition().MakeGenericMethod(genericMethodArguments);
+                foreach (Type type in methodInfo.GetGenericArguments())
+                {
+                    if (type.IsGenericParameter)
+                        return false;
+                }
             }
 
-            if (!hasCanon)
-                return method;
+            return true;
+        }
 
-            return (MethodInfo)MethodBase.GetMethodFromHandle(method.MethodHandle, originalType.TypeHandle);
+        internal static bool HasCanon(MethodBase method, bool checkDeclaredType = true, bool ignoreCanonType = false)
+        {
+            bool hasCanon = false;
 
-            static bool ReadGenericTypes(ref Type[] types)
+            if (method is MethodInfo { IsGenericMethod: true } methodInfo)
             {
-                bool hasCanon = false;
+                Type[] types = method.GetGenericArguments();
 
-                for (int i = 0; i < types.Length; i++)
+                foreach (Type type in types)
                 {
-                    Type type = types[i];
+                    if (ignoreCanonType && type == CanonType)
+                        continue;
 
                     if (type.IsCanon())
                     {
-                        types[i] = CanonType;
                         hasCanon = true;
+                        break;
                     }
                 }
 
-                return hasCanon;
             }
+
+            if (!hasCanon && checkDeclaredType && method.DeclaringType != null)
+                hasCanon = TypeHelper.HasCanon(method.DeclaringType);
+
+            return hasCanon;
         }
 
-        internal static bool HasCannon(MethodBase method)
-        {
-            if (method is MethodInfo { IsGenericMethod: true } methodInfo)
-                return methodInfo.GetGenericArguments().Any(w => w.IsCanon());
-
-            return false;
-        }
-        
         /// <summary>
         /// Get handle from a method.
         /// </summary>
@@ -111,10 +142,33 @@ namespace Jitex.Utils
         /// <returns>Handle from method.</returns>
         public static RuntimeMethodHandle GetMethodHandle(MethodBase method)
         {
+            if (method == null) throw new ArgumentNullException(nameof(method));
+
             if (method is DynamicMethod)
                 return (RuntimeMethodHandle)GetMethodDescriptorInfo.Invoke(method, null);
 
             return method.MethodHandle;
+        }
+
+        public static IntPtr GetFunctionPointer(IntPtr methodHandle)
+        {
+            object handle = GetRuntimeMethodHandleInternal(methodHandle);
+            return (IntPtr)GetFunctionPointerInternal.Invoke(null, new[] { handle });
+        }
+
+        private static IntPtr GetDirectMethodHandle(MethodBase method)
+        {
+            bool methodHasCanon = HasCanon(method, false, true);
+            bool typeHasCanon = TypeHelper.HasCanon(method.DeclaringType, true);
+
+            IntPtr methodHandle = method.MethodHandle.Value;
+
+            if (CanRecompileMethod && (methodHasCanon || typeHasCanon && (method.IsGenericMethod || method.IsStatic)))
+                methodHandle = Marshal.ReadIntPtr(methodHandle, IntPtr.Size);
+            else
+                methodHandle = GetMethodHandle(method).Value;
+
+            return methodHandle;
         }
 
         /// <summary>
@@ -124,15 +178,8 @@ namespace Jitex.Utils
         /// <returns>Method from handle.</returns>
         public static MethodBase? GetMethodFromHandle(IntPtr methodHandle)
         {
-            if (HandleCache.TryGetValue(methodHandle, out MethodBase? method))
-                return method;
-
-            object? handle = GetRuntimeMethodHandle(methodHandle);
-            method = GetMethodBase.Invoke(null, new[] { null, handle }) as MethodBase;
-
-            if (method != null)
-                HandleCache.TryAdd(methodHandle, method);
-
+            object? handle = GetRuntimeMethodHandleInternal(methodHandle);
+            MethodBase? method = GetMethodBase.Invoke(null, new[] { null, handle }) as MethodBase;
             return method;
         }
 
@@ -155,19 +202,119 @@ namespace Jitex.Utils
             return MethodBase.GetMethodFromHandle(handle, type.TypeHandle);
         }
 
-        internal static NativeCode GetNativeCode(MethodBase method) => RuntimeMethodCache.GetNativeCodeAsync(method).GetAwaiter().GetResult();
-        
+        internal static NativeCode GetNativeCode(MethodBase method) => GetNativeCodeAsync(method).GetAwaiter().GetResult();
+
         /// <summary>
-        /// Get native code info from a method.
+        /// Get native code from a method.
         /// </summary>
-        /// <param name="method"></param>
+        /// <param name="method">Method to get native code.</param>
         /// <returns>Native code info from method.</returns>
-        public static Task<NativeCode> GetNativeCodeAsync(MethodBase method) => RuntimeMethodCache.GetNativeCodeAsync(method);
+        public static Task<NativeCode> GetNativeCodeAsync(MethodBase method)
+        {
+            if (method == null) throw new ArgumentNullException(nameof(method));
+
+            return RuntimeMethodCache.GetNativeCodeAsync(method);
+        }
+
+        /// <summary>
+        /// Returns if method is already compiled.
+        /// </summary>
+        /// <param name="method">Method to get status.</param>
+        /// <returns>Returns true if method is compiled, otherwise returns false.</returns>
+        public static bool IsCompiled(MethodBase method)
+        {
+            if (method == null) throw new ArgumentNullException(nameof(method));
+
+            method = GetOriginalMethod(method);
+            IntPtr methodHandle = GetDirectMethodHandle(method);
+            int offset = GetHandleOffset(method);
+            return Marshal.ReadIntPtr(methodHandle, IntPtr.Size * offset) != IntPtr.Zero;
+        }
+
+        /// <summary>
+        /// Return is method can be resolved
+        /// </summary>
+        /// <param name="method">Method to check</param>
+        /// <returns>Returns true if method is resolvable, otherwise returns false.</returns>
+        public static bool IsResolvable(MethodBase method)
+        {
+            if (method == null) throw new ArgumentNullException(nameof(method));
+
+            CheckIfGenericIsInitialized(method);
+
+            method = GetOriginalMethod(method);
+
+            if (!IsCompiled(method))
+                return true;
+
+            return RuntimeMethodCache.GetMethodCompiledInfo(method) != null;
+        }
+
+        /// <summary>
+        /// Set state method to be compiled
+        /// </summary>
+        /// <param name="method">Method to be compiled.</param>
+        public static void ForceRecompile(MethodBase method)
+        {
+            if (!CanRecompileMethod) throw new UnsupportedFrameworkVersion("Recompile method is only supported on .NET 5 or above.");
+            if (method == null) throw new ArgumentNullException(nameof(method));
+
+            CheckIfGenericIsInitialized(method);
+
+            SetMethodToPrecodeFixup(method);
+        }
+
+        internal static void SetMethodToPrecodeFixup(MethodBase method)
+        {
+            IntPtr methodHandle = GetDirectMethodHandle(method);
+            IntPtr functionPointer = GetFunctionPointer(methodHandle);
+            int jmpSize = (int)(PrecodeFixupThunkAddress.ToInt64() - functionPointer.ToInt64() - 5);
+            int offset = GetHandleOffset(method);
+
+            Marshal.WriteIntPtr(methodHandle, IntPtr.Size * offset, IntPtr.Zero);
+
+            Marshal.WriteByte(functionPointer, 0xE8); //call instruction
+            Marshal.WriteByte(functionPointer, 5, 0x5E); //pop instruction
+            Marshal.WriteInt32(functionPointer, 1, jmpSize);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int GetHandleOffset(MethodBase method)
+        {
+            if (TypeHelper.IsGeneric(method.DeclaringType) && !method.IsGenericMethod)
+                return 1;
+
+            if (method.IsGenericMethod)
+                return 5;
+
+            return 2;
+        }
 
         internal static void PrepareMethod(MethodBase method)
         {
             RuntimeMethodHandle handle = GetMethodHandle(method);
             RuntimeHelpers.PrepareMethod(handle);
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
+        [Obsolete("This method shouldn't be called!")]
+        private static void MethodToNeverBeCalled()
+        {
+            throw new NotImplementedException("This method shouldn't be called!");
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void CheckIfGenericIsInitialized(MethodBase method)
+        {
+            if (!IsGenericInitialized(method))
+            {
+                MethodInfo methodInfo = (MethodInfo)method;
+
+                if (method == methodInfo.GetGenericMethodDefinition())
+                    throw new ArgumentException("Generic methods cannot be recompiled by generic method definition.\n" +
+                                                "It's necessary substitute generic parameters types from generic definition: "
+                                                + method);
+            }
         }
     }
 }

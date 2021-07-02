@@ -203,7 +203,6 @@ namespace Jitex.JIT
         {
             _compileTls ??= new CompileTls();
 
-
             if (thisPtr == default)
             {
                 nativeEntry = IntPtr.Zero;
@@ -303,7 +302,7 @@ namespace Jitex.JIT
                         methodInfo.ILCodeSize = (uint)ilLength;
                     }
                 }
-
+                   
                 CorJitResult result = _framework.CompileMethod(thisPtr, comp, info, flags, out nativeEntry, out nativeSizeOfCode);
 
                 MethodCompiled methodCompiled = new MethodCompiled(methodFound, thisPtr, comp, methodInfo.MethodHandle, flags, nativeEntry, nativeSizeOfCode);
