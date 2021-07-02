@@ -156,7 +156,7 @@ namespace Jitex.Utils
             return (IntPtr)GetFunctionPointerInternal.Invoke(null, new[] { handle });
         }
 
-        public static IntPtr GetDirectMethodHandle(MethodBase method)
+        private static IntPtr GetDirectMethodHandle(MethodBase method)
         {
             bool methodHasCanon = HasCanon(method, false, true);
             bool typeHasCanon = TypeHelper.HasCanon(method.DeclaringType, true);
@@ -205,9 +205,9 @@ namespace Jitex.Utils
         internal static NativeCode GetNativeCode(MethodBase method) => GetNativeCodeAsync(method).GetAwaiter().GetResult();
 
         /// <summary>
-        /// Get native code info from a method.
+        /// Get native code from a method.
         /// </summary>
-        /// <param name="method"></param>
+        /// <param name="method">Method to get native code.</param>
         /// <returns>Native code info from method.</returns>
         public static Task<NativeCode> GetNativeCodeAsync(MethodBase method)
         {
@@ -231,9 +231,16 @@ namespace Jitex.Utils
             return Marshal.ReadIntPtr(methodHandle, IntPtr.Size * offset) != IntPtr.Zero;
         }
 
+        /// <summary>
+        /// Return is method can be resolved
+        /// </summary>
+        /// <param name="method">Method to check</param>
+        /// <returns>Returns true if method is resolvable, otherwise returns false.</returns>
         public static bool IsResolvable(MethodBase method)
         {
             if (method == null) throw new ArgumentNullException(nameof(method));
+
+            CheckIfGenericIsInitialized(method);
 
             method = GetOriginalMethod(method);
 
@@ -243,20 +250,16 @@ namespace Jitex.Utils
             return RuntimeMethodCache.GetMethodCompiledInfo(method) != null;
         }
 
+        /// <summary>
+        /// Set state method to be compiled
+        /// </summary>
+        /// <param name="method">Method to be compiled.</param>
         public static void ForceRecompile(MethodBase method)
         {
             if (!CanRecompileMethod) throw new UnsupportedFrameworkVersion("Recompile method is only supported on .NET 5 or above.");
             if (method == null) throw new ArgumentNullException(nameof(method));
 
-            if (!IsGenericInitialized(method))
-            {
-                MethodInfo methodInfo = (MethodInfo)method;
-
-                if (method == methodInfo.GetGenericMethodDefinition())
-                    throw new ArgumentException("Generic methods cannot be recompiled by generic method definition.\n" +
-                                                "It's necessary substitute generic parameters types from generic definition: "
-                                                + method);
-            }
+            CheckIfGenericIsInitialized(method);
 
             SetMethodToPrecodeFixup(method);
         }
@@ -298,6 +301,20 @@ namespace Jitex.Utils
         private static void MethodToNeverBeCalled()
         {
             throw new NotImplementedException("This method shouldn't be called!");
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void CheckIfGenericIsInitialized(MethodBase method)
+        {
+            if (!IsGenericInitialized(method))
+            {
+                MethodInfo methodInfo = (MethodInfo)method;
+
+                if (method == methodInfo.GetGenericMethodDefinition())
+                    throw new ArgumentException("Generic methods cannot be recompiled by generic method definition.\n" +
+                                                "It's necessary substitute generic parameters types from generic definition: "
+                                                + method);
+            }
         }
     }
 }
