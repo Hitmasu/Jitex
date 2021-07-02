@@ -148,7 +148,12 @@ namespace Jitex
         public static void AddInterceptor(InterceptHandler.InterceptorHandler interceptorCallAsync)
         {
             lock (CallInterceptorLock)
+            {
                 InterceptManager.AddInterceptorCall(interceptorCallAsync);
+
+                if(!IsEnabled)
+                    EnableJitex();
+            }
         }
 
         public static void RemoveInterceptor(InterceptHandler.InterceptorHandler interceptorCall)
@@ -182,7 +187,12 @@ namespace Jitex
         public static void AddMethodResolver(JitexHandler.MethodResolverHandler methodResolver)
         {
             lock (MethodResolverLock)
+            {
                 Jit.AddMethodResolver(methodResolver);
+
+                if(!IsEnabled)
+                    EnableJitex();
+            }
         }
 
         /// <summary>
@@ -192,7 +202,12 @@ namespace Jitex
         public static void AddTokenResolver(JitexHandler.TokenResolverHandler tokenResolver)
         {
             lock (TokenResolverLock)
+            {
                 Jit.AddTokenResolver(tokenResolver);
+
+                if(!IsEnabled)
+                    EnableJitex();
+            }
         }
 
         /// <summary>
