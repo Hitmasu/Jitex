@@ -28,7 +28,7 @@ namespace Jitex
         private static IDictionary<Type, JitexModule> ModulesLoaded { get; } = new Dictionary<Type, JitexModule>(TypeEqualityComparer.Instance);
 
         /// <summary>
-        /// Returns if Jitex is loaded on application. 
+        /// Returns if Jitex is enabled. 
         /// </summary>
         public static bool IsEnabled => _jit is {IsEnabled: true};
 
@@ -145,6 +145,10 @@ namespace Jitex
             return ModulesLoaded.TryGetValue(typeModule, out JitexModule module) && module.IsLoaded;
         }
 
+        /// <summary>
+        /// Add a new interceptor.
+        /// </summary>
+        /// <param name="interceptorCallAsync">Interceptor to call.</param>
         public static void AddInterceptor(InterceptHandler.InterceptorHandler interceptorCallAsync)
         {
             lock (CallInterceptorLock)
@@ -156,24 +160,41 @@ namespace Jitex
             }
         }
 
+        /// <summary>
+        /// Remove a interceptor.
+        /// </summary>
+        /// <param name="interceptorCall">Interceptor to remove.</param>
         public static void RemoveInterceptor(InterceptHandler.InterceptorHandler interceptorCall)
         {
             lock (CallInterceptorLock)
                 InterceptManager.RemoveInterceptorCall(interceptorCall);
         }
 
+        /// <summary>
+        /// Check if interceptor is loaded.
+        /// </summary>
+        /// <param name="interceptorCall">Intercept to check.</param>
+        /// <returns>Returns true if loaded, otherwise returns false.</returns>
         public static bool HasInterceptor(InterceptHandler.InterceptorHandler interceptorCall)
         {
             lock (CallInterceptorLock)
                 return InterceptManager.HasInteceptorCall(interceptorCall);
         }
 
+        /// <summary>
+        /// Enable intercept call on method (Only if intercept was disabled).
+        /// </summary>
+        /// <param name="method">Method to enable intercept call.</param>
         public static void EnableIntercept(System.Reflection.MethodBase method)
         {
             lock (CallInterceptorLock)
                 InterceptManager.EnableIntercept(method);
         }
 
+        /// <summary>
+        /// Disable intercept call on method.
+        /// </summary>
+        /// <param name="method">Method to disable intercept call.</param>
         public static void DisableIntercept(System.Reflection.MethodBase method)
         {
             lock (CallInterceptorLock)

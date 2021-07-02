@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using Jitex.Intercept;
 using Jitex.Runtime;
+using Jitex.Utils;
 using MethodBody = Jitex.Builder.Method.MethodBody;
 
 namespace Jitex.JIT.Context
@@ -183,19 +184,17 @@ namespace Jitex.JIT.Context
             return DetourContext;
         }
 
-        ///// <summary>
-        ///// Resolve native entry method.
-        ///// </summary>
-        ///// <param name="address">Address to native code.</param>
-        ///// <param name="size">Size of native code.</param>
-        //public void ResolveEntry(IntPtr address, int size = 0) => ResolveEntry(new NativeCode(address, size));
-
-        //internal void ResolveEntry(NativeCode nativeCode)
-        //{
-        //    EntryContext = nativeCode;
-        //    IsResolved = true;
-        //    Mode = ResolveMode.Entry;
-        //}
+        /// <summary>
+        /// Resolve method by entry.
+        /// </summary>
+        /// <param name="entryMethod">New entry method.</param>
+        public void ResolveEntry(MethodBase entryMethod)
+        {
+            NativeCode nativeCode = MethodHelper.GetNativeCode(entryMethod);
+            EntryContext = nativeCode;
+            IsResolved = true;
+            Mode = ResolveMode.Entry;
+        }
 
         /// <summary>
         /// Intercept calls from method.
