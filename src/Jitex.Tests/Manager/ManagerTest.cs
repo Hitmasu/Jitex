@@ -143,31 +143,37 @@ namespace Jitex.Tests.Manager
         /// <summary>
         /// Method just to call resolver.
         /// </summary>
+        [MethodImpl(MethodImplOptions.NoInlining)]
         public void MethodToCompileOnRemove(){}
 
         /// <summary>
         /// Method just to call resolver.
         /// </summary>
+        [MethodImpl(MethodImplOptions.NoInlining)]
         public void TokenToCompileOnLoad(){}
 
         /// <summary>
         /// Method just to call resolver.
         /// </summary>
+        [MethodImpl(MethodImplOptions.NoInlining)]
         public void TokenToCompileOnRemove(){}
 
         /// <summary>
         /// Method just to call token.
         /// </summary>
+        [MethodImpl(MethodImplOptions.NoInlining)]
         public void MethodToCallTokenOnRemove() => TokenToCompileOnRemove();
 
         /// <summary>
         /// Method just to call resolver.
         /// </summary>
+        [MethodImpl(MethodImplOptions.NoInlining)]
         public void MethodToCompileOnDisabled(){}
 
         /// <summary>
         /// Method just to call resolver.
         /// </summary>
+        [MethodImpl(MethodImplOptions.NoInlining)]
         public void MethodToCompileOnEnable(){}
     }
 }

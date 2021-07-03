@@ -30,11 +30,11 @@ namespace Jitex.Runtime
                 if (!JitexManager.IsEnabled)
                     throw new JitexNotEnabledException("Jitex is not enabled!");
 
-                await RuntimeHelperExtension.InternalPrepareMethodAsync(method);
+                await RuntimeHelperExtension.InternalPrepareMethodAsync(method).ConfigureAwait(false);
 
                 do
                 {
-                    await Task.Delay(100);
+                    await Task.Delay(100).ConfigureAwait(false);
                     methodCompiled = GetMethodCompiledInfo(method);
                 } while (methodCompiled == null);
             }
