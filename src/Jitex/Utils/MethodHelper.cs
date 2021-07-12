@@ -22,6 +22,7 @@ namespace Jitex.Utils
         private static readonly MethodInfo GetMethodBase;
         private static readonly MethodInfo GetMethodDescriptorInfo;
         private static readonly MethodInfo GetFunctionPointerInternal;
+        private static readonly MethodInfo _CompileMethod;
 
         static MethodHelper()
         {
@@ -41,6 +42,8 @@ namespace Jitex.Utils
             PrecodeFixupThunkAddress = GetPrecodeFixupThunkAddress();
 
             CanRecompileMethod = Framework.FrameworkVersion >= new Version(5, 0, 0);
+
+            _CompileMethod = typeof(RuntimeHelpers).GetMethod("_CompileMethod", BindingFlags.Static | BindingFlags.NonPublic);
         }
 
         private static IntPtr GetPrecodeFixupThunkAddress()
@@ -288,6 +291,12 @@ namespace Jitex.Utils
                 return 5;
 
             return 2;
+        }
+
+        public static void CompileMethod(MethodBase method)
+        {
+            object handle = GetRuntimeMethodHandleInternal(method.MethodHandle.Value);
+            _CompileMethod.Invoke(null, new[] {handle});
         }
 
         internal static void PrepareMethod(MethodBase method)
