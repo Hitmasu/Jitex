@@ -3,7 +3,6 @@ using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Threading.Tasks;
 using Jitex.Exceptions;
 using Jitex.Framework;
 using Jitex.Runtime;
@@ -22,7 +21,6 @@ namespace Jitex.Utils
         private static readonly MethodInfo GetMethodBase;
         private static readonly MethodInfo GetMethodDescriptorInfo;
         private static readonly MethodInfo GetFunctionPointerInternal;
-        private static readonly MethodInfo _CompileMethod;
 
         static MethodHelper()
         {
@@ -42,8 +40,6 @@ namespace Jitex.Utils
             PrecodeFixupThunkAddress = GetPrecodeFixupThunkAddress();
 
             CanRecompileMethod = Framework.FrameworkVersion >= new Version(5, 0, 0);
-
-            _CompileMethod = typeof(RuntimeHelpers).GetMethod("_CompileMethod", BindingFlags.Static | BindingFlags.NonPublic);
         }
 
         private static IntPtr GetPrecodeFixupThunkAddress()
@@ -205,19 +201,37 @@ namespace Jitex.Utils
             return MethodBase.GetMethodFromHandle(handle, type.TypeHandle);
         }
 
-        internal static NativeCode GetNativeCode(MethodBase method) => GetNativeCodeAsync(method).GetAwaiter().GetResult();
-
-        /// <summary>
-        /// Get native code from a method.
-        /// </summary>
-        /// <param name="method">Method to get native code.</param>
-        /// <returns>Native code info from method.</returns>
-        public static Task<NativeCode> GetNativeCodeAsync(MethodBase method)
+        public static IntPtr GetNativeAddress(MethodBase method)
         {
-            if (method == null) throw new ArgumentNullException(nameof(method));
+            RuntimeMethodHandle handle = GetMethodHandle(method);
+            RuntimeHelpers.PrepareMethod(handle);
 
-            return RuntimeMethodCache.GetNativeCodeAsync(method);
+            IntPtr functionPointer = handle.GetFunctionPointer();
+
+            byte opCode = MemoryHelper.Read<byte>(functionPointer, 0);
+            
+            if (opCode == 0xE9)
+            {
+                int jmpSize = MemoryHelper.Read<int>(functionPointer, 1);
+                return functionPointer + jmpSize + 5;
+            }
+
+            return functionPointer;
         }
+
+        //internal static NativeCode GetNativeCode(MethodBase method, CancellationToken cancellationToken) => GetNativeCodeAsync(method, cancellationToken).GetAwaiter().GetResult();
+
+        ///// <summary>
+        ///// Get native code from a method.
+        ///// </summary>
+        ///// <param name="method">Method to get native code.</param>
+        ///// <returns>Native code info from method.</returns>
+        //public static Task<NativeCode> GetNativeCodeAsync(MethodBase method, CancellationToken cancellationToken)
+        //{
+        //    if (method == null) throw new ArgumentNullException(nameof(method));
+
+        //    return RuntimeMethodCache.GetNativeCodeAsync(method, cancellationToken);
+        //}
 
         /// <summary>
         /// Returns if method is already compiled.
@@ -293,12 +307,6 @@ namespace Jitex.Utils
             return 2;
         }
 
-        public static void CompileMethod(MethodBase method)
-        {
-            object handle = GetRuntimeMethodHandleInternal(method.MethodHandle.Value);
-            _CompileMethod.Invoke(null, new[] {handle});
-        }
-
         internal static void PrepareMethod(MethodBase method)
         {
             RuntimeMethodHandle handle = GetMethodHandle(method);
@@ -325,5 +333,13 @@ namespace Jitex.Utils
                                                 + method);
             }
         }
+
+        /// <summary>
+        /// Get RID from a method.
+        /// </summary>
+        /// <param name="method">Method to get RID.</param>
+        /// <returns>RID from method.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int GetRID(MethodBase method) => method.MetadataToken & 0x00FFFFFF;
     }
 }

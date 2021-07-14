@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
 using Jitex.Intercept;
 using Jitex.Runtime;
 using Jitex.Utils;
@@ -190,8 +191,31 @@ namespace Jitex.JIT.Context
         /// <param name="entryMethod">New entry method.</param>
         public void ResolveEntry(MethodBase entryMethod)
         {
-            NativeCode nativeCode = MethodHelper.GetNativeCode(entryMethod);
+            CancellationTokenSource source = new CancellationTokenSource(TimeSpan.FromSeconds(1));
+            NativeCode nativeCode;
+
+            try
+            {
+                nativeCode = RuntimeMethodCache.GetNativeCodeAsync(entryMethod, source.Token).GetAwaiter().GetResult();
+            }
+            catch (OperationCanceledException)
+            {
+                IntPtr address = MethodHelper.GetNativeAddress(entryMethod);
+                nativeCode = new NativeCode(address, 0);
+            }
+
             EntryContext = nativeCode;
+            IsResolved = true;
+            Mode = ResolveMode.Entry;
+        }
+
+        /// <summary>
+        /// Resolve method by entry.
+        /// </summary>
+        /// <param name="entryMethod">New entry method.</param>
+        public void ResolveEntry(IntPtr entryMethod)
+        {
+            EntryContext = new NativeCode(entryMethod, 10);
             IsResolved = true;
             Mode = ResolveMode.Entry;
         }

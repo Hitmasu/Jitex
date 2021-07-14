@@ -2,7 +2,7 @@
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
-using static Jitex.Utils.Memory;
+using static Jitex.Utils.MemoryHelper;
 
 namespace Jitex.Utils
 {

@@ -1,6 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
 using Jitex.Exceptions;
 using Jitex.JIT;
@@ -18,7 +19,7 @@ namespace Jitex.Runtime
             CompiledMethods.Add(methodCompiled);
         }
 
-        public static async Task<NativeCode> GetNativeCodeAsync(MethodBase method)
+        public static async Task<NativeCode> GetNativeCodeAsync(MethodBase method, CancellationToken cancellationToken)
         {
             if (MethodHelper.HasCanon(method))
                 method = MethodHelper.GetBaseMethodGeneric(method);
@@ -30,13 +31,13 @@ namespace Jitex.Runtime
                 if (!JitexManager.IsEnabled)
                     throw new JitexNotEnabledException("Jitex is not enabled!");
 
-                MethodHelper.PrepareMethod(method);
-                //await RuntimeHelperExtension.InternalPrepareMethodAsync(method).ConfigureAwait(false);
+                await RuntimeHelperExtension.InternalPrepareMethodAsync(method).ConfigureAwait(false);
 
                 do
                 {
-                    await Task.Delay(100).ConfigureAwait(false);
+                    await Task.Delay(100, cancellationToken).ConfigureAwait(false);
                     methodCompiled = GetMethodCompiledInfo(method);
+                    cancellationToken.ThrowIfCancellationRequested();
                 } while (methodCompiled == null);
             }
 

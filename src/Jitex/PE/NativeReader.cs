@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Jitex.JIT.CorInfo;
 using Jitex.Utils;
+using Jitex.Utils.Extension;
 using Jitex.Utils.NativeAPI.Windows;
 
 namespace Jitex.PE
@@ -19,6 +20,7 @@ namespace Jitex.PE
         private int _entryIndexSize;
         private int _nElements;
         private int _baseOffset;
+        private const uint BlockSize = 16;
 
         private protected ImageInfo Image { get; }
 
@@ -113,7 +115,7 @@ namespace Jitex.PE
                 if (offset + 1 >= _size)
                     throw new BadImageFormatException();
                 *pValue = ((val >> 2) |
-                                  (((uint)*(byte*)(_base + offset + 1)) << 6));
+                                  ((uint)*(byte*)(_base + offset + 1) << 6));
                 offset += 2;
             }
             else
@@ -122,8 +124,8 @@ namespace Jitex.PE
                 if (offset + 2 >= _size)
                     throw new BadImageFormatException();
                 *pValue = (val >> 3) |
-                          (((uint)*(byte*)(_base + offset + 1)) << 5) |
-                          (((uint)*(byte*)(_base + offset + 2)) << 13);
+                          ((uint)*(byte*)(_base + offset + 1) << 5) |
+                          ((uint)*(byte*)(_base + offset + 2) << 13);
                 offset += 3;
             }
             else
@@ -132,15 +134,15 @@ namespace Jitex.PE
                 if (offset + 3 >= _size)
                     throw new BadImageFormatException();
                 *pValue = (val >> 4) |
-                          (((uint)(byte*)(_base + offset + 1)) << 4) |
-                          (((uint)(byte*)(_base + offset + 2)) << 12) |
-                          (((uint)(byte*)(_base + offset + 3)) << 20);
+                          ((uint)(byte*)(_base + offset + 1) << 4) |
+                          ((uint)(byte*)(_base + offset + 2) << 12) |
+                          ((uint)(byte*)(_base + offset + 3) << 20);
                 offset += 4;
             }
             else
             if ((val & 16) == 0)
             {
-                *pValue = ReadUInt32(offset + 1);
+                *pValue = MemoryHelper.ReadUnaligned<uint>(_base, offset + 1);
                 offset += 5;
             }
             else
@@ -151,62 +153,30 @@ namespace Jitex.PE
             return offset;
         }
 
-        protected unsafe uint ReadUInt32(int offset)
+        public unsafe bool IsReadyToRun(MethodBase method)
         {
-            if (offset < 0 || offset + 3 >= _size)
-                throw new BadImageFormatException();
-
-            return *(uint*)(_base + offset); // Assumes little endian and unaligned access
-        }
-
-        unsafe byte ReadUInt8(int offset)
-        {
-            if (offset >= _size)
-                throw new BadImageFormatException();
-            return *(byte*)(_base + offset); // Assumes little endian and unaligned access
-        }
-
-        unsafe ushort ReadUInt16(int offset)
-        {
-            if (offset < 0 || offset + 1 >= _size)
-                throw new BadImageFormatException();
-
-            return *(ushort*)(_base + offset); // Assumes little endian and unaligned access
-        }
-
-        public unsafe bool TryGetAt(uint index)
-        {
-            const uint _blockSize = 16;
+            int index = method.GetRID() - 1;
 
             if (index >= _nElements)
                 return false;
 
-            uint offset;
-            if (_entryIndexSize == 0)
+            uint offset = _entryIndexSize switch
             {
-                offset = ReadUInt8(_baseOffset + (int)(index / _blockSize));
-            }
-            else if (_entryIndexSize == 1)
-            {
-                offset = ReadUInt16(_baseOffset + (int)(2 * (index / _blockSize)));
-            }
-            else
-            {
-                offset = ReadUInt32(_baseOffset + (int)(4 * (index / _blockSize)));
-            }
+                0 => MemoryHelper.ReadUnaligned<byte>(_base, _baseOffset + (int)(index / BlockSize)),
+                1 => MemoryHelper.ReadUnaligned<ushort>(_base, _baseOffset + (int)(2 * (index / BlockSize))),
+                _ => MemoryHelper.ReadUnaligned<uint>(_base, _baseOffset + (int)(4 * (index / BlockSize)))
+            };
+
             offset += (uint)_baseOffset;
-            Kernel32.VirtualProtect(_base + (int) offset, 1, Kernel32.MemoryProtection.EXECUTE_READ_WRITE);
-            Marshal.WriteByte(_base + (int)offset, 0);
-            for (uint bit = _blockSize >> 1; bit > 0; bit >>= 1)
+
+            for (uint bit = BlockSize >> 1; bit > 0; bit >>= 1)
             {
                 uint val;
                 uint offset2 = (uint)DecodeUnsigned((int)offset, &val);
                 if ((index & bit) != 0)
                 {
-                    Console.WriteLine("First");
                     if ((val & 2) != 0)
                     {
-                        Console.WriteLine("Second if");
                         offset = offset + (val >> 2);
                         continue;
                     }
@@ -215,7 +185,6 @@ namespace Jitex.PE
                 {
                     if ((val & 1) != 0)
                     {
-                        Console.WriteLine("Third if");
                         offset = offset2;
                         continue;
                     }
@@ -224,19 +193,35 @@ namespace Jitex.PE
                 // Not found
                 if ((val & 3) == 0)
                 {
-                    Console.WriteLine("Four if");
                     // Matching special leaf node?
-                    if ((val >> 2) == (index & (_blockSize - 1)))
+                    if ((val >> 2) == (index & (BlockSize - 1)))
                     {
-                        Console.WriteLine("Five if");
-                        offset = offset2;
                         break;
                     }
                 }
                 return false;
             }
-            
+
             return true;
+        }
+
+        public byte WriteEntry(MethodBase method, byte value)
+        {
+            int index = method.GetRID() - 1;
+
+            uint offset = _entryIndexSize switch
+            {
+                0 => MemoryHelper.ReadUnaligned<byte>(_base, _baseOffset + (int)(index / BlockSize)),
+                1 => MemoryHelper.ReadUnaligned<ushort>(_base, _baseOffset + (int)(2 * (index / BlockSize))),
+                _ => MemoryHelper.ReadUnaligned<uint>(_base, _baseOffset + (int)(4 * (index / BlockSize)))
+            };
+
+            offset += (uint)_baseOffset;
+
+            byte oldByte = MemoryHelper.Read<byte>(_base, (int) offset);
+            MemoryHelper.UnprotectWrite(_base, (int)offset, value);
+
+            return oldByte;
         }
     }
 }

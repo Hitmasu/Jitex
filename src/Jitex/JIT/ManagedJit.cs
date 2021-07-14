@@ -314,53 +314,56 @@ namespace Jitex.JIT
                 if (sigAddress != IntPtr.Zero)
                     Marshal.FreeHGlobal(sigAddress);
 
-                if (methodContext?.Mode == MethodContext.ResolveMode.Native)
+                if (methodContext.IsResolved)
                 {
-                    Marshal.Copy(methodContext.NativeCode!, 0, nativeEntry, methodContext.NativeCode!.Length);
-                }
-                else if (methodContext?.Mode == MethodContext.ResolveMode.Detour)
-                {
-                    DetourContext detourContext = methodContext.DetourContext!;
-                    detourContext.MethodAddress = nativeEntry;
-                    detourContext.Enable();
-                }
-                else if (methodContext?.Mode == MethodContext.ResolveMode.Entry)
-                {
-                    NativeCode entryContext = methodContext.EntryContext!;
-                    nativeEntry = entryContext.Address;
+                    if (methodContext?.Mode == MethodContext.ResolveMode.Native)
+                    {
+                        Marshal.Copy(methodContext.NativeCode!, 0, nativeEntry, methodContext.NativeCode!.Length);
+                    }
+                    else if (methodContext?.Mode == MethodContext.ResolveMode.Detour)
+                    {
+                        DetourContext detourContext = methodContext.DetourContext!;
+                        detourContext.MethodAddress = nativeEntry;
+                        detourContext.Enable();
+                    }
+                    else if (methodContext?.Mode == MethodContext.ResolveMode.Entry)
+                    {
+                        NativeCode entryContext = methodContext.EntryContext!;
+                        nativeEntry = entryContext.Address;
 
-                    if (entryContext.Size > 0)
-                        nativeSizeOfCode = entryContext.Size;
+                        if (entryContext.Size > 0)
+                            nativeSizeOfCode = entryContext.Size;
 
-                    methodCompiled.NativeCodeAddress = nativeEntry;
-                    methodCompiled.NativeCodeSize = nativeSizeOfCode;
-                }
-                else if (methodContext?.Mode == MethodContext.ResolveMode.Intercept)
-                {
-                    //To make intercept possible, we need compile method 2 times:
-                    //1º method it's method will be detoured
-                    //2º method it's our unmodified method.
-                    //This way, make easy turn on/off interception call.
+                        methodCompiled.NativeCodeAddress = nativeEntry;
+                        methodCompiled.NativeCodeSize = nativeSizeOfCode;
+                    }
+                    else if (methodContext?.Mode == MethodContext.ResolveMode.Intercept)
+                    {
+                        //To make intercept possible, we need compile method 2 times:
+                        //1º method it's method will be detoured
+                        //2º method it's our unmodified method.
+                        //This way, make easy turn on/off interception call.
 
-                    //Compile method again to get a second address (like a clone)
-                    _framework.CompileMethod(thisPtr, comp, info, flags, out IntPtr secondaryNativeEntry, out _);
+                        //Compile method again to get a second address (like a clone)
+                        _framework.CompileMethod(thisPtr, comp, info, flags, out IntPtr secondaryNativeEntry, out _);
 
-                    InterceptContext interceptContext = methodContext.InterceptContext;
+                        InterceptContext interceptContext = methodContext.InterceptContext;
 
-                    //It's necessary save address from original to be called later (in case interceptor needs call original method) 
-                    interceptContext.MethodOriginalAddress = nativeEntry;
+                        //It's necessary save address from original to be called later (in case interceptor needs call original method) 
+                        interceptContext.MethodOriginalAddress = nativeEntry;
 
-                    //Address which will be detoured (this will be the trampoline to our intercept method).
-                    interceptContext.MethodTrampolineAddress = secondaryNativeEntry;
+                        //Address which will be detoured (this will be the trampoline to our intercept method).
+                        interceptContext.MethodTrampolineAddress = secondaryNativeEntry;
 
-                    //Set trampoline to be method native address
-                    nativeEntry = secondaryNativeEntry;
+                        //Set trampoline to be method native address
+                        nativeEntry = secondaryNativeEntry;
 
-                    //Write detour on method.
-                    Intercept.InterceptManager.GetInstance().AddIntercept(interceptContext);
+                        //Write detour on method.
+                        Intercept.InterceptManager.GetInstance().AddIntercept(interceptContext);
 
-                    //That's how should work:
-                    //CallerMethod -> Detour Method -> Intercept Method -> Safe Method (MethodAddress)
+                        //That's how should work:
+                        //CallerMethod -> Detour Method -> Intercept Method -> Safe Method (MethodAddress)
+                    }
                 }
 
                 return result;

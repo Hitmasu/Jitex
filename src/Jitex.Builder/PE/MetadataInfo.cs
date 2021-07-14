@@ -16,7 +16,7 @@ namespace Jitex.Builder.PE
     /// <summary>
     ///     Read Metadata from assembly.
     /// </summary>
-    public class MetadataInfo
+    internal class MetadataInfo
     {
         private readonly Module _module;
 
@@ -47,60 +47,11 @@ namespace Jitex.Builder.PE
             }
 
             using PEReader peReader = new PEReader(assemblyStream);
-
-            var lp = peReader.PEHeaders.PEHeader.AddressOfEntryPoint;
             MetadataReader metadataReader = peReader.GetMetadataReader();
 
             Types = ReadTypes(metadataReader);
 
             assemblyStream.Dispose();
-        }
-
-        unsafe uint DecodeUnsigned(uint offset, uint* pValue)
-        {
-            int* _base = default;
-            uint val = (uint)*(_base + offset);
-            if ((val & 1) == 0)
-            {
-                *pValue = (val >> 1);
-                offset += 1;
-            }
-            else
-            if ((val & 2) == 0)
-            {
-                *pValue = (val >> 2) |
-                          (((uint)*(_base + offset + 1)) << 6);
-                offset += 2;
-            }
-            else
-            if ((val & 4) == 0)
-            {
-                *pValue = (val >> 3) |
-                          (((uint)*(_base + offset + 1)) << 5) |
-                          (((uint)*(_base + offset + 2)) << 13);
-                offset += 3;
-            }
-            else
-            if ((val & 8) == 0)
-            {
-                *pValue = (val >> 4) |
-                          (((uint)*(_base + offset + 1)) << 4) |
-                          (((uint)*(_base + offset + 2)) << 12) |
-                          (((uint)*(_base + offset + 3)) << 20);
-                offset += 4;
-            }
-            else
-            if ((val & 16) == 0)
-            {
-                //*pValue = ReadUInt32(offset + 1);
-                offset += 5;
-            }
-            else
-            {
-                Debugger.Break();
-            }
-
-            return offset;
         }
 
         /// <summary>
