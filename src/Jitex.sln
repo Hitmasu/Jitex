@@ -13,8 +13,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Jitex", "Jitex\Jitex.csproj
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Jitex.Tests.Context", "Jitex.Tests.Context\Jitex.Tests.Context.csproj", "{DFFC9B0A-1E97-4271-818E-C8803FB367D1}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleApp1", "ConsoleApp1\ConsoleApp1.csproj", "{E4847EFF-28CC-4340-A50E-FA7BF43733D3}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -83,18 +81,6 @@ Global
 		{DFFC9B0A-1E97-4271-818E-C8803FB367D1}.Release|x64.Build.0 = Release|x64
 		{DFFC9B0A-1E97-4271-818E-C8803FB367D1}.Release|x86.ActiveCfg = Release|Any CPU
 		{DFFC9B0A-1E97-4271-818E-C8803FB367D1}.Release|x86.Build.0 = Release|Any CPU
-		{E4847EFF-28CC-4340-A50E-FA7BF43733D3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{E4847EFF-28CC-4340-A50E-FA7BF43733D3}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{E4847EFF-28CC-4340-A50E-FA7BF43733D3}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{E4847EFF-28CC-4340-A50E-FA7BF43733D3}.Debug|x64.Build.0 = Debug|Any CPU
-		{E4847EFF-28CC-4340-A50E-FA7BF43733D3}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{E4847EFF-28CC-4340-A50E-FA7BF43733D3}.Debug|x86.Build.0 = Debug|Any CPU
-		{E4847EFF-28CC-4340-A50E-FA7BF43733D3}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{E4847EFF-28CC-4340-A50E-FA7BF43733D3}.Release|Any CPU.Build.0 = Release|Any CPU
-		{E4847EFF-28CC-4340-A50E-FA7BF43733D3}.Release|x64.ActiveCfg = Release|Any CPU
-		{E4847EFF-28CC-4340-A50E-FA7BF43733D3}.Release|x64.Build.0 = Release|Any CPU
-		{E4847EFF-28CC-4340-A50E-FA7BF43733D3}.Release|x86.ActiveCfg = Release|Any CPU
-		{E4847EFF-28CC-4340-A50E-FA7BF43733D3}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
