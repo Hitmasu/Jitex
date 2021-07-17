@@ -3,6 +3,7 @@ using Jitex.JIT.Context;
 using Jitex.Utils;
 using Jitex.Utils.Comparer;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -11,18 +12,20 @@ namespace Jitex.Intercept
 {
     public class CallManager : IDisposable
     {
-        private static readonly IDictionary<IntPtr, CallCache> Cache = new Dictionary<IntPtr, CallCache>(IntPtrEqualityComparer.Instance);
+        private static readonly ConcurrentDictionary<IntPtr, CallCache> Cache = new ConcurrentDictionary<IntPtr, CallCache>();
         private static readonly InterceptManager InterceptManager = InterceptManager.GetInstance();
 
         private readonly CallContext _context;
 
-        public CallManager(IntPtr handle, in object[] parameters, bool hasCannon, bool isGenericMethod, bool isStatic)
+        public CallManager(IntPtr handle, in object[] parameters, bool hasCanon, bool isGenericMethod, bool isStatic)
         {
-            if (!Cache.TryGetValue(handle, out CallCache cache))
+            CallCache cache;
+
+            if (!Cache.TryGetValue(handle, out cache))
             {
                 MethodBase? method;
 
-                if (hasCannon)
+                if (hasCanon)
                 {
                     IntPtr tempHandle;
 
@@ -55,10 +58,10 @@ namespace Jitex.Intercept
                 Delegate del = DelegateHelper.CreateDelegate(interceptContext.MethodOriginalAddress, method);
 
                 cache = new CallCache(handle, method, del);
-                Cache.Add(handle, cache);
+                Cache.TryAdd(handle, cache);
             }
 
-            _context = new CallContext(cache.Method, cache.Delegate, hasCannon, parameters);
+            _context = new CallContext(cache.Method, cache.Delegate, hasCanon, parameters);
         }
 
         public async Task<IntPtr> InterceptCallAsync()

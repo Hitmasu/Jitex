@@ -5,12 +5,12 @@ namespace Jitex.Exceptions
     /// <summary>
     /// Exception for when Jitex is not loaded.
     /// </summary>
-    public class JitexNotLoadedException : Exception
+    public class JitexNotEnabledException : Exception
     {
         /// <summary>
         /// Default exception message.
         /// </summary>
-        public JitexNotLoadedException() : base("Jitex not loaded!")
+        public JitexNotEnabledException(string message) : base(message)
         {
             
         }
