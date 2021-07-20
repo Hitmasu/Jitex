@@ -17,11 +17,10 @@
 		<PackageTags>JIT</PackageTags>
 		<LangVersion>9</LangVersion>
 		<AssemblyName>Jitex</AssemblyName>
-		<PackageVersion>6.1.0</PackageVersion>
 		<PackageIcon>nuget.png</PackageIcon>
-		<Version>6.1.1</Version>
-		<AssemblyVersion>6.1.1.0</AssemblyVersion>
-		<FileVersion>6.1.1.0</FileVersion>
+		<Version>6.1.2</Version>
+		<AssemblyVersion>6.1.2.0</AssemblyVersion>
+		<FileVersion>6.1.2.0</FileVersion>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
