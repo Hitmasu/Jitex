@@ -272,7 +272,9 @@ namespace Jitex.Intercept
             {
                 if (address == IntPtr.Zero)
                     _value = null;
-                else if (ElementType.IsValueType)
+                else if (ElementType.IsEnum)
+                    _value = Marshal.ReadInt32(address);
+                else if (ElementType.IsStruct())
                     _value = Marshal.PtrToStructure(address, ElementType);
                 else
                     _value = MarshalHelper.GetObjectFromAddress(address, ElementType);
