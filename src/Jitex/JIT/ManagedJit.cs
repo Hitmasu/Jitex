@@ -92,7 +92,9 @@ namespace Jitex.JIT
 
         private TokenResolverHandler? _tokenResolvers;
 
-        public bool IsEnabled { get; set; }
+        public bool IsLoaded => _instance != null;
+
+        private bool IsEnabled { get; set; }
 
         /// <summary>
         ///     Prepare custom JIT.
@@ -113,7 +115,7 @@ namespace Jitex.JIT
 
         private void PrepareHook()
         {
-            RuntimeHelperExtension.PrepareDelegate(_compileMethod, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, (uint)0, IntPtr.Zero, 0);
+            RuntimeHelperExtension.PrepareDelegate(_compileMethod, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, (uint) 0, IntPtr.Zero, 0);
             RuntimeHelperExtension.PrepareDelegate(_resolveToken, IntPtr.Zero, IntPtr.Zero);
             RuntimeHelperExtension.PrepareDelegate(_constructStringLiteral, IntPtr.Zero, IntPtr.Zero, 0, IntPtr.Zero);
         }
@@ -144,49 +146,36 @@ namespace Jitex.JIT
 
         #region Future Feature (Enable/Disable)
 
-        /// <summary>
-        /// Enable Jitex hooks
-        /// </summary>
-        internal void Enable()
-        {
-            lock (JitLock)
-            {
-                if (IsEnabled)
-                    return;
-
-                _hookManager.InjectHook(_framework.ICorJitCompileVTable, _compileMethod!);
-
-                if (_framework.CEEInfoVTable != IntPtr.Zero)
-                {
-                    _hookManager.InjectHook(CEEInfo.ResolveTokenIndex, _resolveToken!);
-                    _hookManager.InjectHook(CEEInfo.ConstructStringLiteralIndex, _constructStringLiteral!);
-                }
-            }
-
-            IsEnabled = true;
-        }
-
-        /// <summary>
-        /// Disable Jitex hooks
-        /// </summary>
-        internal void Disable()
-        {
-            lock (JitLock)
-            {
-                if (!IsEnabled)
-                    return;
-
-                _hookManager.RemoveHook(_compileMethod!);
-
-                if (_framework.CEEInfoVTable != IntPtr.Zero)
-                {
-                    _hookManager.RemoveHook(_resolveToken!);
-                    _hookManager.RemoveHook(_constructStringLiteral!);
-                }
-            }
-
-            IsEnabled = false;
-        }
+        //
+        // /// <summary>
+        // /// Enable Jitex hooks
+        // /// </summary>
+        // internal void Enable()
+        // {
+        //     lock (JitLock)
+        //     {
+        //         _hookManager.InjectHook(_framework.ICorJitCompileVTable, _compileMethod);
+        //         _hookManager.InjectHook(CEEInfo.ResolveTokenIndex, _resolveToken);
+        //         _hookManager.InjectHook(CEEInfo.ConstructStringLiteralIndex, _constructStringLiteral);
+        //     }
+        //
+        //     IsEnabled = true;
+        // }
+        //
+        // /// <summary>
+        // /// Disable Jitex hooks
+        // /// </summary>
+        // internal void Disable()
+        // {
+        //     lock (JitLock)
+        //     {
+        //         _hookManager.RemoveHook(_resolveToken);
+        //         _hookManager.RemoveHook(_compileMethod);
+        //         _hookManager.RemoveHook(_constructStringLiteral);
+        //     }
+        //
+        //     IsEnabled = false;
+        // }
 
         #endregion
 
@@ -202,6 +191,7 @@ namespace Jitex.JIT
         private CorJitResult CompileMethod(IntPtr thisPtr, IntPtr comp, IntPtr info, uint flags, out IntPtr nativeEntry, out int nativeSizeOfCode)
         {
             _compileTls ??= new CompileTls();
+
 
             if (thisPtr == default)
             {
@@ -284,7 +274,7 @@ namespace Jitex.JIT
 
                                 methodInfo.Locals.Signature = sigAddress + 1;
                                 methodInfo.Locals.Args = sigAddress + 3;
-                                methodInfo.Locals.NumArgs = (ushort)methodBody.LocalVariables.Count;
+                                methodInfo.Locals.NumArgs = (ushort) methodBody.LocalVariables.Count;
                             }
 
                             methodInfo.MaxStack = methodBody.MaxStackSize;
@@ -299,13 +289,13 @@ namespace Jitex.JIT
                         }
 
                         methodInfo.ILCode = ilAddress;
-                        methodInfo.ILCodeSize = (uint)ilLength;
+                        methodInfo.ILCodeSize = (uint) ilLength;
                     }
                 }
-                   
+
                 CorJitResult result = _framework.CompileMethod(thisPtr, comp, info, flags, out nativeEntry, out nativeSizeOfCode);
 
-                MethodCompiled methodCompiled = new MethodCompiled(methodFound, thisPtr, comp, methodInfo.MethodHandle, flags, nativeEntry, nativeSizeOfCode);
+                MethodCompiled methodCompiled = new MethodCompiled(methodFound, thisPtr, comp, info, flags, nativeEntry, nativeSizeOfCode);
                 RuntimeMethodCache.AddMethod(methodCompiled);
 
                 if (ilAddress != IntPtr.Zero)
@@ -320,9 +310,9 @@ namespace Jitex.JIT
                 }
                 else if (methodContext?.Mode == MethodContext.ResolveMode.Detour)
                 {
-                    DetourContext detourContext = methodContext.DetourContext!;
+                    DetourContext detourContext = methodContext.DetourContext;
                     detourContext.MethodAddress = nativeEntry;
-                    detourContext.Enable();
+                    detourContext.WriteDetour();
                 }
                 else if (methodContext?.Mode == MethodContext.ResolveMode.Entry)
                 {
@@ -519,7 +509,7 @@ namespace Jitex.JIT
             if (methodContext.NativeCode == null)
                 throw new NullReferenceException(nameof(methodContext.NativeCode));
 
-            System.Reflection.MethodInfo method = (System.Reflection.MethodInfo)methodContext.Method;
+            System.Reflection.MethodInfo method = (System.Reflection.MethodInfo) methodContext.Method;
 
             int metadataToken = method.IsGenericMethod ? 0x2B000001 : method.MetadataToken;
 
@@ -540,26 +530,26 @@ namespace Jitex.JIT
             if (!method.IsStatic)
             {
                 argIndex++;
-                callBody.Add((byte)OpCodes.Ldarg_0.Value);
+                callBody.Add((byte) OpCodes.Ldarg_0.Value);
             }
 
             int totalArgs = method.GetParameters().Count(w => !w.IsOptional);
 
             for (int i = 0; i < totalArgs; i++)
             {
-                callBody.Add((byte)OpCodes.Ldarga_S.Value);
-                callBody.Add((byte)argIndex++);
+                callBody.Add((byte) OpCodes.Ldarga_S.Value);
+                callBody.Add((byte) argIndex++);
             }
 
-            callBody.Add((byte)OpCodes.Call.Value);
+            callBody.Add((byte) OpCodes.Call.Value);
             callBody.AddRange(tokenBytes);
 
             if (!isVoid)
-                callBody.Add((byte)OpCodes.Pop.Value);
+                callBody.Add((byte) OpCodes.Pop.Value);
 
             byte[] callBytes = callBody.ToArray();
 
-            int bodyLength = (int)Math.Ceiling((double)methodContext.NativeCode.Length / callBytes.Length) * callBytes.Length;
+            int bodyLength = (int) Math.Ceiling((double) methodContext.NativeCode.Length / callBytes.Length) * callBytes.Length;
             int retLength = 1;
 
             if (!isVoid)
@@ -579,7 +569,7 @@ namespace Jitex.JIT
                 Marshal.Copy(callBytes, 0, ilAddress + bodyLength, callBytes.Length);
             }
 
-            Marshal.WriteByte(ilAddress + ilSize - 1, (byte)OpCodes.Ret.Value);
+            Marshal.WriteByte(ilAddress + ilSize - 1, (byte) OpCodes.Ret.Value);
 
             return (ilAddress, ilSize);
         }
@@ -593,10 +583,9 @@ namespace Jitex.JIT
 
                 if (IsEnabled)
                 {
-                    // _hookManager.RemoveHook(_resolveToken!);
-                    // _hookManager.RemoveHook(_constructStringLiteral!);
-                    // _hookManager.RemoveHook(_compileMethod!);
-                    Disable();
+                    _hookManager.RemoveHook(_resolveToken!);
+                    _hookManager.RemoveHook(_constructStringLiteral!);
+                    _hookManager.RemoveHook(_compileMethod!);
                 }
 
                 _methodResolvers = null;

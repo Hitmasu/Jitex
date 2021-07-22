@@ -8,7 +8,7 @@ namespace Jitex.Utils
 {
     internal static class AppModules
     {
-        private static readonly IDictionary<IntPtr, Module> MapScopeToHandle = new Dictionary<IntPtr, Module>();
+        private static readonly IDictionary<IntPtr, Module> MapScopeToHandle = new Dictionary<IntPtr, Module>(IntPtrEqualityComparer.Instance);
 
         private static readonly FieldInfo m_pData;
 
