@@ -67,13 +67,13 @@ namespace Jitex.Utils
         {
             int size = Unsafe.SizeOf<T>();
 
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            if (OSHelper.IsWindows)
             {
                 Kernel32.MemoryProtection oldFlags = Kernel32.VirtualProtect(address, size, Kernel32.MemoryProtection.READ_WRITE);
                 Write(address, value);
                 Kernel32.VirtualProtect(address, size, oldFlags);
             }
-            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            else if (OSHelper.IsLinux)
             {
                 byte[] byteValue;
 

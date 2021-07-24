@@ -3,18 +3,18 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
+using dnlib.DotNet;
 using Jitex.JIT.CorInfo;
 using Jitex.Utils;
 using Jitex.Utils.Extension;
-using Jitex.Utils.NativeAPI.Windows;
 
 namespace Jitex.PE
 {
-    public class NativeReader
+    internal class NativeReader
     {
-        private static readonly IDictionary<IntPtr, ImageInfo> Images = new Dictionary<IntPtr, ImageInfo>();
+        private static readonly IDictionary<Module, ImageInfo> Images = new Dictionary<Module, ImageInfo>();
 
+        private readonly bool _hasRtr;
         private readonly IntPtr _base;
         private readonly int _size;
         private int _entryIndexSize;
@@ -22,42 +22,47 @@ namespace Jitex.PE
         private int _baseOffset;
         private const uint BlockSize = 16;
 
-        private protected ImageInfo Image { get; }
-
         public NativeReader(Module module)
         {
-            IntPtr moduleHandle = AppModules.GetAddressFromModule(module);
-
-            //if (!Images.TryGetValue(moduleHandle, out ImageInfo image))
-            //{
-            foreach (ProcessModule pModule in Process.GetCurrentProcess().Modules)
+            if (!Images.TryGetValue(module, out ImageInfo image))
             {
-                if (pModule.FileName == module.FullyQualifiedName)
-                {
-                    _base = pModule.BaseAddress;
-                    _size = pModule.ModuleMemorySize;
-                    break;
-                }
-            }
+                string fullyQualifiedName = module.FullyQualifiedName;
 
-            LoadImage(module);
-            //Images.Add(moduleHandle, image);
-            //}
-            //else
-            //{
-            //    _base = image!.BaseAddress;
-            //    _size = image.Size;
-            //    _nElements = (int) image.NumberOfElements;
-            //    _entryIndexSize = image.EntryIndexSize;
-            //}
+                foreach (ProcessModule pModule in Process.GetCurrentProcess().Modules)
+                {
+                    if (pModule.FileName == fullyQualifiedName)
+                    {
+                        _base = pModule.BaseAddress;
+                        _size = pModule.ModuleMemorySize;
+                        break;
+                    }
+                }
+
+                image = LoadImage(module);
+                Images.Add(module, image);
+                _hasRtr = image.HasReadyToRun;
+            }
+            else
+            {
+                _base = image!.BaseAddress;
+                _size = image.Size;
+                _nElements = (int)image.NumberOfElements;
+                _entryIndexSize = image.EntryIndexSize;
+                _hasRtr = image.HasReadyToRun;
+            }
         }
 
         private ImageInfo LoadImage(Module module)
         {
-            uint virtualAddress = GetRTRVirtualAddress();
+            ModuleContext moduleContext = ModuleDef.CreateModuleContext();
+            ModuleDefMD moduleDef = ModuleDefMD.Load(module, moduleContext);
 
-            if (virtualAddress != 0)
+            bool hasR2R = moduleDef.Metadata.ImageCor20Header.HasNativeHeader;
+
+            if (hasR2R)
             {
+                IntPtr startHeaderAddress = _base + (int)moduleDef.Metadata.ImageCor20Header.ManagedNativeHeader.VirtualAddress;
+                uint virtualAddress = GetEntryPointSection(startHeaderAddress);
                 uint val;
 
                 unsafe
@@ -68,33 +73,24 @@ namespace Jitex.PE
                 _nElements = (int)(val >> 2);
                 _entryIndexSize = (byte)(val & 3);
                 return new ImageInfo(module, _base, _size, true, default, (uint)_nElements, (byte)_entryIndexSize);
+
             }
 
             return new ImageInfo(module, _base, _size, false);
         }
 
-        private unsafe uint GetRTRVirtualAddress()
+        private static unsafe uint GetEntryPointSection(IntPtr startHeader)
         {
-            ReadOnlySpan<byte> image = new ReadOnlySpan<byte>(_base.ToPointer(), _size);
+            READYTORUN_HEADER header = Unsafe.Read<READYTORUN_HEADER>(startHeader.ToPointer());
+            IntPtr startSection = startHeader + sizeof(READYTORUN_HEADER);
+            ReadOnlySpan<READYTORUN_SECTION> sections = new ReadOnlySpan<READYTORUN_SECTION>(startSection.ToPointer(), (int)header.CoreHeader.NumberOfSections);
 
-            for (int i = 0; i < _size; i++)
+            foreach (READYTORUN_SECTION section in sections)
             {
-                if (image[i] == 'R' && image[i + 1] == 'T' && image[i + 2] == 'R')
-                {
-                    IntPtr startHeader = _base + i;
-                    READYTORUN_HEADER header = Unsafe.Read<READYTORUN_HEADER>(startHeader.ToPointer());
-
-                    IntPtr startSection = startHeader + sizeof(READYTORUN_HEADER);
-                    ReadOnlySpan<READYTORUN_SECTION> sections = new ReadOnlySpan<READYTORUN_SECTION>(startSection.ToPointer(), (int)header.CoreHeader.NumberOfSections);
-
-                    foreach (READYTORUN_SECTION section in sections)
-                    {
-                        if (section.Type == ReadyToRunSectionType.MethodDefEntryPoints)
-                            return section.Section.VirtualAddress;
-                    }
-                }
+                if (section.Type == ReadyToRunSectionType.MethodDefEntryPoints)
+                    return section.Section.VirtualAddress;
             }
-
+            
             return 0;
         }
 
@@ -155,6 +151,9 @@ namespace Jitex.PE
 
         public unsafe bool IsReadyToRun(MethodBase method)
         {
+            if (!_hasRtr)
+                return false;
+
             int index = method.GetRID() - 1;
 
             if (index >= _nElements)
@@ -218,7 +217,7 @@ namespace Jitex.PE
 
             offset += (uint)_baseOffset;
 
-            byte oldByte = MemoryHelper.Read<byte>(_base, (int) offset);
+            byte oldByte = MemoryHelper.Read<byte>(_base, (int)offset);
             MemoryHelper.UnprotectWrite(_base, (int)offset, value);
 
             return oldByte;
