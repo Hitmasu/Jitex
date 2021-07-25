@@ -72,12 +72,10 @@ namespace Jitex.Intercept
             }
         }
 
-        public bool HasParameters => Parameters != null && Parameters.Any();
-
         /// <summary>
         /// Parameters passed in call.
         /// </summary>
-        public Parameters? Parameters { get; }
+        public Parameters Parameters { get; }
 
         /// <summary>
         /// If original call should proceed.
@@ -135,7 +133,7 @@ namespace Jitex.Intercept
                 if (_hasCanon)
                     rawParameters.Add(_handle!);
 
-                if (Parameters != null && Parameters.Any())
+                if (Parameters.Any())
                     rawParameters.AddRange(Parameters);
 
                 return rawParameters;

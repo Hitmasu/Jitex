@@ -32,10 +32,10 @@ namespace Jitex.JIT.Context
 
         internal DetourContext(IntPtr address)
         {
-            _trampolineCode = Memory.GetTrampoline(address);
+            _trampolineCode = MemoryHelper.GetTrampoline(address);
         }
 
-        internal DetourContext(MethodBase methodInterceptor) : this(MethodHelper.GetNativeCode(methodInterceptor).Address)
+        internal DetourContext(MethodBase methodInterceptor) : this(MethodHelper.GetNativeAddress(methodInterceptor))
         {
 
         }
@@ -51,10 +51,10 @@ namespace Jitex.JIT.Context
 
             if (_originalNativeCode == null)
             {
-                _originalNativeCode = new byte[Memory.Size];
+                _originalNativeCode = new byte[MemoryHelper.Size];
 
                 //Create backup of original instructions
-                Marshal.Copy(MethodAddress, _originalNativeCode, 0, Memory.Size);
+                Marshal.Copy(MethodAddress, _originalNativeCode, 0, MemoryHelper.Size);
             }
 
             //Write trampoline

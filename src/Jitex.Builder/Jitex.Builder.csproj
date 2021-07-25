@@ -22,6 +22,11 @@
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+	  <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+	  <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -30,6 +35,6 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<None Include="..\..\logos\nuget.png" Pack="true" PackagePath=""/>
+		<None Include="..\..\logos\nuget.png" Pack="true" PackagePath="" />
 	</ItemGroup>
 </Project>
