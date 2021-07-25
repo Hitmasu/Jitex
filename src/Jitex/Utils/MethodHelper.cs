@@ -12,7 +12,6 @@ namespace Jitex.Utils
 {
     public static class MethodHelper
     {
-        private static readonly RuntimeFramework Framework = RuntimeFramework.GetFramework();
         private static readonly bool CanRecompileMethod;
 
         private static readonly Type CanonType;
@@ -39,7 +38,7 @@ namespace Jitex.Utils
 
             PrecodeFixupThunkAddress = GetPrecodeFixupThunkAddress();
 
-            CanRecompileMethod = Framework.FrameworkVersion >= new Version(5, 0, 0);
+            CanRecompileMethod = RuntimeFramework.Framework >= new Version(5, 0, 0);
         }
 
         private static IntPtr GetPrecodeFixupThunkAddress()

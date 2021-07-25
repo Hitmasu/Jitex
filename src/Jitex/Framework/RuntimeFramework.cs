@@ -8,6 +8,8 @@ namespace Jitex.Framework
 {
     internal abstract class RuntimeFramework
     {
+        private static RuntimeFramework? _framework;
+
         /// <summary>
         /// Compile method handler.
         /// </summary>
@@ -54,7 +56,7 @@ namespace Jitex.Framework
         /// <summary>
         /// Runtime running.
         /// </summary>
-        private static RuntimeFramework? Framework { get; set; }
+        public static RuntimeFramework Framework => GetFramework();
 
         /// <summary>
         /// Load info from JIT.
@@ -73,21 +75,21 @@ namespace Jitex.Framework
         /// Get running framework.
         /// </summary>
         /// <returns></returns>
-        public static RuntimeFramework GetFramework()
+        private static RuntimeFramework GetFramework()
         {
-            if (Framework != null)
-                return Framework;
+            if (_framework != null)
+                return _framework;
 
             string frameworkRunning = RuntimeInformation.FrameworkDescription;
 
             if (frameworkRunning.StartsWith(".NET Framework"))
-                Framework = new NETFramework();
-            else if (frameworkRunning.StartsWith(".NET")) 
-                Framework = new NETCore();
-            else 
+                _framework = new NETFramework();
+            else if (frameworkRunning.StartsWith(".NET"))
+                _framework = new NETCore();
+            else
                 throw new NotSupportedException($"Framework {frameworkRunning} is not supported!");
 
-            return Framework;
+            return _framework;
         }
 
         /// <summary>
@@ -125,8 +127,14 @@ namespace Jitex.Framework
             }
             else
             {
-                throw new NotSupportedException("Invalid Framework");
+                throw new NotSupportedException("Invalid Framework: " + AppContext.TargetFrameworkName);
             }
         }
+
+        public static bool operator >(RuntimeFramework left, Version right) => left.FrameworkVersion > right;
+        public static bool operator >=(RuntimeFramework left, Version right) => left.FrameworkVersion >= right;
+        public static bool operator <(RuntimeFramework left, Version right) => left.FrameworkVersion < right;
+        public static bool operator <=(RuntimeFramework left, Version right) => left.FrameworkVersion <= right;
+
     }
 }

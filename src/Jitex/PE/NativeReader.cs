@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using dnlib.DotNet;
+using Jitex.Framework;
 using Jitex.JIT.CorInfo;
 using Jitex.Utils;
 using Jitex.Utils.Extension;
@@ -12,6 +13,7 @@ namespace Jitex.PE
 {
     internal class NativeReader
     {
+        private static readonly bool FrameworkSupportR2R;
         private static readonly IDictionary<Module, ImageInfo> Images = new Dictionary<Module, ImageInfo>();
 
         private readonly bool _hasRtr;
@@ -21,6 +23,11 @@ namespace Jitex.PE
         private int _nElements;
         private int _baseOffset;
         private const uint BlockSize = 16;
+
+        static NativeReader()
+        {
+            FrameworkSupportR2R = RuntimeFramework.Framework >= new Version(3, 0);
+        }
 
         public NativeReader(Module module)
         {
@@ -58,7 +65,7 @@ namespace Jitex.PE
             ModuleContext moduleContext = ModuleDef.CreateModuleContext();
             ModuleDefMD moduleDef = ModuleDefMD.Load(module, moduleContext);
 
-            bool hasR2R = moduleDef.Metadata.ImageCor20Header.HasNativeHeader;
+            bool hasR2R = moduleDef.Metadata.ImageCor20Header.HasNativeHeader && FrameworkSupportR2R;
 
             if (hasR2R)
             {

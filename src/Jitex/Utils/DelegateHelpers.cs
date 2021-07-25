@@ -19,8 +19,7 @@ namespace Jitex.Utils
 
         static DelegateHelper()
         {
-            RuntimeFramework framework = RuntimeFramework.GetFramework();
-            CanBuildStaticValueTask = framework.FrameworkVersion >= new Version(3, 0, 0);
+            CanBuildStaticValueTask = RuntimeFramework.Framework >= new Version(3, 0, 0);
         }
 
         public static IList<Type> CreateParameters(MethodBase method)
