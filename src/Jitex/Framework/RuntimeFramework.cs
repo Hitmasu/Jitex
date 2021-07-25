@@ -125,6 +125,10 @@ namespace Jitex.Framework
                 int[] versionsNumbers = version.Split('.').Select(int.Parse).ToArray();
                 FrameworkVersion = new Version(versionsNumbers[0], versionsNumbers[1], versionsNumbers[2]);
             }
+            else if (AppContext.TargetFrameworkName.StartsWith(".NETCoreApp"))
+            {
+                FrameworkVersion = Environment.Version;
+            }
             else
             {
                 throw new NotSupportedException("Invalid Framework: " + AppContext.TargetFrameworkName);
