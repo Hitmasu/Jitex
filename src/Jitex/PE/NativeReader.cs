@@ -40,7 +40,7 @@ namespace Jitex.PE
 
                 image = LoadImage(module);
                 Images.Add(module, image);
-                _hasRtr = image.HasReadyToRun;
+                _hasRtr = image.NumberOfElements > 0;
             }
             else
             {
@@ -48,7 +48,8 @@ namespace Jitex.PE
                 _size = image.Size;
                 _nElements = (int)image.NumberOfElements;
                 _entryIndexSize = image.EntryIndexSize;
-                _hasRtr = image.HasReadyToRun;
+                _baseOffset = image.BaseOffset;
+                _hasRtr = image.NumberOfElements > 0;
             }
         }
 
@@ -72,11 +73,10 @@ namespace Jitex.PE
 
                 _nElements = (int)(val >> 2);
                 _entryIndexSize = (byte)(val & 3);
-                return new ImageInfo(module, _base, _size, true, default, (uint)_nElements, (byte)_entryIndexSize);
-
+                return new ImageInfo(module, _base, _size, _baseOffset, (uint)_nElements, (byte)_entryIndexSize);
             }
 
-            return new ImageInfo(module, _base, _size, false);
+            return new ImageInfo(module, _base, _size);
         }
 
         private static unsafe uint GetEntryPointSection(IntPtr startHeader)
@@ -90,7 +90,7 @@ namespace Jitex.PE
                 if (section.Type == ReadyToRunSectionType.MethodDefEntryPoints)
                     return section.Section.VirtualAddress;
             }
-            
+
             return 0;
         }
 

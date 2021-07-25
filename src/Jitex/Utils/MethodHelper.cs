@@ -231,7 +231,7 @@ namespace Jitex.Utils
         /// </summary>
         /// <param name="method">Method to disable ReadyToRun.</param>
         /// <returns>Returns false if method is not ReadyToRun otherwise true.</returns>
-        public static void DisableReadyToRun(MethodBase method) => ReadyToRunHelper.DisableReadyToRun(method);
+        public static bool DisableReadyToRun(MethodBase method) => ReadyToRunHelper.DisableReadyToRun(method);
 
         //internal static NativeCode GetNativeCode(MethodBase method, CancellationToken cancellationToken) => GetNativeCodeAsync(method, cancellationToken).GetAwaiter().GetResult();
 
