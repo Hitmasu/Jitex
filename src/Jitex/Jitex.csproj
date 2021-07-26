@@ -17,11 +17,9 @@
 		<PackageTags>JIT</PackageTags>
 		<LangVersion>9</LangVersion>
 		<AssemblyName>Jitex</AssemblyName>
-		<PackageVersion>6.1.0</PackageVersion>
 		<PackageIcon>nuget.png</PackageIcon>
-		<Version>6.1.0</Version>
-		<AssemblyVersion>6.1.0.0</AssemblyVersion>
-		<FileVersion>6.1.0.0</FileVersion>
+		<Version>6.2.0</Version>
+		<RepositoryType>Git</RepositoryType>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">

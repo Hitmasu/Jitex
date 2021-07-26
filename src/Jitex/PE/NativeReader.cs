@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using dnlib.DotNet;
@@ -33,17 +35,7 @@ namespace Jitex.PE
         {
             if (!Images.TryGetValue(module, out ImageInfo image))
             {
-                string fullyQualifiedName = module.FullyQualifiedName;
-
-                foreach (ProcessModule pModule in Process.GetCurrentProcess().Modules)
-                {
-                    if (pModule.FileName == fullyQualifiedName)
-                    {
-                        _base = pModule.BaseAddress;
-                        _size = pModule.ModuleMemorySize;
-                        break;
-                    }
-                }
+                (_base, _size) = OSHelper.GetModuleBaseAddress(module.FullyQualifiedName);
 
                 image = LoadImage(module);
                 Images.Add(module, image);
