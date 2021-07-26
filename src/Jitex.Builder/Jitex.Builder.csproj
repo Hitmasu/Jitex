@@ -14,10 +14,9 @@
 		<PackageLicenseFile></PackageLicenseFile>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<PackageTags>JIT Jitex</PackageTags>
-		<Version>1.1.2</Version>
+		<Version>1.1.3</Version>
 		<AssemblyName>Jitex.Builder</AssemblyName>
 		<Nullable>enable</Nullable>
-		<PackageVersion>1.1.2</PackageVersion>
 		<PackageIcon>nuget.png</PackageIcon>
 	</PropertyGroup>
 

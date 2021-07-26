@@ -352,9 +352,6 @@ healthchecksdb
 # Backup folder for Package Reference Convert tool in Visual Studio 2017
 MigrationBackup/
 
-# End of https://www.gitignore.io/api/csharp
-/Jitex/JIT/JitInterface.cs
-
 #JetBrains Rider
 .idea
 
