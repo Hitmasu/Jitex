@@ -12,11 +12,9 @@ namespace Jitex.PE
         public byte EntryIndexSize { get; }
         public int BaseOffset { get; set; }
 
-        public ImageInfo(Module module, IntPtr baseAddress, int size)
+        public ImageInfo(Module module)
         {
             Module = module;
-            BaseAddress = baseAddress;
-            Size = size;
         }
 
         public ImageInfo(Module module, IntPtr baseAddress, int size, int baseOffset, uint numberOfElements, byte entryIndexSize)

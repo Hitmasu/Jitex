@@ -1,23 +1,14 @@
 ﻿using System;
 using System.Reflection;
 using System.Reflection.Emit;
-using Jitex.JIT.Context;
 using Jitex.Utils;
 using Xunit;
 
 
 namespace Jitex.Tests.Helpers
 {
-#if !NETCOREAPP2
     public class ReadyToRunTests
     {
-        private static bool _isGetterCompiled;
-
-        static ReadyToRunTests()
-        {
-            JitexManager.AddMethodResolver(MethodResolver);
-        }
-
         [Fact]
         public void DetectMethodIsReadyToRunTest()
         {
@@ -39,21 +30,22 @@ namespace Jitex.Tests.Helpers
         [Fact]
         public void DisableReadyToRun()
         {
-            MethodBase box = Utils.GetMethod(typeof(AppContext), "get_TargetFrameworkName");
-            bool disabled = MethodHelper.DisableReadyToRun(box);
+            MethodBase clampMethod = typeof(Math).GetMethod("Clamp", new[] { typeof(int), typeof(int), typeof(int) });
+            bool disabled = MethodHelper.DisableReadyToRun(clampMethod);
             Assert.True(disabled);
 
-            _ = AppContext.TargetFrameworkName;
-            Assert.True(_isGetterCompiled, "Method was not compiled.");
+            bool isClampCompiled = false;
+
+            JitexManager.AddMethodResolver(context =>
+            {
+                if (context.Method == clampMethod)
+                    isClampCompiled = true;
+            });
+
+            Math.Clamp(1, 1, 1);
+            Assert.True(isClampCompiled, "Method was not compiled.");
         }
 
         public void MethodNotR2R() { }
-
-        private static void MethodResolver(MethodContext context)
-        {
-            if (context.Method.Name == "get_TargetFrameworkName")
-                _isGetterCompiled = true;
-        }
     }
-#endif
 }

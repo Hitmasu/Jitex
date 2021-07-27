@@ -45,7 +45,7 @@ namespace Jitex.JIT.CorInfo
     [StructLayout(LayoutKind.Sequential)]
     readonly struct READYTORUN_HEADER
     {
-        readonly uint Signature;      // READYTORUN_SIGNATURE
+        public readonly uint Signature;      // READYTORUN_SIGNATURE
         readonly ushort MajorVersion;   // READYTORUN_VERSION_XXX
         readonly ushort MinorVersion;
 

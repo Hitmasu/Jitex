@@ -63,6 +63,10 @@ namespace Jitex.PE
             {
                 IntPtr startHeaderAddress = _base + (int)moduleDef.Metadata.ImageCor20Header.ManagedNativeHeader.VirtualAddress;
                 uint virtualAddress = GetEntryPointSection(startHeaderAddress);
+
+                if (virtualAddress == 0)
+                    return new ImageInfo(module);
+
                 uint val;
 
                 unsafe
@@ -75,12 +79,16 @@ namespace Jitex.PE
                 return new ImageInfo(module, _base, _size, _baseOffset, (uint)_nElements, (byte)_entryIndexSize);
             }
 
-            return new ImageInfo(module, _base, _size);
+            return new ImageInfo(module);
         }
 
         private static unsafe uint GetEntryPointSection(IntPtr startHeader)
         {
             READYTORUN_HEADER header = Unsafe.Read<READYTORUN_HEADER>(startHeader.ToPointer());
+
+            if (header.Signature != 0x00525452) //Signature != 'RTR'
+                return 0;
+
             IntPtr startSection = startHeader + sizeof(READYTORUN_HEADER);
             ReadOnlySpan<READYTORUN_SECTION> sections = new ReadOnlySpan<READYTORUN_SECTION>(startSection.ToPointer(), (int)header.CoreHeader.NumberOfSections);
 
