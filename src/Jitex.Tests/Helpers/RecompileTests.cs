@@ -12,7 +12,6 @@ using static Jitex.Tests.LogOutput;
 
 namespace Jitex.Tests.Helpers
 {
-    #if NET5_0
     public class RecompileTests
     {
         private static IList<MethodBase> MethodsCompiled { get; } = new List<MethodBase>();
@@ -30,6 +29,9 @@ namespace Jitex.Tests.Helpers
         [Fact]
         public void MethodInstanceNonGenericTest()
         {
+#if !NET5_0
+            return;
+#endif
             MethodInfo method = Utils.GetMethod<NonGenericInstanceClass>(nameof(NonGenericInstanceClass.NonGeneric));
             NonGenericInstanceClass instance = new NonGenericInstanceClass();
 
@@ -49,6 +51,9 @@ namespace Jitex.Tests.Helpers
         [InlineData(typeof(RecompileTests))]
         public void MethodInstanceGenericTest(Type type)
         {
+#if !NET5_0
+            return;
+#endif
             MethodInfo method = Utils.GetMethod<NonGenericInstanceClass>(nameof(NonGenericInstanceClass.Generic));
             method = method.MakeGenericMethod(type);
 
@@ -59,7 +64,7 @@ namespace Jitex.Tests.Helpers
 
             method.Invoke(instance, null);
 
-            method = (MethodInfo)MethodHelper.GetOriginalMethod(method);
+            method = (MethodInfo) MethodHelper.GetOriginalMethod(method);
             int count = MethodsCompiled.ToList().Count(m => m == method);
 
             Assert.Equal(2, count);
@@ -68,6 +73,9 @@ namespace Jitex.Tests.Helpers
         [Fact]
         public void MethodStaticOnNonStaticTypeTest()
         {
+#if !NET5_0
+            return;
+#endif
             MethodInfo method = Utils.GetMethod<NonGenericInstanceClass>(nameof(NonGenericInstanceClass.StaticNonGeneric));
 
             NonGenericInstanceClass.StaticNonGeneric();
@@ -86,6 +94,9 @@ namespace Jitex.Tests.Helpers
         [InlineData(typeof(RecompileTests))]
         public void MethodStaticGenericOnNonStaticTypeTest(Type type)
         {
+#if !NET5_0
+            return;
+#endif
             MethodInfo method = Utils.GetMethod<NonGenericInstanceClass>(nameof(NonGenericInstanceClass.StaticGeneric));
             method = method.MakeGenericMethod(type);
             method.Invoke(null, null);
@@ -94,7 +105,7 @@ namespace Jitex.Tests.Helpers
 
             method.Invoke(null, null);
 
-            method = (MethodInfo)MethodHelper.GetOriginalMethod(method);
+            method = (MethodInfo) MethodHelper.GetOriginalMethod(method);
             int count = MethodsCompiled.ToList().Count(m => m == method);
 
             Assert.Equal(2, count);
@@ -103,6 +114,9 @@ namespace Jitex.Tests.Helpers
         [Fact]
         public void MethodStaticNonGenericTest()
         {
+#if !NET5_0
+            return;
+#endif
             MethodInfo method = Utils.GetMethod(typeof(NonGenericStaticClass), nameof(NonGenericStaticClass.NonGeneric));
 
             NonGenericStaticClass.NonGeneric();
@@ -121,6 +135,9 @@ namespace Jitex.Tests.Helpers
         [InlineData(typeof(RecompileTests))]
         public void MethodStaticGenericTest(Type type)
         {
+#if !NET5_0
+            return;
+#endif
             MethodInfo method = Utils.GetMethod(typeof(NonGenericStaticClass), nameof(NonGenericStaticClass.Generic));
             method = method.MakeGenericMethod(type);
 
@@ -130,7 +147,7 @@ namespace Jitex.Tests.Helpers
 
             method.Invoke(null, null);
 
-            method = (MethodInfo)MethodHelper.GetOriginalMethod(method);
+            method = (MethodInfo) MethodHelper.GetOriginalMethod(method);
             int count = MethodsCompiled.ToList().Count(m => m == method);
 
             Assert.Equal(2, count);
@@ -143,5 +160,4 @@ namespace Jitex.Tests.Helpers
                 MethodsCompiled.Add(context.Method);
         }
     }
-    #endif   
 }

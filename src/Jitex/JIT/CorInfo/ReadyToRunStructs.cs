@@ -46,8 +46,8 @@ namespace Jitex.JIT.CorInfo
     readonly struct READYTORUN_HEADER
     {
         public readonly uint Signature;      // READYTORUN_SIGNATURE
-        readonly ushort MajorVersion;   // READYTORUN_VERSION_XXX
-        readonly ushort MinorVersion;
+        public readonly ushort MajorVersion;   // READYTORUN_VERSION_XXX
+        public readonly ushort MinorVersion;
 
         public readonly READYTORUN_CORE_HEADER CoreHeader;
     }

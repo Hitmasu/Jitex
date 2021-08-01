@@ -10,8 +10,7 @@ namespace Jitex.Utils
             if (!MethodIsReadyToRun(method))
                 return false;
 
-            byte? value = GetReader(method).WriteEntry(method, 0x00);
-            return value != null;
+            return GetReader(method).DisableReadyToRun(method);
         }
 
         public static bool MethodIsReadyToRun(MethodBase method)

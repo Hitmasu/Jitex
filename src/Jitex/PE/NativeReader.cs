@@ -85,7 +85,7 @@ namespace Jitex.PE
 
             if (header.Signature != 0x00525452) //Signature != 'RTR'
                 return 0;
-
+            
             IntPtr startSection = startHeader + sizeof(READYTORUN_HEADER);
             ReadOnlySpan<READYTORUN_SECTION> sections = new ReadOnlySpan<READYTORUN_SECTION>(startSection.ToPointer(), (int) header.CoreHeader.NumberOfSections);
 
@@ -172,7 +172,7 @@ namespace Jitex.PE
             {
                 uint val;
                 uint offset2;
-                
+
                 unsafe
                 {
                     offset2 = (uint) DecodeUnsigned((int) offset, &val);
@@ -211,10 +211,10 @@ namespace Jitex.PE
             return true;
         }
 
-        public byte? WriteEntry(MethodBase method, byte value)
+        public bool DisableReadyToRun(MethodBase method)
         {
             if (OSHelper.IsOSX)
-                return null;
+                return false;
 
             int index = method.GetRID() - 1;
 
@@ -226,11 +226,9 @@ namespace Jitex.PE
             };
 
             offset += (uint) _baseOffset;
-
-            byte oldByte = MemoryHelper.Read<byte>(_base, (int) offset);
-            MemoryHelper.UnprotectWrite(_base, (int) offset, value);
-
-            return oldByte;
+            MemoryHelper.UnprotectWrite(_base, (int) offset, 0x00);
+            
+            return true;
         }
     }
 }

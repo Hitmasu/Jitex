@@ -364,11 +364,13 @@ namespace Jitex.Tests.Intercept
             CallsIntercepted.TryRemove(nameof(TaskNonGeneric), out _);
             MethodsCalled.TryRemove(nameof(TaskNonGeneric), out _);
         }
-        
-        #if !NETCOREAPP2
+
         [Fact]
         public async Task ValueTaskNonGeneric()
         {
+#if NETCOREAPP2
+            return;
+#endif
             await SimpleCallValueTaskAsync().ConfigureAwait(false);
 
             Assert.True(HasCalled(nameof(SimpleCallValueTaskAsync)), "Call not continued!");
@@ -380,7 +382,6 @@ namespace Jitex.Tests.Intercept
             CallsIntercepted.TryRemove(nameof(ValueTaskNonGeneric), out _);
             MethodsCalled.TryRemove(nameof(ValueTaskNonGeneric), out _);
         }
-        #endif
 
         [Theory]
         [InlineData(7, 9)]
@@ -402,14 +403,16 @@ namespace Jitex.Tests.Intercept
             MethodsCalled.TryRemove(nameof(TaskGenericWithParameters), out _);
         }
 
-#if !NETCOREAPP2
         [Theory]
         [InlineData(7, 9)]
-         [InlineData(-1, 20)]
-         [InlineData(2000, 7000)]
+        [InlineData(-1, 20)]
+        [InlineData(2000, 7000)]
         public async Task ValueTaskGenericWithParameters(int n1, int n2)
         {
-            int result = await SumValueTaskAsync(n1,n2).ConfigureAwait(false);
+#if NETCOREAPP2
+            return;
+#endif
+            int result = await SumValueTaskAsync(n1, n2).ConfigureAwait(false);
 
             Assert.Equal(n1 + n2, result);
 
@@ -422,7 +425,6 @@ namespace Jitex.Tests.Intercept
             CallsIntercepted.TryRemove(nameof(ValueTaskGenericWithParameters), out _);
             MethodsCalled.TryRemove(nameof(ValueTaskGenericWithParameters), out _);
         }
-#endif
 
         private static string ReverseText(string text) => new(text.Reverse().ToArray());
 
@@ -450,7 +452,7 @@ namespace Jitex.Tests.Intercept
             _pointFromIntercept = new Point(x, y);
             return ref _pointFromIntercept;
         }
-        
+
         [InterceptCall]
         [MethodImpl(MethodImplOptions.NoInlining)]
         private static ref Point ModifyReturnStructRef(int x, int y)
@@ -459,7 +461,7 @@ namespace Jitex.Tests.Intercept
             _pointFromModify = new Point(x, y);
             return ref _pointFromModify;
         }
-        
+
         [InterceptCall]
         [MethodImpl(MethodImplOptions.NoInlining)]
         private static ref InterceptPerson InterceptReturnObjectRef(string name, int age)
@@ -525,16 +527,17 @@ namespace Jitex.Tests.Intercept
             await Task.Delay(10);
             AddMethodCall(nameof(SimpleCallTaskAsync), caller: nameof(TaskNonGeneric));
         }
-        
-#if !NETCOREAPP2
+
         [InterceptCall]
         [MethodImpl(MethodImplOptions.NoInlining)]
         public static async ValueTask SimpleCallValueTaskAsync()
         {
+#if NETCOREAPP2
+            return;
+#endif
             await Task.Delay(10);
             AddMethodCall(nameof(SimpleCallValueTaskAsync), caller: nameof(ValueTaskNonGeneric));
         }
-#endif
 
         [InterceptCall]
         [MethodImpl(MethodImplOptions.NoInlining)]
@@ -544,15 +547,16 @@ namespace Jitex.Tests.Intercept
             return await Task.FromResult(n1 + n2);
         }
 
-#if !NETCOREAPP2
         [InterceptCall]
         [MethodImpl(MethodImplOptions.NoInlining)]
         private static async ValueTask<int> SumValueTaskAsync(int n1, int n2)
         {
-            AddMethodCall(nameof(SumValueTaskAsync), caller: nameof(ValueTaskGenericWithParameters));
-            return await new ValueTask<int>(n1+n2);
-        }
+#if NETCOREAPP2
+            return default;
 #endif
+            AddMethodCall(nameof(SumValueTaskAsync), caller: nameof(ValueTaskGenericWithParameters));
+            return await new ValueTask<int>(n1 + n2);
+        }
 
         private static async ValueTask InterceptorCall(CallContext context)
         {
@@ -562,7 +566,7 @@ namespace Jitex.Tests.Intercept
 
             if (testSource == null || testSource.DeclaringType != typeof(InterceptStaticCallTests))
                 return;
-            
+
             if (testSource.Name == nameof(ModifyPrimitiveReturnTest))
             {
                 context.ReturnValue = 11;
