@@ -6,7 +6,11 @@ using Jitex.Utils.Extension;
 
 namespace Jitex.Utils
 {
-    internal static class MarshalHelper
+    /// <summary>
+    /// 
+    /// </summary>
+    //That class should be public, because is used by InterceptBuilder to get parameters references.
+    public static class MarshalHelper
     {
         private static readonly IntPtr ObjectTypeHandle;
 
@@ -32,13 +36,13 @@ namespace Jitex.Utils
         /// <param name="obj">Object to get address.</param>
         /// <returns>Reference address from object.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe IntPtr GetReferenceFromObject(ref object obj)
+        internal static unsafe IntPtr GetReferenceFromObject(ref object obj)
         {
             TypedReference typeRef = __makeref(obj);
             return *(IntPtr*) &typeRef;
         }
 
-        public static object GetObjectFromAddress(IntPtr address, Type type)
+        internal static object GetObjectFromAddress(IntPtr address, Type type)
         {
             if (type.IsStruct())
             {
@@ -93,7 +97,7 @@ namespace Jitex.Utils
             return unitializedObject;
         }
 
-        public static IntPtr CreateArrayCopy(byte[] arr)
+        internal static IntPtr CreateArrayCopy(byte[] arr)
         {
             IntPtr address = Marshal.AllocHGlobal(arr.Length);
             Marshal.Copy(arr, 0, address, arr.Length);
