@@ -10,8 +10,7 @@ namespace Jitex.Utils
             if (!MethodIsReadyToRun(method))
                 return false;
 
-            GetReader(method).WriteEntry(method, 0x00);
-            return true;
+            return GetReader(method).DisableReadyToRun(method);
         }
 
         public static bool MethodIsReadyToRun(MethodBase method)
@@ -22,4 +21,3 @@ namespace Jitex.Utils
         private static NativeReader GetReader(MethodBase method) => new(method.Module);
     }
 }
-
