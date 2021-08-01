@@ -12,7 +12,6 @@ namespace Jitex.Utils
 {
     public static class MethodHelper
     {
-        private static readonly RuntimeFramework Framework = RuntimeFramework.GetFramework();
         private static readonly bool CanRecompileMethod;
 
         private static readonly Type CanonType;
@@ -39,7 +38,7 @@ namespace Jitex.Utils
 
             PrecodeFixupThunkAddress = GetPrecodeFixupThunkAddress();
 
-            CanRecompileMethod = Framework.FrameworkVersion >= new Version(5, 0, 0);
+            CanRecompileMethod = RuntimeFramework.Framework >= new Version(5, 0, 0);
         }
 
         private static IntPtr GetPrecodeFixupThunkAddress()
@@ -209,7 +208,7 @@ namespace Jitex.Utils
             IntPtr functionPointer = handle.GetFunctionPointer();
 
             byte opCode = MemoryHelper.Read<byte>(functionPointer, 0);
-            
+
             if (opCode == 0xE9)
             {
                 int jmpSize = MemoryHelper.Read<int>(functionPointer, 1);
@@ -218,6 +217,20 @@ namespace Jitex.Utils
 
             return functionPointer;
         }
+
+        /// <summary>
+        /// Returns if method was compiled as ReadyToRun (R2R).
+        /// </summary>
+        /// <param name="method">Method to check ReadyToRun.</param>
+        /// <returns>Returns true is was compiled as ReadyToRun otherwise false.</returns>
+        public static bool IsReadyToRun(MethodBase method) => ReadyToRunHelper.MethodIsReadyToRun(method);
+
+        /// <summary>
+        /// Disable ReadyToRun on method, forcing method to be compiled by jit.
+        /// </summary>
+        /// <param name="method">Method to disable ReadyToRun.</param>
+        /// <returns>Returns false if method is not ReadyToRun otherwise true.</returns>
+        public static bool DisableReadyToRun(MethodBase method) => ReadyToRunHelper.DisableReadyToRun(method);
 
         //internal static NativeCode GetNativeCode(MethodBase method, CancellationToken cancellationToken) => GetNativeCodeAsync(method, cancellationToken).GetAwaiter().GetResult();
 

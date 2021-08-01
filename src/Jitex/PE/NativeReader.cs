@@ -1,20 +1,21 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
+using dnlib.DotNet;
+using Jitex.Framework;
 using Jitex.JIT.CorInfo;
 using Jitex.Utils;
 using Jitex.Utils.Extension;
-using Jitex.Utils.NativeAPI.Windows;
 
 namespace Jitex.PE
 {
-    public class NativeReader
+    internal class NativeReader
     {
-        private static readonly IDictionary<IntPtr, ImageInfo> Images = new Dictionary<IntPtr, ImageInfo>();
+        private static readonly bool FrameworkSupportR2R;
+        private static readonly IDictionary<Module, ImageInfo> Images = new Dictionary<Module, ImageInfo>();
 
+        private readonly bool _hasRtr;
         private readonly IntPtr _base;
         private readonly int _size;
         private int _entryIndexSize;
@@ -22,77 +23,76 @@ namespace Jitex.PE
         private int _baseOffset;
         private const uint BlockSize = 16;
 
-        private protected ImageInfo Image { get; }
+        static NativeReader()
+        {
+            FrameworkSupportR2R = RuntimeFramework.Framework >= new Version(3, 0);
+        }
 
         public NativeReader(Module module)
         {
-            IntPtr moduleHandle = AppModules.GetAddressFromModule(module);
-
-            //if (!Images.TryGetValue(moduleHandle, out ImageInfo image))
-            //{
-            foreach (ProcessModule pModule in Process.GetCurrentProcess().Modules)
+            if (!Images.TryGetValue(module, out ImageInfo image))
             {
-                if (pModule.FileName == module.FullyQualifiedName)
-                {
-                    _base = pModule.BaseAddress;
-                    _size = pModule.ModuleMemorySize;
-                    break;
-                }
-            }
+                (_base, _size) = OSHelper.GetModuleBaseAddress(module.FullyQualifiedName);
 
-            LoadImage(module);
-            //Images.Add(moduleHandle, image);
-            //}
-            //else
-            //{
-            //    _base = image!.BaseAddress;
-            //    _size = image.Size;
-            //    _nElements = (int) image.NumberOfElements;
-            //    _entryIndexSize = image.EntryIndexSize;
-            //}
+                image = LoadImage(module);
+                Images.Add(module, image);
+                _hasRtr = image.NumberOfElements > 0;
+            }
+            else
+            {
+                _base = image!.BaseAddress;
+                _size = image.Size;
+                _nElements = (int) image.NumberOfElements;
+                _entryIndexSize = image.EntryIndexSize;
+                _baseOffset = image.BaseOffset;
+                _hasRtr = image.NumberOfElements > 0;
+            }
         }
 
         private ImageInfo LoadImage(Module module)
         {
-            uint virtualAddress = GetRTRVirtualAddress();
+            ModuleContext moduleContext = ModuleDef.CreateModuleContext();
+            ModuleDefMD moduleDef = ModuleDefMD.Load(module, moduleContext);
 
-            if (virtualAddress != 0)
+            bool hasR2R = moduleDef.Metadata.ImageCor20Header.HasNativeHeader && FrameworkSupportR2R;
+
+            if (hasR2R)
             {
+                IntPtr startHeaderAddress = _base + (int) moduleDef.Metadata.ImageCor20Header.ManagedNativeHeader.VirtualAddress;
+                uint virtualAddress = GetEntryPointSection(startHeaderAddress);
+
+                if (virtualAddress == 0)
+                    return new ImageInfo(module);
+
                 uint val;
 
                 unsafe
                 {
-                    _baseOffset = DecodeUnsigned((int)virtualAddress, &val);
+                    _baseOffset = DecodeUnsigned((int) virtualAddress, &val);
                 }
 
-                _nElements = (int)(val >> 2);
-                _entryIndexSize = (byte)(val & 3);
-                return new ImageInfo(module, _base, _size, true, default, (uint)_nElements, (byte)_entryIndexSize);
+                _nElements = (int) (val >> 2);
+                _entryIndexSize = (byte) (val & 3);
+                return new ImageInfo(module, _base, _size, _baseOffset, (uint) _nElements, (byte) _entryIndexSize);
             }
 
-            return new ImageInfo(module, _base, _size, false);
+            return new ImageInfo(module);
         }
 
-        private unsafe uint GetRTRVirtualAddress()
+        private static unsafe uint GetEntryPointSection(IntPtr startHeader)
         {
-            ReadOnlySpan<byte> image = new ReadOnlySpan<byte>(_base.ToPointer(), _size);
+            READYTORUN_HEADER header = Unsafe.Read<READYTORUN_HEADER>(startHeader.ToPointer());
 
-            for (int i = 0; i < _size; i++)
+            if (header.Signature != 0x00525452) //Signature != 'RTR'
+                return 0;
+
+            IntPtr startSection = startHeader + sizeof(READYTORUN_HEADER);
+            ReadOnlySpan<READYTORUN_SECTION> sections = new ReadOnlySpan<READYTORUN_SECTION>(startSection.ToPointer(), (int) header.CoreHeader.NumberOfSections);
+
+            foreach (READYTORUN_SECTION section in sections)
             {
-                if (image[i] == 'R' && image[i + 1] == 'T' && image[i + 2] == 'R')
-                {
-                    IntPtr startHeader = _base + i;
-                    READYTORUN_HEADER header = Unsafe.Read<READYTORUN_HEADER>(startHeader.ToPointer());
-
-                    IntPtr startSection = startHeader + sizeof(READYTORUN_HEADER);
-                    ReadOnlySpan<READYTORUN_SECTION> sections = new ReadOnlySpan<READYTORUN_SECTION>(startSection.ToPointer(), (int)header.CoreHeader.NumberOfSections);
-
-                    foreach (READYTORUN_SECTION section in sections)
-                    {
-                        if (section.Type == ReadyToRunSectionType.MethodDefEntryPoints)
-                            return section.Section.VirtualAddress;
-                    }
-                }
+                if (section.Type == ReadyToRunSectionType.MethodDefEntryPoints)
+                    return section.Section.VirtualAddress;
             }
 
             return 0;
@@ -103,44 +103,40 @@ namespace Jitex.PE
             if (offset >= _size)
                 throw new BadImageFormatException();
 
-            uint val = *(byte*)(_base + offset);
+            uint val = *(byte*) (_base + offset);
             if ((val & 1) == 0)
             {
                 *pValue = (val >> 1);
                 offset += 1;
             }
-            else
-            if ((val & 2) == 0)
+            else if ((val & 2) == 0)
             {
                 if (offset + 1 >= _size)
                     throw new BadImageFormatException();
                 *pValue = ((val >> 2) |
-                                  ((uint)*(byte*)(_base + offset + 1) << 6));
+                           ((uint) *(byte*) (_base + offset + 1) << 6));
                 offset += 2;
             }
-            else
-            if ((val & 4) == 0)
+            else if ((val & 4) == 0)
             {
                 if (offset + 2 >= _size)
                     throw new BadImageFormatException();
                 *pValue = (val >> 3) |
-                          ((uint)*(byte*)(_base + offset + 1) << 5) |
-                          ((uint)*(byte*)(_base + offset + 2) << 13);
+                          ((uint) *(byte*) (_base + offset + 1) << 5) |
+                          ((uint) *(byte*) (_base + offset + 2) << 13);
                 offset += 3;
             }
-            else
-            if ((val & 8) == 0)
+            else if ((val & 8) == 0)
             {
                 if (offset + 3 >= _size)
                     throw new BadImageFormatException();
                 *pValue = (val >> 4) |
-                          ((uint)(byte*)(_base + offset + 1) << 4) |
-                          ((uint)(byte*)(_base + offset + 2) << 12) |
-                          ((uint)(byte*)(_base + offset + 3) << 20);
+                          ((uint) (byte*) (_base + offset + 1) << 4) |
+                          ((uint) (byte*) (_base + offset + 2) << 12) |
+                          ((uint) (byte*) (_base + offset + 3) << 20);
                 offset += 4;
             }
-            else
-            if ((val & 16) == 0)
+            else if ((val & 16) == 0)
             {
                 *pValue = MemoryHelper.ReadUnaligned<uint>(_base, offset + 1);
                 offset += 5;
@@ -153,8 +149,11 @@ namespace Jitex.PE
             return offset;
         }
 
-        public unsafe bool IsReadyToRun(MethodBase method)
+        public bool IsReadyToRun(MethodBase method)
         {
+            if (!_hasRtr)
+                return false;
+
             int index = method.GetRID() - 1;
 
             if (index >= _nElements)
@@ -162,17 +161,23 @@ namespace Jitex.PE
 
             uint offset = _entryIndexSize switch
             {
-                0 => MemoryHelper.ReadUnaligned<byte>(_base, _baseOffset + (int)(index / BlockSize)),
-                1 => MemoryHelper.ReadUnaligned<ushort>(_base, _baseOffset + (int)(2 * (index / BlockSize))),
-                _ => MemoryHelper.ReadUnaligned<uint>(_base, _baseOffset + (int)(4 * (index / BlockSize)))
+                0 => MemoryHelper.ReadUnaligned<byte>(_base, _baseOffset + (int) (index / BlockSize)),
+                1 => MemoryHelper.ReadUnaligned<ushort>(_base, _baseOffset + (int) (2 * (index / BlockSize))),
+                _ => MemoryHelper.ReadUnaligned<uint>(_base, _baseOffset + (int) (4 * (index / BlockSize)))
             };
 
-            offset += (uint)_baseOffset;
+            offset += (uint) _baseOffset;
 
             for (uint bit = BlockSize >> 1; bit > 0; bit >>= 1)
             {
                 uint val;
-                uint offset2 = (uint)DecodeUnsigned((int)offset, &val);
+                uint offset2;
+                
+                unsafe
+                {
+                    offset2 = (uint) DecodeUnsigned((int) offset, &val);
+                }
+
                 if ((index & bit) != 0)
                 {
                     if ((val & 2) != 0)
@@ -199,27 +204,31 @@ namespace Jitex.PE
                         break;
                     }
                 }
+
                 return false;
             }
 
             return true;
         }
 
-        public byte WriteEntry(MethodBase method, byte value)
+        public byte? WriteEntry(MethodBase method, byte value)
         {
+            if (OSHelper.IsOSX)
+                return null;
+
             int index = method.GetRID() - 1;
 
             uint offset = _entryIndexSize switch
             {
-                0 => MemoryHelper.ReadUnaligned<byte>(_base, _baseOffset + (int)(index / BlockSize)),
-                1 => MemoryHelper.ReadUnaligned<ushort>(_base, _baseOffset + (int)(2 * (index / BlockSize))),
-                _ => MemoryHelper.ReadUnaligned<uint>(_base, _baseOffset + (int)(4 * (index / BlockSize)))
+                0 => MemoryHelper.ReadUnaligned<byte>(_base, _baseOffset + (int) (index / BlockSize)),
+                1 => MemoryHelper.ReadUnaligned<ushort>(_base, _baseOffset + (int) (2 * (index / BlockSize))),
+                _ => MemoryHelper.ReadUnaligned<uint>(_base, _baseOffset + (int) (4 * (index / BlockSize)))
             };
 
-            offset += (uint)_baseOffset;
+            offset += (uint) _baseOffset;
 
             byte oldByte = MemoryHelper.Read<byte>(_base, (int) offset);
-            MemoryHelper.UnprotectWrite(_base, (int)offset, value);
+            MemoryHelper.UnprotectWrite(_base, (int) offset, value);
 
             return oldByte;
         }

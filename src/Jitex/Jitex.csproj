@@ -17,11 +17,9 @@
 		<PackageTags>JIT</PackageTags>
 		<LangVersion>9</LangVersion>
 		<AssemblyName>Jitex</AssemblyName>
-		<PackageVersion>6.1.0</PackageVersion>
 		<PackageIcon>nuget.png</PackageIcon>
-		<Version>6.1.0</Version>
-		<AssemblyVersion>6.1.0.0</AssemblyVersion>
-		<FileVersion>6.1.0.0</FileVersion>
+		<Version>6.2.0</Version>
+		<RepositoryType>Git</RepositoryType>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -45,7 +43,8 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Iced" Version="1.11.3" />
+		<PackageReference Include="dnlib" Version="3.3.3" />
+		<PackageReference Include="Iced" Version="1.13.0" />
 		<PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
 		<PackageReference Include="System.Memory" Version="4.5.4" />
 		<PackageReference Include="Mono.Posix.NETStandard" Version="1.0.0" />

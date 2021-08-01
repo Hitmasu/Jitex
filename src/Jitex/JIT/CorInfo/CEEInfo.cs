@@ -9,7 +9,7 @@ namespace Jitex.JIT.CorInfo
 {
     internal static class CEEInfo
     {
-        private static IntPtr CEEInfoVTable => RuntimeFramework.GetFramework().CEEInfoVTable;
+        private static IntPtr CEEInfoVTable => RuntimeFramework.Framework.CEEInfoVTable;
 
         private static readonly ConstructStringLiteralDelegate _constructStringLiteral;
 

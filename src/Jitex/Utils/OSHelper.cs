@@ -38,6 +38,7 @@ namespace Jitex.Utils
                 byte b1 = MemoryHelper.Read<byte>(address);
                 byte b2 = MemoryHelper.Read<byte>(address, 1);
 
+                //Validate if address start with MZ
                 if (b1 != 0x4D || b2 != 0x5A)
                     throw new BadImageFormatException();
             }

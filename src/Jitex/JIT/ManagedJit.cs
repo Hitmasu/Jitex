@@ -99,7 +99,7 @@ namespace Jitex.JIT
         /// </summary>
         private ManagedJit()
         {
-            _framework = RuntimeFramework.GetFramework();
+            _framework = RuntimeFramework.Framework;
 
             _compileMethod = CompileMethod;
             _resolveToken = ResolveToken;
