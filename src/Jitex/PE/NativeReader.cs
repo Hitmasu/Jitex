@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -13,7 +14,8 @@ namespace Jitex.PE
     internal class NativeReader
     {
         private static readonly bool FrameworkSupportR2R;
-        private static readonly IDictionary<Module, ImageInfo> Images = new Dictionary<Module, ImageInfo>();
+
+        private readonly ConcurrentDictionary<Module, ImageInfo> Images = new();
 
         private readonly bool _hasRtr;
         private readonly IntPtr _base;
@@ -35,7 +37,7 @@ namespace Jitex.PE
                 (_base, _size) = OSHelper.GetModuleBaseAddress(module.FullyQualifiedName);
 
                 image = LoadImage(module);
-                Images.Add(module, image);
+                Images.TryAdd(module, image);
                 _hasRtr = image.NumberOfElements > 0;
             }
             else
@@ -85,7 +87,7 @@ namespace Jitex.PE
 
             if (header.Signature != 0x00525452) //Signature != 'RTR'
                 return 0;
-            
+
             IntPtr startSection = startHeader + sizeof(READYTORUN_HEADER);
             ReadOnlySpan<READYTORUN_SECTION> sections = new ReadOnlySpan<READYTORUN_SECTION>(startSection.ToPointer(), (int) header.CoreHeader.NumberOfSections);
 
@@ -227,7 +229,7 @@ namespace Jitex.PE
 
             offset += (uint) _baseOffset;
             MemoryHelper.UnprotectWrite(_base, (int) offset, 0x00);
-            
+
             return true;
         }
     }

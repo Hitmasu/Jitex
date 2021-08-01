@@ -9,9 +9,10 @@ namespace Jitex.Utils
 {
     internal static class OSHelper
     {
+        private static readonly object LockSelfMapsLinux = new object();
+
         public static bool IsLinux => RuntimeInformation.IsOSPlatform(OSPlatform.Linux);
         public static bool IsWindows => RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
-
         public static bool IsOSX => RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
 
         public static bool IsPosix => !IsWindows;
@@ -49,29 +50,33 @@ namespace Jitex.Utils
         private static (IntPtr address, int size) GetModuleLinux(string modulePath)
         {
             int size = 0;
-            using FileStream fs = File.OpenRead("/proc/self/maps");
-            using StreamReader sr = new StreamReader(fs);
 
-            do
+            lock (LockSelfMapsLinux)
             {
-                string line = sr.ReadLine()!;
+                using FileStream fs = File.OpenRead("/proc/self/maps");
+                using StreamReader sr = new StreamReader(fs);
 
-                if (!line.EndsWith(modulePath))
-                    continue;
-
-                int separator = line.IndexOf("-", StringComparison.Ordinal);
-
-                //TODO: Implement Span in future...
-                long startAddress = long.Parse(line[..separator], NumberStyles.HexNumber);
-
-                foreach (ProcessModule pModule in Process.GetCurrentProcess().Modules)
+                do
                 {
-                    if (pModule.FileName == modulePath)
-                        size = pModule.ModuleMemorySize;
-                }
+                    string line = sr.ReadLine()!;
 
-                return (new IntPtr(startAddress), size);
-            } while (!sr.EndOfStream);
+                    if (!line.EndsWith(modulePath))
+                        continue;
+
+                    int separator = line.IndexOf("-", StringComparison.Ordinal);
+
+                    //TODO: Implement Span in future...
+                    long startAddress = long.Parse(line[..separator], NumberStyles.HexNumber);
+
+                    foreach (ProcessModule pModule in Process.GetCurrentProcess().Modules)
+                    {
+                        if (pModule.FileName == modulePath)
+                            size = pModule.ModuleMemorySize;
+                    }
+
+                    return (new IntPtr(startAddress), size);
+                } while (!sr.EndOfStream);
+            }
 
             return default;
         }
