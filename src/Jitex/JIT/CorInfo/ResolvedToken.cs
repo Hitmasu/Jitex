@@ -58,7 +58,7 @@ namespace Jitex.JIT.CorInfo
 
         public Module? Module
         {
-            get => AppModules.GetModuleByAddress(Scope);
+            get => AppModules.GetModuleByHandle(Scope);
 
             set
             {

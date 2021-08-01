@@ -113,7 +113,7 @@ namespace Jitex.JIT
 
         private void PrepareHook()
         {
-            RuntimeHelperExtension.PrepareDelegate(_compileMethod, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, (uint)0, IntPtr.Zero, 0);
+            RuntimeHelperExtension.PrepareDelegate(_compileMethod, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, (uint) 0, IntPtr.Zero, 0);
             RuntimeHelperExtension.PrepareDelegate(_resolveToken, IntPtr.Zero, IntPtr.Zero);
             RuntimeHelperExtension.PrepareDelegate(_constructStringLiteral, IntPtr.Zero, IntPtr.Zero, 0, IntPtr.Zero);
         }
@@ -275,16 +275,16 @@ namespace Jitex.JIT
 
                             ilLength = methodBody.IL.Length;
 
-                            ilAddress = methodBody.IL.ToPointer();
+                            ilAddress = MarshalHelper.CreateArrayCopy(methodBody.IL);
 
                             if (methodBody.HasLocalVariable)
                             {
                                 byte[] signatureVariables = methodBody.GetSignatureVariables();
-                                sigAddress = signatureVariables.ToPointer();
+                                sigAddress = MarshalHelper.CreateArrayCopy(signatureVariables);
 
                                 methodInfo.Locals.Signature = sigAddress + 1;
                                 methodInfo.Locals.Args = sigAddress + 3;
-                                methodInfo.Locals.NumArgs = (ushort)methodBody.LocalVariables.Count;
+                                methodInfo.Locals.NumArgs = (ushort) methodBody.LocalVariables.Count;
                             }
 
                             methodInfo.MaxStack = methodBody.MaxStackSize;
@@ -299,10 +299,10 @@ namespace Jitex.JIT
                         }
 
                         methodInfo.ILCode = ilAddress;
-                        methodInfo.ILCodeSize = (uint)ilLength;
+                        methodInfo.ILCodeSize = (uint) ilLength;
                     }
                 }
-                   
+
                 CorJitResult result = _framework.CompileMethod(thisPtr, comp, info, flags, out nativeEntry, out nativeSizeOfCode);
 
                 MethodCompiled methodCompiled = new MethodCompiled(methodFound, thisPtr, comp, methodInfo.MethodHandle, flags, nativeEntry, nativeSizeOfCode);
@@ -522,7 +522,7 @@ namespace Jitex.JIT
             if (methodContext.NativeCode == null)
                 throw new NullReferenceException(nameof(methodContext.NativeCode));
 
-            System.Reflection.MethodInfo method = (System.Reflection.MethodInfo)methodContext.Method;
+            System.Reflection.MethodInfo method = (System.Reflection.MethodInfo) methodContext.Method;
 
             int metadataToken = method.IsGenericMethod ? 0x2B000001 : method.MetadataToken;
 
@@ -543,26 +543,26 @@ namespace Jitex.JIT
             if (!method.IsStatic)
             {
                 argIndex++;
-                callBody.Add((byte)OpCodes.Ldarg_0.Value);
+                callBody.Add((byte) OpCodes.Ldarg_0.Value);
             }
 
             int totalArgs = method.GetParameters().Count(w => !w.IsOptional);
 
             for (int i = 0; i < totalArgs; i++)
             {
-                callBody.Add((byte)OpCodes.Ldarga_S.Value);
-                callBody.Add((byte)argIndex++);
+                callBody.Add((byte) OpCodes.Ldarga_S.Value);
+                callBody.Add((byte) argIndex++);
             }
 
-            callBody.Add((byte)OpCodes.Call.Value);
+            callBody.Add((byte) OpCodes.Call.Value);
             callBody.AddRange(tokenBytes);
 
             if (!isVoid)
-                callBody.Add((byte)OpCodes.Pop.Value);
+                callBody.Add((byte) OpCodes.Pop.Value);
 
             byte[] callBytes = callBody.ToArray();
 
-            int bodyLength = (int)Math.Ceiling((double)methodContext.NativeCode.Length / callBytes.Length) * callBytes.Length;
+            int bodyLength = (int) Math.Ceiling((double) methodContext.NativeCode.Length / callBytes.Length) * callBytes.Length;
             int retLength = 1;
 
             if (!isVoid)
@@ -582,7 +582,7 @@ namespace Jitex.JIT
                 Marshal.Copy(callBytes, 0, ilAddress + bodyLength, callBytes.Length);
             }
 
-            Marshal.WriteByte(ilAddress + ilSize - 1, (byte)OpCodes.Ret.Value);
+            Marshal.WriteByte(ilAddress + ilSize - 1, (byte) OpCodes.Ret.Value);
 
             return (ilAddress, ilSize);
         }

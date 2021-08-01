@@ -1,11 +1,12 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
 using Jitex.Utils.Extension;
 
 namespace Jitex.Utils
 {
-    public static class MarshalHelper
+    internal static class MarshalHelper
     {
         private static readonly IntPtr ObjectTypeHandle;
 
@@ -90,6 +91,13 @@ namespace Jitex.Utils
             source.CopyTo(dest);
 
             return unitializedObject;
+        }
+
+        public static IntPtr CreateArrayCopy(byte[] arr)
+        {
+            IntPtr address = Marshal.AllocHGlobal(arr.Length);
+            Marshal.Copy(arr, 0, address, arr.Length);
+            return address;
         }
     }
 }
