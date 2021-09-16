@@ -1,8 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using dnlib.DotNet;
@@ -45,7 +42,7 @@ namespace Jitex.PE
             {
                 _base = image!.BaseAddress;
                 _size = image.Size;
-                _nElements = (int)image.NumberOfElements;
+                _nElements = (int) image.NumberOfElements;
                 _entryIndexSize = image.EntryIndexSize;
                 _baseOffset = image.BaseOffset;
                 _hasRtr = image.NumberOfElements > 0;
@@ -61,28 +58,36 @@ namespace Jitex.PE
 
             if (hasR2R)
             {
-                IntPtr startHeaderAddress = _base + (int)moduleDef.Metadata.ImageCor20Header.ManagedNativeHeader.VirtualAddress;
+                IntPtr startHeaderAddress = _base + (int) moduleDef.Metadata.ImageCor20Header.ManagedNativeHeader.VirtualAddress;
                 uint virtualAddress = GetEntryPointSection(startHeaderAddress);
+
+                if (virtualAddress == 0)
+                    return new ImageInfo(module);
+
                 uint val;
 
                 unsafe
                 {
-                    _baseOffset = DecodeUnsigned((int)virtualAddress, &val);
+                    _baseOffset = DecodeUnsigned((int) virtualAddress, &val);
                 }
 
-                _nElements = (int)(val >> 2);
-                _entryIndexSize = (byte)(val & 3);
-                return new ImageInfo(module, _base, _size, _baseOffset, (uint)_nElements, (byte)_entryIndexSize);
+                _nElements = (int) (val >> 2);
+                _entryIndexSize = (byte) (val & 3);
+                return new ImageInfo(module, _base, _size, _baseOffset, (uint) _nElements, (byte) _entryIndexSize);
             }
 
-            return new ImageInfo(module, _base, _size);
+            return new ImageInfo(module);
         }
 
         private static unsafe uint GetEntryPointSection(IntPtr startHeader)
         {
             READYTORUN_HEADER header = Unsafe.Read<READYTORUN_HEADER>(startHeader.ToPointer());
+
+            if (header.Signature != 0x00525452) //Signature != 'RTR'
+                return 0;
+            
             IntPtr startSection = startHeader + sizeof(READYTORUN_HEADER);
-            ReadOnlySpan<READYTORUN_SECTION> sections = new ReadOnlySpan<READYTORUN_SECTION>(startSection.ToPointer(), (int)header.CoreHeader.NumberOfSections);
+            ReadOnlySpan<READYTORUN_SECTION> sections = new ReadOnlySpan<READYTORUN_SECTION>(startSection.ToPointer(), (int) header.CoreHeader.NumberOfSections);
 
             foreach (READYTORUN_SECTION section in sections)
             {
@@ -98,44 +103,40 @@ namespace Jitex.PE
             if (offset >= _size)
                 throw new BadImageFormatException();
 
-            uint val = *(byte*)(_base + offset);
+            uint val = *(byte*) (_base + offset);
             if ((val & 1) == 0)
             {
                 *pValue = (val >> 1);
                 offset += 1;
             }
-            else
-            if ((val & 2) == 0)
+            else if ((val & 2) == 0)
             {
                 if (offset + 1 >= _size)
                     throw new BadImageFormatException();
                 *pValue = ((val >> 2) |
-                                  ((uint)*(byte*)(_base + offset + 1) << 6));
+                           ((uint) *(byte*) (_base + offset + 1) << 6));
                 offset += 2;
             }
-            else
-            if ((val & 4) == 0)
+            else if ((val & 4) == 0)
             {
                 if (offset + 2 >= _size)
                     throw new BadImageFormatException();
                 *pValue = (val >> 3) |
-                          ((uint)*(byte*)(_base + offset + 1) << 5) |
-                          ((uint)*(byte*)(_base + offset + 2) << 13);
+                          ((uint) *(byte*) (_base + offset + 1) << 5) |
+                          ((uint) *(byte*) (_base + offset + 2) << 13);
                 offset += 3;
             }
-            else
-            if ((val & 8) == 0)
+            else if ((val & 8) == 0)
             {
                 if (offset + 3 >= _size)
                     throw new BadImageFormatException();
                 *pValue = (val >> 4) |
-                          ((uint)(byte*)(_base + offset + 1) << 4) |
-                          ((uint)(byte*)(_base + offset + 2) << 12) |
-                          ((uint)(byte*)(_base + offset + 3) << 20);
+                          ((uint) (byte*) (_base + offset + 1) << 4) |
+                          ((uint) (byte*) (_base + offset + 2) << 12) |
+                          ((uint) (byte*) (_base + offset + 3) << 20);
                 offset += 4;
             }
-            else
-            if ((val & 16) == 0)
+            else if ((val & 16) == 0)
             {
                 *pValue = MemoryHelper.ReadUnaligned<uint>(_base, offset + 1);
                 offset += 5;
@@ -148,7 +149,7 @@ namespace Jitex.PE
             return offset;
         }
 
-        public unsafe bool IsReadyToRun(MethodBase method)
+        public bool IsReadyToRun(MethodBase method)
         {
             if (!_hasRtr)
                 return false;
@@ -160,17 +161,23 @@ namespace Jitex.PE
 
             uint offset = _entryIndexSize switch
             {
-                0 => MemoryHelper.ReadUnaligned<byte>(_base, _baseOffset + (int)(index / BlockSize)),
-                1 => MemoryHelper.ReadUnaligned<ushort>(_base, _baseOffset + (int)(2 * (index / BlockSize))),
-                _ => MemoryHelper.ReadUnaligned<uint>(_base, _baseOffset + (int)(4 * (index / BlockSize)))
+                0 => MemoryHelper.ReadUnaligned<byte>(_base, _baseOffset + (int) (index / BlockSize)),
+                1 => MemoryHelper.ReadUnaligned<ushort>(_base, _baseOffset + (int) (2 * (index / BlockSize))),
+                _ => MemoryHelper.ReadUnaligned<uint>(_base, _baseOffset + (int) (4 * (index / BlockSize)))
             };
 
-            offset += (uint)_baseOffset;
+            offset += (uint) _baseOffset;
 
             for (uint bit = BlockSize >> 1; bit > 0; bit >>= 1)
             {
                 uint val;
-                uint offset2 = (uint)DecodeUnsigned((int)offset, &val);
+                uint offset2;
+
+                unsafe
+                {
+                    offset2 = (uint) DecodeUnsigned((int) offset, &val);
+                }
+
                 if ((index & bit) != 0)
                 {
                     if ((val & 2) != 0)
@@ -197,29 +204,31 @@ namespace Jitex.PE
                         break;
                     }
                 }
+
                 return false;
             }
 
             return true;
         }
 
-        public byte WriteEntry(MethodBase method, byte value)
+        public bool DisableReadyToRun(MethodBase method)
         {
+            if (OSHelper.IsOSX)
+                return false;
+
             int index = method.GetRID() - 1;
 
             uint offset = _entryIndexSize switch
             {
-                0 => MemoryHelper.ReadUnaligned<byte>(_base, _baseOffset + (int)(index / BlockSize)),
-                1 => MemoryHelper.ReadUnaligned<ushort>(_base, _baseOffset + (int)(2 * (index / BlockSize))),
-                _ => MemoryHelper.ReadUnaligned<uint>(_base, _baseOffset + (int)(4 * (index / BlockSize)))
+                0 => MemoryHelper.ReadUnaligned<byte>(_base, _baseOffset + (int) (index / BlockSize)),
+                1 => MemoryHelper.ReadUnaligned<ushort>(_base, _baseOffset + (int) (2 * (index / BlockSize))),
+                _ => MemoryHelper.ReadUnaligned<uint>(_base, _baseOffset + (int) (4 * (index / BlockSize)))
             };
 
-            offset += (uint)_baseOffset;
-
-            byte oldByte = MemoryHelper.Read<byte>(_base, (int)offset);
-            MemoryHelper.UnprotectWrite(_base, (int)offset, value);
-
-            return oldByte;
+            offset += (uint) _baseOffset;
+            MemoryHelper.UnprotectWrite(_base, (int) offset, 0x00);
+            
+            return true;
         }
     }
 }

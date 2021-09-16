@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace Jitex.Utils
 {
@@ -17,43 +18,105 @@ namespace Jitex.Utils
 
         public static (IntPtr address, int size) GetModuleBaseAddress(string modulePath)
         {
-            if (IsWindows | IsOSX)
+            IntPtr address = default;
+            int size = 0;
+
+            if (IsWindows)
+                (address, size) = GetModuleWindows(modulePath);
+
+            if (IsLinux)
+                (address, size) = GetModuleLinux(modulePath);
+
+            if (IsOSX)
+                (address, size) = GetModuleOSX(modulePath);
+
+            if (address == default)
+                throw new BadImageFormatException($"Base address for module {modulePath} not found!");
+
+            if (address != default)
             {
+                byte b1 = MemoryHelper.Read<byte>(address);
+                byte b2 = MemoryHelper.Read<byte>(address, 1);
+
+                //Validate if address start with MZ
+                if (b1 != 0x4D || b2 != 0x5A)
+                    throw new BadImageFormatException();
+            }
+
+            return (address, size);
+        }
+
+        private static (IntPtr address, int size) GetModuleLinux(string modulePath)
+        {
+            int size = 0;
+            using FileStream fs = File.OpenRead("/proc/self/maps");
+            using StreamReader sr = new StreamReader(fs);
+
+            do
+            {
+                string line = sr.ReadLine()!;
+
+                if (!line.EndsWith(modulePath))
+                    continue;
+
+                int separator = line.IndexOf("-", StringComparison.Ordinal);
+
+                //TODO: Implement Span in future...
+                long startAddress = long.Parse(line[..separator], NumberStyles.HexNumber);
+
                 foreach (ProcessModule pModule in Process.GetCurrentProcess().Modules)
                 {
                     if (pModule.FileName == modulePath)
-                        return (pModule.BaseAddress, pModule.ModuleMemorySize);
+                        size = pModule.ModuleMemorySize;
                 }
 
-                return default;
+                return (new IntPtr(startAddress), size);
+            } while (!sr.EndOfStream);
+
+            return default;
+        }
+
+        private static (IntPtr address, int size) GetModuleWindows(string modulePath)
+        {
+            foreach (ProcessModule pModule in Process.GetCurrentProcess().Modules)
+            {
+                if (pModule.FileName == modulePath)
+                    return (pModule.BaseAddress, pModule.ModuleMemorySize);
             }
 
-            if (IsLinux)
+            return default;
+        }
+
+        private static (IntPtr address, int size) GetModuleOSX(string modulePath)
+        {
+            //TODO: Get modules from mach_vm_region and proc_regionfilename.
+            Process proc = new Process
             {
-                using FileStream fs = File.OpenRead("/proc/self/maps");
-                using StreamReader sr = new StreamReader(fs);
-
-                do
+                StartInfo = new ProcessStartInfo
                 {
-                    string line = sr.ReadLine()!;
+                    FileName = "vmmap",
+                    Arguments = Process.GetCurrentProcess().Id.ToString(),
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    CreateNoWindow = true
+                }
+            };
 
-                    if (!line.EndsWith(modulePath))
-                        continue;
+            proc.Start();
 
-                    int separator = line.IndexOf("-", StringComparison.Ordinal);
+            StringBuilder sb = new StringBuilder();
+            while (!proc.StandardOutput.EndOfStream)
+            {
+                string line = proc.StandardOutput.ReadLine();
+                sb.AppendLine(line);
+                if (!line.EndsWith(Path.GetFileName(modulePath)))
+                    continue;
 
-                    //TODO: Implement Span in future...
-                    long startAddress = long.Parse(line[..separator], NumberStyles.HexNumber);
+                int middleAddress = line.IndexOf("-");
+                int startRangeAddress = line.LastIndexOf(' ', middleAddress) + 1;
+                long startAddress = long.Parse(line[startRangeAddress..middleAddress], NumberStyles.HexNumber);
 
-                    int size = 0;
-                    foreach (ProcessModule pModule in Process.GetCurrentProcess().Modules)
-                    {
-                        if (pModule.FileName == modulePath)
-                            size = pModule.ModuleMemorySize;
-                    }
-
-                    return (new IntPtr(startAddress), size);
-                } while (!sr.EndOfStream);
+                return (new IntPtr(startAddress), int.MaxValue);
             }
 
             return default;

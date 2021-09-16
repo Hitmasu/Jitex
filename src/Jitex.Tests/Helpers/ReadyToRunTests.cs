@@ -1,26 +1,22 @@
 ﻿using System;
 using System.Reflection;
 using System.Reflection.Emit;
-using Jitex.JIT.Context;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using Jitex.Utils;
 using Xunit;
 
 
 namespace Jitex.Tests.Helpers
 {
-#if !NETCOREAPP2
     public class ReadyToRunTests
     {
-        private static bool _isGetterCompiled;
-
-        static ReadyToRunTests()
-        {
-            JitexManager.AddMethodResolver(MethodResolver);
-        }
-
         [Fact]
         public void DetectMethodIsReadyToRunTest()
         {
+#if NETCOREAPP2
+            return;
+#endif
             MethodBase getIlGenerator = typeof(DynamicMethod).GetMethod("GetILGenerator", BindingFlags.Public | BindingFlags.Instance, null, Type.EmptyTypes, null);
 
             bool isReadyToRun = MethodHelper.IsReadyToRun(getIlGenerator);
@@ -30,6 +26,9 @@ namespace Jitex.Tests.Helpers
         [Fact]
         public void DetectMethodIsNotReadyToRunTest()
         {
+#if NETCOREAPP2
+            return;
+#endif
             MethodBase methodNotReadyToRun = Utils.GetMethod<ReadyToRunTests>(nameof(MethodNotR2R));
 
             bool isReadyToRun = MethodHelper.IsReadyToRun(methodNotReadyToRun);
@@ -39,21 +38,32 @@ namespace Jitex.Tests.Helpers
         [Fact]
         public void DisableReadyToRun()
         {
-            MethodBase box = Utils.GetMethod(typeof(AppContext), "get_TargetFrameworkName");
-            bool disabled = MethodHelper.DisableReadyToRun(box);
+#if NETCOREAPP2 || NETCOREAPP3_0
+            return;
+#endif
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                return;
+
+            MethodBase clampMethod = typeof(Math).GetMethod("Clamp", new[] {typeof(int), typeof(int), typeof(int)});
+            bool disabled = MethodHelper.DisableReadyToRun(clampMethod);
+
             Assert.True(disabled);
 
-            _ = AppContext.TargetFrameworkName;
-            Assert.True(_isGetterCompiled, "Method was not compiled.");
+            bool isClampCompiled = false;
+
+            JitexManager.AddMethodResolver(context =>
+            {
+                if (context.Method.Name == clampMethod.Name)
+                    isClampCompiled = true;
+            });
+
+            Math.Clamp(1, 1, 1);
+
+            Assert.True(isClampCompiled, "Method was not compiled.");
         }
 
-        public void MethodNotR2R() { }
-
-        private static void MethodResolver(MethodContext context)
+        public void MethodNotR2R()
         {
-            if (context.Method.Name == "get_TargetFrameworkName")
-                _isGetterCompiled = true;
         }
     }
-#endif
 }
