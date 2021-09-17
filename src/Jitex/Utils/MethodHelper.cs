@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Jitex.Exceptions;
 using Jitex.Framework;
+using Jitex.PE;
 using Jitex.Runtime;
 using Jitex.Utils.Extension;
 
@@ -28,9 +29,9 @@ namespace Jitex.Utils
 
             CanonType = Type.GetType("System.__Canon")!;
 
-            CtorRuntimeMethodHandeInternal = runtimeMethodHandleInternalType.GetConstructor(BindingFlags.NonPublic | BindingFlags.Instance, null, new[] { typeof(IntPtr) }, null)!;
+            CtorRuntimeMethodHandeInternal = runtimeMethodHandleInternalType.GetConstructor(BindingFlags.NonPublic | BindingFlags.Instance, null, new[] {typeof(IntPtr)}, null)!;
 
-            GetMethodBase = runtimeType.GetMethod("GetMethodBase", BindingFlags.NonPublic | BindingFlags.Static, null, new[] { runtimeType, runtimeMethodHandleInternalType }, null)!;
+            GetMethodBase = runtimeType.GetMethod("GetMethodBase", BindingFlags.NonPublic | BindingFlags.Static, null, new[] {runtimeType, runtimeMethodHandleInternalType}, null)!;
 
             GetMethodDescriptorInfo = typeof(DynamicMethod).GetMethod("GetMethodDescriptor", BindingFlags.NonPublic | BindingFlags.Instance)!;
 
@@ -52,7 +53,7 @@ namespace Jitex.Utils
 
         private static object? GetRuntimeMethodHandleInternal(IntPtr methodHandle)
         {
-            return CtorRuntimeMethodHandeInternal!.Invoke(new object?[] { methodHandle });
+            return CtorRuntimeMethodHandeInternal!.Invoke(new object?[] {methodHandle});
         }
 
         internal static MethodBase GetBaseMethodGeneric(MethodBase method)
@@ -82,7 +83,7 @@ namespace Jitex.Utils
 
         internal static bool IsGenericInitialized(MethodBase method)
         {
-            if (method.DeclaringType is { IsGenericType: true })
+            if (method.DeclaringType is {IsGenericType: true})
             {
                 foreach (Type type in method.DeclaringType.GetGenericArguments())
                 {
@@ -93,7 +94,7 @@ namespace Jitex.Utils
 
             if (method.IsGenericMethod)
             {
-                MethodInfo methodInfo = (MethodInfo)method;
+                MethodInfo methodInfo = (MethodInfo) method;
 
                 foreach (Type type in methodInfo.GetGenericArguments())
                 {
@@ -109,7 +110,7 @@ namespace Jitex.Utils
         {
             bool hasCanon = false;
 
-            if (method is MethodInfo { IsGenericMethod: true } methodInfo)
+            if (method is MethodInfo {IsGenericMethod: true} methodInfo)
             {
                 Type[] types = method.GetGenericArguments();
 
@@ -124,7 +125,6 @@ namespace Jitex.Utils
                         break;
                     }
                 }
-
             }
 
             if (!hasCanon && checkDeclaredType && method.DeclaringType != null)
@@ -143,7 +143,7 @@ namespace Jitex.Utils
             if (method == null) throw new ArgumentNullException(nameof(method));
 
             if (method is DynamicMethod)
-                return (RuntimeMethodHandle)GetMethodDescriptorInfo.Invoke(method, null);
+                return (RuntimeMethodHandle) GetMethodDescriptorInfo.Invoke(method, null);
 
             return method.MethodHandle;
         }
@@ -151,7 +151,7 @@ namespace Jitex.Utils
         public static IntPtr GetFunctionPointer(IntPtr methodHandle)
         {
             object handle = GetRuntimeMethodHandleInternal(methodHandle);
-            return (IntPtr)GetFunctionPointerInternal.Invoke(null, new[] { handle });
+            return (IntPtr) GetFunctionPointerInternal.Invoke(null, new[] {handle});
         }
 
         private static IntPtr GetDirectMethodHandle(MethodBase method)
@@ -177,7 +177,7 @@ namespace Jitex.Utils
         public static MethodBase? GetMethodFromHandle(IntPtr methodHandle)
         {
             object? handle = GetRuntimeMethodHandleInternal(methodHandle);
-            MethodBase? method = GetMethodBase.Invoke(null, new[] { null, handle }) as MethodBase;
+            MethodBase? method = GetMethodBase.Invoke(null, new[] {null, handle}) as MethodBase;
             return method;
         }
 
@@ -223,14 +223,25 @@ namespace Jitex.Utils
         /// </summary>
         /// <param name="method">Method to check ReadyToRun.</param>
         /// <returns>Returns true is was compiled as ReadyToRun otherwise false.</returns>
-        public static bool IsReadyToRun(MethodBase method) => ReadyToRunHelper.MethodIsReadyToRun(method);
+        public static bool IsReadyToRun(MethodBase method)
+        {
+            NativeReader reader = new NativeReader(method.Module);
+            return reader.IsReadyToRun(method);
+        }
 
         /// <summary>
         /// Disable ReadyToRun on method, forcing method to be compiled by jit.
         /// </summary>
         /// <param name="method">Method to disable ReadyToRun.</param>
         /// <returns>Returns false if method is not ReadyToRun otherwise true.</returns>
-        public static bool DisableReadyToRun(MethodBase method) => ReadyToRunHelper.DisableReadyToRun(method);
+        public static bool DisableReadyToRun(MethodBase method)
+        {
+            if (!IsReadyToRun(method))
+                return false;
+            
+            NativeReader reader = new NativeReader(method.Module);
+            return reader.DisableReadyToRun(method);
+        }
 
         //internal static NativeCode GetNativeCode(MethodBase method, CancellationToken cancellationToken) => GetNativeCodeAsync(method, cancellationToken).GetAwaiter().GetResult();
 
@@ -298,7 +309,7 @@ namespace Jitex.Utils
         {
             IntPtr methodHandle = GetDirectMethodHandle(method);
             IntPtr functionPointer = GetFunctionPointer(methodHandle);
-            int jmpSize = (int)(PrecodeFixupThunkAddress.ToInt64() - functionPointer.ToInt64() - 5);
+            int jmpSize = (int) (PrecodeFixupThunkAddress.ToInt64() - functionPointer.ToInt64() - 5);
             int offset = GetHandleOffset(method);
 
             Marshal.WriteIntPtr(methodHandle, IntPtr.Size * offset, IntPtr.Zero);
@@ -338,7 +349,7 @@ namespace Jitex.Utils
         {
             if (!IsGenericInitialized(method))
             {
-                MethodInfo methodInfo = (MethodInfo)method;
+                MethodInfo methodInfo = (MethodInfo) method;
 
                 if (method == methodInfo.GetGenericMethodDefinition())
                     throw new ArgumentException("Generic methods cannot be recompiled by generic method definition.\n" +

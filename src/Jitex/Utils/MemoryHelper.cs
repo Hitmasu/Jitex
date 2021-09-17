@@ -11,6 +11,8 @@ namespace Jitex.Utils
 {
     internal static class MemoryHelper
     {
+        private static readonly object LockSelfMemLinux = new object();
+
         private static readonly byte[] TrampolineInstruction =
         {
             // mov rax, 0000000000000000h ;Pointer to delegate
@@ -83,14 +85,17 @@ namespace Jitex.Utils
                     byteValue = new Span<byte>(ptr, size).ToArray();
                 }
 
-                //Prevent segmentation fault.
-                using FileStream fs = File.Open($"/proc/{Process.GetCurrentProcess().Id}/mem", FileMode.Open, FileAccess.ReadWrite);
-                fs.Seek(address.ToInt64(), SeekOrigin.Begin);
-                fs.Write(byteValue, 0, byteValue.Length);
+                lock (LockSelfMemLinux)
+                {
+                    //Prevent segmentation fault.
+                    using FileStream fs = File.Open($"/proc/self/mem", FileMode.Open, FileAccess.ReadWrite);
+                    fs.Seek(address.ToInt64(), SeekOrigin.Begin);
+                    fs.Write(byteValue, 0, byteValue.Length);
+                }
             }
             else
             {
-                Mman.mprotect(address, (ulong)size, MmapProts.PROT_WRITE);
+                Mman.mprotect(address, (ulong) size, MmapProts.PROT_WRITE);
                 Write(address, value);
             }
         }
