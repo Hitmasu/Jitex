@@ -15,7 +15,7 @@ namespace Jitex.PE
     {
         private static readonly bool FrameworkSupportR2R;
 
-        private readonly ConcurrentDictionary<Module, ImageInfo> Images = new();
+        private static readonly ConcurrentDictionary<Module, ImageInfo> Images = new();
 
         private readonly bool _hasRtr;
         private readonly IntPtr _base;
