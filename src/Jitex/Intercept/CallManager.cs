@@ -19,9 +19,7 @@ namespace Jitex.Intercept
 
         public CallManager(IntPtr handle, in object[] parameters, bool hasCanon, bool isGenericMethod, bool isStatic)
         {
-            CallCache cache;
-
-            if (!Cache.TryGetValue(handle, out cache))
+            if (!Cache.TryGetValue(handle, out CallCache cache))
             {
                 MethodBase? method;
 
