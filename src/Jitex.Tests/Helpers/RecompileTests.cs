@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 using Jitex.JIT.Context;
 using Jitex.Tests.Helpers.Attributes;
 using Jitex.Tests.Helpers.Recompile;
@@ -29,9 +30,9 @@ namespace Jitex.Tests.Helpers
         [Fact]
         public void MethodInstanceNonGenericTest()
         {
-#if !NET5_0
+            #if !NET5_0
             return;
-#endif
+            #endif
             MethodInfo method = Utils.GetMethod<NonGenericInstanceClass>(nameof(NonGenericInstanceClass.NonGeneric));
             NonGenericInstanceClass instance = new NonGenericInstanceClass();
 
@@ -46,14 +47,41 @@ namespace Jitex.Tests.Helpers
             Assert.Equal(2, count);
         }
 
+        [Fact]
+        public async Task MethodVirtualNonGenericTest()
+        {
+            #if !NET5_0
+                return;
+            #endif
+
+            MethodInfo method = typeof(NonGenericInstanceClass)
+                .GetTypeInfo().DeclaredNestedTypes
+                .First(w => w.Name.Contains(nameof(NonGenericInstanceClass.StubAsync)))
+                .GetMethods((BindingFlags) (-1))
+                .First(w => w.Name == "MoveNext");
+
+            NonGenericInstanceClass instance = new NonGenericInstanceClass();
+
+            await instance.StubAsync();
+
+            MethodHelper.ForceRecompile(method);
+
+            await instance.StubAsync();
+
+            int count = MethodsCompiled.ToList().Count(m => m == method);
+
+            Assert.Equal(2, count);
+        }
+
         [Theory]
         [InlineData(typeof(int))]
         [InlineData(typeof(RecompileTests))]
         public void MethodInstanceGenericTest(Type type)
         {
-#if !NET5_0
+            #if !NET5_0
             return;
-#endif
+            #endif
+
             MethodInfo method = Utils.GetMethod<NonGenericInstanceClass>(nameof(NonGenericInstanceClass.Generic));
             method = method.MakeGenericMethod(type);
 
@@ -73,9 +101,9 @@ namespace Jitex.Tests.Helpers
         [Fact]
         public void MethodStaticOnNonStaticTypeTest()
         {
-#if !NET5_0
+            #if !NET5_0
             return;
-#endif
+            #endif
             MethodInfo method = Utils.GetMethod<NonGenericInstanceClass>(nameof(NonGenericInstanceClass.StaticNonGeneric));
 
             NonGenericInstanceClass.StaticNonGeneric();
@@ -94,9 +122,9 @@ namespace Jitex.Tests.Helpers
         [InlineData(typeof(RecompileTests))]
         public void MethodStaticGenericOnNonStaticTypeTest(Type type)
         {
-#if !NET5_0
+            #if !NET5_0
             return;
-#endif
+            #endif
             MethodInfo method = Utils.GetMethod<NonGenericInstanceClass>(nameof(NonGenericInstanceClass.StaticGeneric));
             method = method.MakeGenericMethod(type);
             method.Invoke(null, null);
@@ -114,9 +142,9 @@ namespace Jitex.Tests.Helpers
         [Fact]
         public void MethodStaticNonGenericTest()
         {
-#if !NET5_0
+            #if !NET5_0
             return;
-#endif
+            #endif
             MethodInfo method = Utils.GetMethod(typeof(NonGenericStaticClass), nameof(NonGenericStaticClass.NonGeneric));
 
             NonGenericStaticClass.NonGeneric();
@@ -135,9 +163,9 @@ namespace Jitex.Tests.Helpers
         [InlineData(typeof(RecompileTests))]
         public void MethodStaticGenericTest(Type type)
         {
-#if !NET5_0
+            #if !NET5_0
             return;
-#endif
+            #endif
             MethodInfo method = Utils.GetMethod(typeof(NonGenericStaticClass), nameof(NonGenericStaticClass.Generic));
             method = method.MakeGenericMethod(type);
 
@@ -155,9 +183,14 @@ namespace Jitex.Tests.Helpers
 
         private static void MethodResolver(MethodContext context)
         {
-            if (context.Method.DeclaringType != null &&
-                context.Method.DeclaringType.GetCustomAttribute<ClassRecompileTestAttribute>() != null)
+            Type declaringType = context.Method.DeclaringType;
+            if (declaringType == null)
+                return;
+
+            if (declaringType.GetCustomAttribute<ClassRecompileTestAttribute>() != null || (declaringType.IsNested && declaringType.DeclaringType.GetCustomAttribute<ClassRecompileTestAttribute>() != null))
+            {
                 MethodsCompiled.Add(context.Method);
+            }
         }
     }
 }

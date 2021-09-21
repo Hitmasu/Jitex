@@ -45,7 +45,7 @@ namespace Jitex.JIT
     /// </summary>
     internal sealed class ManagedJit : IDisposable
     {
-        private static readonly ConcurrentDictionary<IntPtr, MethodBase?> HandleSource = new ConcurrentDictionary<IntPtr, MethodBase?>();
+        private readonly ConcurrentDictionary<IntPtr, MethodBase?> _handleSource = new();
 
         /// <summary>
         /// Lock to prevent multiple instance.
@@ -273,7 +273,7 @@ namespace Jitex.JIT
                     //Inside resolveToken, we can get source (which requested compilation) and destiny handle method (which be compiled).
                     //In theory, every method to be compiled, should pass inside resolveToken, but has some unknown cases which they will be not "resolved".
                     //Also, this is an inaccurate way to get source, because in some cases, can return a false source.
-                    bool hasSource = HandleSource.TryGetValue(methodInfo.MethodHandle, out MethodBase? source);
+                    bool hasSource = _handleSource.TryGetValue(methodInfo.MethodHandle, out MethodBase? source);
 
                     methodContext = new MethodContext(methodFound, source, hasSource);
 
@@ -310,12 +310,12 @@ namespace Jitex.JIT
 
                             ilLength = methodBody.IL.Length;
 
-                            ilAddress = methodBody.IL.ToPointer();
+                            ilAddress = MarshalHelper.CreateArrayCopy(methodBody.IL);
 
                             if (methodBody.HasLocalVariable)
                             {
                                 byte[] signatureVariables = methodBody.GetSignatureVariables();
-                                sigAddress = signatureVariables.ToPointer();
+                                sigAddress = MarshalHelper.CreateArrayCopy(signatureVariables);
 
                                 methodInfo.Locals.Signature = sigAddress + 1;
                                 methodInfo.Locals.Args = sigAddress + 3;
@@ -435,7 +435,7 @@ namespace Jitex.JIT
 
             if (thisHandle == IntPtr.Zero)
             {
-                HandleSource.AddOrUpdate(IntPtr.Zero, MethodBase.GetCurrentMethod(), (ptr, b) => null);
+                _handleSource.AddOrUpdate(IntPtr.Zero, MethodBase.GetCurrentMethod(), (ptr, b) => null);
                 return;
             }
 
@@ -472,9 +472,9 @@ namespace Jitex.JIT
 
                 if (resolvedToken.HMethod != IntPtr.Zero)
                 {
-                    if (!HandleSource.TryGetValue(resolvedToken.HMethod, out MethodBase? _))
+                    if (!_handleSource.TryGetValue(resolvedToken.HMethod, out MethodBase? _))
                     {
-                        HandleSource[resolvedToken.HMethod] = source;
+                        _handleSource[resolvedToken.HMethod] = source;
                     }
                 }
             }

@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Jitex.Exceptions;
 using Jitex.Framework;
+using Jitex.PE;
 using Jitex.Runtime;
 using Jitex.Utils.Extension;
 
@@ -124,7 +125,6 @@ namespace Jitex.Utils
                         break;
                     }
                 }
-
             }
 
             if (!hasCanon && checkDeclaredType && method.DeclaringType != null)
@@ -223,14 +223,25 @@ namespace Jitex.Utils
         /// </summary>
         /// <param name="method">Method to check ReadyToRun.</param>
         /// <returns>Returns true is was compiled as ReadyToRun otherwise false.</returns>
-        public static bool IsReadyToRun(MethodBase method) => ReadyToRunHelper.MethodIsReadyToRun(method);
+        public static bool IsReadyToRun(MethodBase method)
+        {
+            NativeReader reader = new NativeReader(method.Module);
+            return reader.IsReadyToRun(method);
+        }
 
         /// <summary>
         /// Disable ReadyToRun on method, forcing method to be compiled by jit.
         /// </summary>
         /// <param name="method">Method to disable ReadyToRun.</param>
         /// <returns>Returns false if method is not ReadyToRun otherwise true.</returns>
-        public static bool DisableReadyToRun(MethodBase method) => ReadyToRunHelper.DisableReadyToRun(method);
+        public static bool DisableReadyToRun(MethodBase method)
+        {
+            if (!IsReadyToRun(method))
+                return false;
+
+            NativeReader reader = new NativeReader(method.Module);
+            return reader.DisableReadyToRun(method);
+        }
 
         //internal static NativeCode GetNativeCode(MethodBase method, CancellationToken cancellationToken) => GetNativeCodeAsync(method, cancellationToken).GetAwaiter().GetResult();
 
@@ -316,6 +327,9 @@ namespace Jitex.Utils
 
             if (method.IsGenericMethod)
                 return 5;
+
+            if (method.IsVirtual)
+                return 3;
 
             return 2;
         }

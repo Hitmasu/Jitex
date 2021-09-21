@@ -31,10 +31,10 @@ namespace Jitex.Utils
             AddAssembly(args.LoadedAssembly);
         }
 
-        public static Module? GetModuleByAddress(IntPtr scope)
+        public static Module? GetModuleByHandle(IntPtr handle)
         {
             LoadMapScopeToHandle();
-            return _mapScopeToHandle!.TryGetValue(scope, out Module module) ? module : null;
+            return _mapScopeToHandle!.TryGetValue(handle, out Module module) ? module : null;
         }
 
         public static IntPtr GetAddressFromModule(Module module)
