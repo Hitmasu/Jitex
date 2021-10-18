@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Jitex.JIT.Context;
 using Jitex.Tests.Helpers.Attributes;
@@ -61,10 +62,14 @@ namespace Jitex.Tests.Helpers
                 .First(w => w.Name == "MoveNext");
 
             NonGenericInstanceClass instance = new NonGenericInstanceClass();
-
+            
+            WriteLogMemory(method.MethodHandle.Value, IntPtr.Size * 10);
             await instance.StubAsync();
-
+            Output.WriteLine("Method handle: " + method.MethodHandle.Value.ToString("X"));
+            Output.WriteLine("Functional Pointer: " + method.MethodHandle.GetFunctionPointer().ToString("X"));
+            WriteLogMemory(method.MethodHandle.Value, IntPtr.Size * 10);
             MethodHelper.ForceRecompile(method);
+
 
             await instance.StubAsync();
 

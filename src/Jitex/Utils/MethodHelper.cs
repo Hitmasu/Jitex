@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
@@ -21,11 +22,13 @@ namespace Jitex.Utils
         private static readonly MethodInfo GetMethodBase;
         private static readonly MethodInfo GetMethodDescriptorInfo;
         private static readonly MethodInfo GetFunctionPointerInternal;
+        private static readonly MethodInfo GetSlot;
 
         static MethodHelper()
         {
             Type runtimeMethodHandleInternalType = Type.GetType("System.RuntimeMethodHandleInternal")!;
             Type runtimeType = Type.GetType("System.RuntimeType")!;
+            Type iRuntimeMethodInfo = Type.GetType("System.IRuntimeMethodInfo")!;
 
             CanonType = Type.GetType("System.__Canon")!;
 
@@ -33,9 +36,11 @@ namespace Jitex.Utils
 
             GetMethodBase = runtimeType.GetMethod("GetMethodBase", BindingFlags.NonPublic | BindingFlags.Static, null, new[] { runtimeType, runtimeMethodHandleInternalType }, null)!;
 
-            GetMethodDescriptorInfo = typeof(DynamicMethod).GetMethod("GetMethodDescriptor", BindingFlags.NonPublic | BindingFlags.Instance)!;
+            GetMethodDescriptorInfo = typeof(DynamicMethod).GetMethod("GetMethodDescriptor", BindingFlags.Instance | BindingFlags.NonPublic)!;
 
             GetFunctionPointerInternal = typeof(RuntimeMethodHandle).GetMethod("GetFunctionPointer", BindingFlags.Static | BindingFlags.NonPublic)!;
+
+            GetSlot = typeof(RuntimeMethodHandle).GetMethod("GetSlot", BindingFlags.Static | BindingFlags.NonPublic, null, new[] { iRuntimeMethodInfo }, null)!;
 
             PrecodeFixupThunkAddress = GetPrecodeFixupThunkAddress();
 
@@ -54,6 +59,11 @@ namespace Jitex.Utils
         private static object? GetRuntimeMethodHandleInternal(IntPtr methodHandle)
         {
             return CtorRuntimeMethodHandeInternal!.Invoke(new object?[] { methodHandle });
+        }
+
+        private static int GetMethodSlot(MethodInfo method)
+        {
+            return (int)GetSlot.Invoke(null, new object[] { method });
         }
 
         internal static MethodBase GetBaseMethodGeneric(MethodBase method)
@@ -153,7 +163,6 @@ namespace Jitex.Utils
             object handle = GetRuntimeMethodHandleInternal(methodHandle);
             return (IntPtr)GetFunctionPointerInternal.Invoke(null, new[] { handle });
         }
-
         private static IntPtr GetDirectMethodHandle(MethodBase method)
         {
             bool methodHasCanon = HasCanon(method, false, true);
@@ -243,20 +252,6 @@ namespace Jitex.Utils
             return reader.DisableReadyToRun(method);
         }
 
-        //internal static NativeCode GetNativeCode(MethodBase method, CancellationToken cancellationToken) => GetNativeCodeAsync(method, cancellationToken).GetAwaiter().GetResult();
-
-        ///// <summary>
-        ///// Get native code from a method.
-        ///// </summary>
-        ///// <param name="method">Method to get native code.</param>
-        ///// <returns>Native code info from method.</returns>
-        //public static Task<NativeCode> GetNativeCodeAsync(MethodBase method, CancellationToken cancellationToken)
-        //{
-        //    if (method == null) throw new ArgumentNullException(nameof(method));
-
-        //    return RuntimeMethodCache.GetNativeCodeAsync(method, cancellationToken);
-        //}
-
         /// <summary>
         /// Returns if method is already compiled.
         /// </summary>
@@ -268,7 +263,7 @@ namespace Jitex.Utils
 
             method = GetOriginalMethod(method);
             IntPtr methodHandle = GetDirectMethodHandle(method);
-            int offset = GetHandleOffset(method);
+            int offset = GetFunctionPointerOffset(method);
             return Marshal.ReadIntPtr(methodHandle, IntPtr.Size * offset) != IntPtr.Zero;
         }
 
@@ -295,41 +290,131 @@ namespace Jitex.Utils
         /// Set state method to be compiled
         /// </summary>
         /// <param name="method">Method to be compiled.</param>
-        public static void ForceRecompile(MethodBase method)
+        /// <returns>Returns if state was set sucessfully.</returns>
+        public static bool ForceRecompile(MethodBase method)
         {
             if (!CanRecompileMethod) throw new UnsupportedFrameworkVersion("Recompile method is only supported on .NET 5 or above.");
             if (method == null) throw new ArgumentNullException(nameof(method));
 
             CheckIfGenericIsInitialized(method);
 
-            SetMethodToPrecodeFixup(method);
+            return SetMethodPreCode(method);
         }
 
-        internal static void SetMethodToPrecodeFixup(MethodBase method)
+        internal static bool SetMethodPreCode(MethodBase method)
         {
             IntPtr methodHandle = GetDirectMethodHandle(method);
             IntPtr functionPointer = GetFunctionPointer(methodHandle);
             int jmpSize = (int)(PrecodeFixupThunkAddress.ToInt64() - functionPointer.ToInt64() - 5);
-            int offset = GetHandleOffset(method);
+            int offset = GetFunctionPointerOffset(method);
 
+            //Remove funcitonPointer on MethodDesc
             Marshal.WriteIntPtr(methodHandle, IntPtr.Size * offset, IntPtr.Zero);
 
+            //Set call instruction to call PreCodeFixup
             Marshal.WriteByte(functionPointer, 0xE8); //call instruction
             Marshal.WriteByte(functionPointer, 5, 0x5E); //pop instruction
             Marshal.WriteInt32(functionPointer, 1, jmpSize);
+
+            if (!method.IsVirtual)
+                return false;
+            
+            IntPtr typeHandle = method.DeclaringType!.TypeHandle.Value;
+
+            //To find start of vtable, currently we need search by some specific value on TypeDesc.
+            //That's a dumb way to get address of vtable, but sadly, i can't find a better way.
+            //TODO: Find a better way to get vtable from type.
+            IntPtr startVTable = typeHandle + IntPtr.Size * 2;
+            IntPtr endVTable = startVTable + IntPtr.Size * 100;
+
+            Type? lastInterface = method.DeclaringType.GetInterfaces().LastOrDefault();
+
+            bool addressFound = false;
+
+            if (lastInterface != null)
+            {
+                //When classes implements interfaces, we can find the start of vtable searching by TypeHandle from interfaces implemented.
+                //All TypeHandles from all interfaces, will stored on TypeDesc. 
+                //VTable starts after last TypeHandle from last interface implemented.
+                //
+                //Eg.:
+                // ------
+                // public class MyType : IInterface1, IInterface2, IInterface3
+                // ------
+                //<address>:    (Number of Interfaces + 1) 00 00 00 00 00 00 00
+                //<address+8>:  IInterface1TypeHandle
+                //<address+16>: IInterface2TypeHandle
+                //<address+24>: IInterface3TypeHandle
+                //<address+32>: VTable
+
+                do
+                {
+                    if (MemoryHelper.Read<IntPtr>(startVTable) == lastInterface.TypeHandle.Value)
+                    {
+                        startVTable += IntPtr.Size;
+                        addressFound = true;
+                        break;
+                    }
+
+                    startVTable += IntPtr.Size;
+
+                } while (startVTable.ToInt64() < endVTable.ToInt64());
+            }
+            else
+            {
+                //Normal classes have a weird pointer to vtable:
+                //---
+                //<address>:    00 00 00 00 00 00 00 00
+                //<address+8>:  [pointer to <address+16>]
+                //<address+16>: VTable
+                //---
+                //So, we basically need find an address value which pointer to the next address.
+                do
+                {
+                    IntPtr value = MemoryHelper.Read<IntPtr>(startVTable);
+                    startVTable += IntPtr.Size;
+
+                    if (value == startVTable)
+                    {
+                        addressFound = true;
+                        break;
+                    }
+
+                } while (startVTable.ToInt64() < endVTable.ToInt64());
+            }
+
+            if (!addressFound)
+                return false;
+
+            int originalSlot = GetMethodSlot((MethodInfo)method);
+
+            //If method is virtual, we need get the "virtual" function pointer, which sadly, it's not same from MethodHandle.
+            //I can't find a way to get that pointer, but we can assume his allocated after function pointer from the last constructor:
+            //Eg.:
+            //--
+            //<address>:    Constructor[0] Function Pointer
+            //<address+8>:  Constructor[1] Function Pointer
+            //<address+16>: Constructor[2] Function Pointer
+            //....
+            //<address+..>: Virtual Methods Function Pointer
+            //--
+            IntPtr ctorPointer = method.DeclaringType!.GetConstructors((BindingFlags)(-1))
+                .Max(w => w.MethodHandle.GetFunctionPointer());
+            IntPtr virtualFunctionPointer = ctorPointer + IntPtr.Size * originalSlot;
+
+            MemoryHelper.Write(startVTable, IntPtr.Size * originalSlot, virtualFunctionPointer);
+
+            return true;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int GetHandleOffset(MethodBase method)
+        private static int GetFunctionPointerOffset(MethodBase method)
         {
-            if (TypeHelper.IsGeneric(method.DeclaringType) && !method.IsGenericMethod)
+            if ((TypeHelper.IsGeneric(method.DeclaringType) && !method.IsGenericMethod) || method.IsVirtual)
                 return 1;
 
             if (method.IsGenericMethod)
                 return 5;
-
-            if (method.IsVirtual)
-                return 3;
 
             return 2;
         }
