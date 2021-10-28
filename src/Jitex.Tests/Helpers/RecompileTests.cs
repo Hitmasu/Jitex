@@ -48,36 +48,6 @@ namespace Jitex.Tests.Helpers
             Assert.Equal(2, count);
         }
 
-        [Fact]
-        public async Task MethodVirtualNonGenericTest()
-        {
-            #if !NET5_0
-                return;
-            #endif
-
-            MethodInfo method = typeof(NonGenericInstanceClass)
-                .GetTypeInfo().DeclaredNestedTypes
-                .First(w => w.Name.Contains(nameof(NonGenericInstanceClass.StubAsync)))
-                .GetMethods((BindingFlags) (-1))
-                .First(w => w.Name == "MoveNext");
-
-            NonGenericInstanceClass instance = new NonGenericInstanceClass();
-            
-            WriteLogMemory(method.MethodHandle.Value, IntPtr.Size * 10);
-            await instance.StubAsync();
-            Output.WriteLine("Method handle: " + method.MethodHandle.Value.ToString("X"));
-            Output.WriteLine("Functional Pointer: " + method.MethodHandle.GetFunctionPointer().ToString("X"));
-            WriteLogMemory(method.MethodHandle.Value, IntPtr.Size * 10);
-            MethodHelper.ForceRecompile(method);
-
-
-            await instance.StubAsync();
-
-            int count = MethodsCompiled.ToList().Count(m => m == method);
-
-            Assert.Equal(2, count);
-        }
-
         [Theory]
         [InlineData(typeof(int))]
         [InlineData(typeof(RecompileTests))]

@@ -318,7 +318,7 @@ namespace Jitex.Utils
 
             if (!method.IsVirtual)
                 return false;
-            
+
             IntPtr typeHandle = method.DeclaringType!.TypeHandle.Value;
 
             //To find start of vtable, currently we need search by some specific value on TypeDesc.
@@ -387,9 +387,10 @@ namespace Jitex.Utils
                 return false;
 
             int originalSlot = GetMethodSlot((MethodInfo)method);
+            int vTableIndex = 0; //+1 is for ctor.
 
             //If method is virtual, we need get the "virtual" function pointer, which sadly, it's not same from MethodHandle.
-            //I can't find a way to get that pointer, but we can assume his allocated after function pointer from the last constructor:
+            //I can't find a way to get that pointer, but we can assume his allocated after/before function pointer from last constructor:
             //Eg.:
             //--
             //<address>:    Constructor[0] Function Pointer
@@ -398,9 +399,31 @@ namespace Jitex.Utils
             //....
             //<address+..>: Virtual Methods Function Pointer
             //--
-            IntPtr ctorPointer = method.DeclaringType!.GetConstructors((BindingFlags)(-1))
-                .Max(w => w.MethodHandle.GetFunctionPointer());
-            IntPtr virtualFunctionPointer = ctorPointer + IntPtr.Size * originalSlot;
+
+            IOrderedEnumerable<MethodInfo> methods = method.DeclaringType.GetMethods((BindingFlags)(-1))
+                .OrderBy(w => w.MetadataToken);
+
+            foreach (MethodInfo methodInfo in methods)
+            {
+                if (methodInfo.MetadataToken == method.MetadataToken)
+                    break;
+
+                if (IsMethodInVtable(methodInfo))
+                    vTableIndex++;
+            }
+
+            ConstructorInfo lastCtor = method.DeclaringType!.GetConstructors((BindingFlags)(-1)).Last();
+
+            if (lastCtor.MetadataToken > method.MetadataToken)
+            {
+                vTableIndex--;
+
+                if (vTableIndex > 0)
+                    vTableIndex = -vTableIndex;
+            }
+
+            IntPtr ctorPointer = lastCtor.MethodHandle.GetFunctionPointer();
+            IntPtr virtualFunctionPointer = ctorPointer + IntPtr.Size * vTableIndex;
 
             MemoryHelper.Write(startVTable, IntPtr.Size * originalSlot, virtualFunctionPointer);
 
@@ -453,5 +476,8 @@ namespace Jitex.Utils
         /// <returns>RID from method.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int GetRID(MethodBase method) => method.MetadataToken & 0x00FFFFFF;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool IsMethodInVtable(MethodBase method) => method.IsVirtual || method.IsGenericMethod;
     }
 }
