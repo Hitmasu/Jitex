@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Jitex.JIT.Context;
 using Jitex.Tests.Helpers.Attributes;
@@ -41,32 +42,6 @@ namespace Jitex.Tests.Helpers
             MethodHelper.ForceRecompile(method);
 
             instance.NonGeneric();
-
-            int count = MethodsCompiled.ToList().Count(m => m == method);
-
-            Assert.Equal(2, count);
-        }
-
-        [Fact]
-        public async Task MethodVirtualNonGenericTest()
-        {
-            #if !NET5_0
-                return;
-            #endif
-
-            MethodInfo method = typeof(NonGenericInstanceClass)
-                .GetTypeInfo().DeclaredNestedTypes
-                .First(w => w.Name.Contains(nameof(NonGenericInstanceClass.StubAsync)))
-                .GetMethods((BindingFlags) (-1))
-                .First(w => w.Name == "MoveNext");
-
-            NonGenericInstanceClass instance = new NonGenericInstanceClass();
-
-            await instance.StubAsync();
-
-            MethodHelper.ForceRecompile(method);
-
-            await instance.StubAsync();
 
             int count = MethodsCompiled.ToList().Count(m => m == method);
 
