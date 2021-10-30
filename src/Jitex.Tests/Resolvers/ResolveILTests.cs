@@ -17,7 +17,7 @@ namespace Jitex.Tests.Resolvers
 
         static ResolveILTests()
         {
-            AssertTrue = typeof(Assert).GetMethod("True", new[] { typeof(bool) });
+            AssertTrue = typeof(Assert).GetMethod("True", new[] {typeof(bool)});
         }
 
         public ResolveILTests()
@@ -41,10 +41,10 @@ namespace Jitex.Tests.Resolvers
 
         private void TokenResolver(TokenContext context)
         {
-            if (context.Module == GetType().Module)
+            if (context.Module == GetType().Module && context.HasSource && context.Source!.DeclaringType == typeof(ResolveILTests))
             {
                 if (context.MetadataToken == AssertTrue.MetadataToken)
-                    context.ResolveMethod(AssertTrue); 
+                    context.ResolveMethod(AssertTrue);
             }
         }
 
@@ -64,7 +64,7 @@ namespace Jitex.Tests.Resolvers
                 };
 
                 il.AddRange(assertToken);
-                il.Add((byte)OpCodes.Ret.Value);
+                il.Add((byte) OpCodes.Ret.Value);
 
                 context.ResolveIL(il);
             }
@@ -80,7 +80,7 @@ namespace Jitex.Tests.Resolvers
                 //}
                 List<byte> il = new List<byte>
                 {
-                    (byte) OpCodes.Ldc_I4.Value, 0xFF, 0x7F, 0x00, 0x00,//32767
+                    (byte) OpCodes.Ldc_I4.Value, 0xFF, 0x7F, 0x00, 0x00, //32767
                     (byte) OpCodes.Stloc_0.Value,
 
                     (byte) OpCodes.Ldc_I4.Value, 0xFF, 0x7F, 0x00, 0x00, //32767
@@ -96,9 +96,9 @@ namespace Jitex.Tests.Resolvers
                 };
 
                 il.AddRange(ceqInstruction);
-                il.Add((byte)OpCodes.Call.Value);
+                il.Add((byte) OpCodes.Call.Value);
                 il.AddRange(assertToken);
-                il.Add((byte)OpCodes.Ret.Value);
+                il.Add((byte) OpCodes.Ret.Value);
 
                 MethodBody methodBody = new MethodBody(il, context.Method.Module, typeof(int), typeof(int));
                 context.ResolveBody(methodBody);
