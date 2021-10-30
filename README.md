@@ -20,32 +20,20 @@ It's a library built in .NET Standard 2.0, works on all version >=.NET Core 2.0.
 Jitex can help you replace code at runtime easily.
 
 ```c#
-class Program {
-  static void Main (string[] args) {
-    JitexManager.AddMethodResolver (MethodResolver);
-    int result = SimpleSum (5, 5);
-    Console.WriteLine (result); //output is 25
-  }
+using System;
+using Jitex;
 
-  static int SimpleSum (int num1, int num2) 
-  {
-    return num1 + num2;
-  }
+JitexManager.AddMethodResolver(context =>
+{
+    if (context.Method.Name == "Sum")
+        context.ResolveMethod<Func<int, int, int>>(Mul); //Replace Sum by Mul
+});
 
-  public static int SimpleMul (int num1, int num2) 
-  {
-    return num1 * num2;
-  }
+int result = Sum(5, 5); //Output is 25
+Console.WriteLine(result);
 
-  private static void MethodResolver (MethodContext context) 
-  {
-    if (context.Method.Name == "SimpleSum") {
-      //Replace SimpleSum to SimpleMul
-      MethodInfo replaceSumMethod = typeof (Program).GetMethod ("SimpleMul");
-      context.ResolveMethod (replaceSumMethod);
-    }
-  }
-}
+static int Sum(int n1, int n2) => n1 + n2;
+static int Mul(int n1, int n2) => n1 * n2;
 ```
 
 
@@ -55,7 +43,7 @@ class Program {
 - [Modify normal and generic methods](#Replace-Method)
 - [Detour method](#Detour-Method)
 - [Replace MSIL code (IL)](#Replace-MSIL)
-- [Replace native code (ASM)](#Replace-Native-Code)
+- [Replace native code](#Replace-Native-Code)
 - [Execute custom metadatatoken](#Inject-custom-metadatatoken)
 - [Replace content string](#Replace-content-string)
 - [Modules](#Modules)
@@ -65,31 +53,37 @@ class Program {
 ## Intercept call
 
 ```c#
-public static void Main(){
-    JitexManager.AddMethodResolver (MethodResolver);
-    JitexManager.AddInterceptor (InteceptorCallAsync);
-    int result = SimpleSum (5, 5);
-    Console.WriteLine (result); //Output is 10
-}
+using System;
+using Jitex;
 
-private static int SimpleSum(int n1, int n2) => n1+n2;
-
-private static async ValueTask InteceptorCallAsync(CallContext context)
+JitexManager.AddMethodResolver(context =>
 {
-    //Get parameters passed to method
+    if (context.Method.Name == "Sum")
+        context.InterceptCall();
+});
+
+//Every call from Sum, will be pass here.
+JitexManager.AddInterceptor(async context =>
+{
+    //Get parameters passed in call
     int n1 = context.Parameters.GetParameterValue<int>(0);
     int n2 = context.Parameters.GetParameterValue<int>(1);
-    
-    //Set new parameters values
-    context.Parameters.SetParameterValue(0,10);
-    context.Parameters.SetParameterValue(1,10);
-}
 
-private static void MethodResolver(MethodContext context)
-{
-    if (context.Method.Name == nameof(SimpleSum))
-        context.InterceptCall(); //every call from SimpleSum will be intercepted
-}
+    n1 *= 10;
+    n2 *= 10;
+
+    //Override parameters value
+    context.Parameters.SetParameterValue(0, n1);
+    context.Parameters.SetParameterValue(1, n2);
+
+    //Or we can just set return value
+    context.ReturnValue = 100;
+});
+
+int result = Sum(5, 5); //Output is 25
+Console.WriteLine(result);
+
+int Sum(int n1, int n2) => n1 * n2;
 ```
 
 ## Replace Method
@@ -99,7 +93,7 @@ private static void MethodResolver(MethodContext context)
 ///     Take sum of 2 random numbers
 /// </summary>
 /// <returns></returns>
-public static int SimpleSumReplace () 
+public static int SumReplace () 
 {
   const string url = "https://www.random.org/integers/?num=2&min=1&max=999&col=2&base=10&format=plain&rnd=new";
   using HttpClient client = new HttpClient ();
@@ -116,9 +110,9 @@ public static int SimpleSumReplace ()
 
 private static void MethodResolver (MethodContext context) 
 {
-  if (context.Method.Name == "SimpleSum") {
-    //Replace SimpleSum to our SimpleSumReplace
-    MethodInfo replaceSumMethod = typeof (Program).GetMethod (nameof (SimpleSumReplace));
+  if (context.Method.Name == "Sum") {
+    //Replace Sum to our SumReplace
+    MethodInfo replaceSumMethod = typeof (Program).GetMethod (nameof (SumReplace));
     context.ResolveMethod (replaceSumMethod);
   }
 }
@@ -128,12 +122,12 @@ private static void MethodResolver (MethodContext context)
 
 ```c#
 private static void MethodResolver (MethodContext context) {
-  if (context.Method.Name == "SimpleSum") {
+  if (context.Method.Name == "Sum") {
     //Detour by MethodInfo
-    MethodInfo detourMethod = typeof (Program).GetMethod (nameof (SimpleSumDetour));
+    MethodInfo detourMethod = typeof (Program).GetMethod (nameof (SumDetour));
     context.ResolveDetour (detourMethod);
     //or
-    context.ResolveDetour<Action> (SimpleSumDetour);
+    context.ResolveDetour<Action> (SumDetour);
 
     //Detour by Action or Func
     Action<int, int> detourAction = (n1, n2) => {
@@ -154,8 +148,7 @@ private static void MethodResolver (MethodContext context) {
 ```c#
 private static void MethodResolver (MethodContext context) 
 {
-  //Verify if method to compiled is our method SimpleSum.
-  if (context.Method.Name == "SimpleSum") {
+  if (context.Method.Name == "Sum") {
     //num1 * num2
     byte[] newIL = {
     (byte) OpCodes.Ldarg_0.Value, //parameter num1
@@ -175,7 +168,7 @@ private static void MethodResolver (MethodContext context)
 ```c#
 private static void MethodResolver (MethodContext context) 
 {
-  if (context.Method.Name == "SimpleSum") {
+  if (context.Method.Name == "Sum") {
     Assembler assembler = new Assembler (64);
 
     //Replace with fatorial number:
@@ -214,10 +207,10 @@ You can inject a custom metadata too, in this way, you can "execute" metadatatok
 
 ```c#
 /// <summary>
-///     Example of a external library to replace SimpleSum.
+///     Example of a external library to replace Sum.
 /// </summary>
 /// <remarks>
-///     We replace SimpleSum to return the PID of process running. To do this, normally we need
+///     We replace Sum to return the PID of process running. To do this, normally we need
 ///     reference assembly (System.Diagnostics.Process) and class Process.
 ///     In this case, the original module, dont have any reference to namespace System.Diagnostics.Process.
 ///     As we pass the MetadataToken from Process.GetCurrentProcess().Id, its necessary resolve that manually,
@@ -250,7 +243,7 @@ public static class ExternLibrary
 
     private static void TokenResolver(TokenContext context)
     {
-        if (context.TokenType == TokenKind.Method && context.Source.Name == "SimpleSum")
+        if (context.TokenType == TokenKind.Method && context.Source.Name == "Sum")
         {
             if (context.MetadataToken == _getCurrentProcess.MetadataToken)
             {
@@ -265,7 +258,7 @@ public static class ExternLibrary
     
     private static void MethodResolver(MethodContext context)
     {
-        if (context.Method.Name == "SimpleSum")
+        if (context.Method.Name == "Sum")
         {
             List<byte> newIl = new List<byte>();
             newIl.Add((byte)OpCodes.Call.Value);
@@ -283,7 +276,7 @@ public static class ExternLibrary
 ```c#
 static void Main (string[] args) {
     ExternLibrary.Initialize ();
-    int result = SimpleSum (1, 7);
+    int result = Sum (1, 7);
     Console.WriteLine (result); //output is PID
 }
 ```
