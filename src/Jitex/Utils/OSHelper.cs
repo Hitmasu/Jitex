@@ -19,30 +19,25 @@ namespace Jitex.Utils
 
         public static (IntPtr address, int size) GetModuleBaseAddress(string modulePath)
         {
-            IntPtr address = default;
-            int size = 0;
+            IntPtr address;
+            int size;
 
             if (IsWindows)
                 (address, size) = GetModuleWindows(modulePath);
-
-            if (IsLinux)
+            else if (IsLinux)
                 (address, size) = GetModuleLinux(modulePath);
-
-            if (IsOSX)
+            else
                 (address, size) = GetModuleOSX(modulePath);
 
             if (address == default)
                 throw new BadImageFormatException($"Base address for module {modulePath} not found!");
 
-            if (address != default)
-            {
-                byte b1 = MemoryHelper.Read<byte>(address);
-                byte b2 = MemoryHelper.Read<byte>(address, 1);
+            byte b1 = MemoryHelper.Read<byte>(address);
+            byte b2 = MemoryHelper.Read<byte>(address, 1);
 
-                //Validate if address start with MZ
-                if (b1 != 0x4D || b2 != 0x5A)
-                    throw new BadImageFormatException();
-            }
+            //Validate if address start with MZ
+            if (b1 != 0x4D || b2 != 0x5A)
+                throw new BadImageFormatException();
 
             return (address, size);
         }

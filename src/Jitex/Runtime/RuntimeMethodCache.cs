@@ -35,9 +35,9 @@ namespace Jitex.Runtime
 
                 do
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     await Task.Delay(100, cancellationToken).ConfigureAwait(false);
                     methodCompiled = GetMethodCompiledInfo(method);
-                    cancellationToken.ThrowIfCancellationRequested();
                 } while (methodCompiled == null);
             }
 

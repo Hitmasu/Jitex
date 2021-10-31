@@ -11,7 +11,7 @@ namespace Jitex.Utils
     /// <summary>
     /// Utilities for type.
     /// </summary>
-    public static class TypeHelper
+    internal static class TypeHelper
     {
         private static readonly Type CanonType;
         private static readonly MethodInfo GetTypeFromHandleUnsafe;
