@@ -425,6 +425,14 @@ namespace Jitex.Utils
             IntPtr ctorPointer = lastCtor.MethodHandle.GetFunctionPointer();
             IntPtr virtualFunctionPointer = ctorPointer + IntPtr.Size * vTableIndex;
 
+            if (virtualFunctionPointer == ctorPointer)
+            {
+                if (lastCtor.MetadataToken > method.MetadataToken)
+                    virtualFunctionPointer -= IntPtr.Size;
+                else
+                    virtualFunctionPointer += IntPtr.Size;
+            }
+
             MemoryHelper.Write(startVTable, IntPtr.Size * originalSlot, virtualFunctionPointer);
 
             return true;
