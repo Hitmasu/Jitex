@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Threading.Tasks;
 using Iced.Intel;
 using Jitex.Runtime;
@@ -79,7 +80,7 @@ namespace Jitex.Intercept
         public MethodBase Create()
         {
             MethodInfo interceptor = CreateMethodInterceptor();
-            RemoveAccessValidation(interceptor, _firstMethodValidation);
+            RemoveAccessValidation(interceptor);
             return interceptor;
         }
 
@@ -311,69 +312,77 @@ namespace Jitex.Intercept
         /// 
         /// </remarks>
         /// <param name="origin">Original method.</param>
-        /// <param name="dest">Method to be validated.</param>
+        /// <param name="dest">Method validation.</param>
         ///
         /// --- Destination method should be the first method validated on native code.
-        private void RemoveAccessValidation(MethodBase origin, MethodBase dest)
+        private void RemoveAccessValidation(MethodBase origin)
         {
-            NativeCode native = MethodHelper.GetNativeCode(origin);
-
-            byte[] nativeCode = new byte[native.Size];
-            Marshal.Copy(native.Address, nativeCode, 0, native.Size);
-
-            ByteArrayCodeReader codeReader = new ByteArrayCodeReader(nativeCode);
-
-            Decoder decoder = Decoder.Create(64, codeReader, (ulong)native.Address.ToInt64());
-            ulong endIp = decoder.IP + (ulong)native.Size;
-
-            ulong handleOrigin = (ulong)MethodHelper.GetMethodHandle(origin).Value.ToInt64();
-            ulong handleDest = (ulong)MethodHelper.GetMethodHandle(dest).Value.ToInt64();
-
-            //mov register methodHandle (have 10 bytes = 1 instruction | 1 register | 8 address)
-            //mov register methodHandle (have 10 bytes = 1 instruction | 1 register | 8 address)
-            const int movSize = 20;
-
-            //mov + call MethodAccessException
-            const int callSize = movSize + 5;
-
-            do
+            try
             {
-                bool writeAddress = false;
-                IntPtr startInstruction = IntPtr.Zero;
+                CancellationTokenSource source = new CancellationTokenSource(TimeSpan.FromSeconds(1));
+                NativeCode native = RuntimeMethodCache.GetNativeCodeAsync(origin, source.Token).GetAwaiter().GetResult();
 
-                Instruction instruction = decoder.Decode();
+                byte[] nativeCode = new byte[native.Size];
+                Marshal.Copy(native.Address, nativeCode, 0, native.Size);
 
-                if (_methodAccessExceptionAddress == 0 && instruction.Mnemonic == Mnemonic.Mov && instruction.Immediate64 == handleOrigin)
+                ByteArrayCodeReader codeReader = new ByteArrayCodeReader(nativeCode);
+
+                Decoder decoder = Decoder.Create(64, codeReader, (ulong) native.Address.ToInt64());
+                ulong endIp = decoder.IP + (ulong) native.Size;
+
+                ulong handleOrigin = (ulong) MethodHelper.GetMethodHandle(origin).Value.ToInt64();
+                ulong handleDest = (ulong) MethodHelper.GetMethodHandle(_firstMethodValidation).Value.ToInt64();
+
+                //mov register methodHandle (have 10 bytes = 1 instruction | 1 register | 8 address)
+                //mov register methodHandle (have 10 bytes = 1 instruction | 1 register | 8 address)
+                const int movSize = 20;
+
+                //mov + call MethodAccessException
+                const int callSize = movSize + 5;
+
+                do
                 {
-                    Instruction nextInstruction = decoder.Decode();
+                    bool writeAddress = false;
+                    IntPtr startInstruction = IntPtr.Zero;
 
-                    if (nextInstruction.Mnemonic == Mnemonic.Mov && nextInstruction.Immediate64 == handleDest)
+                    Instruction instruction = decoder.Decode();
+
+                    if (_methodAccessExceptionAddress == 0 && instruction.Mnemonic == Mnemonic.Mov && instruction.Immediate64 == handleOrigin)
                     {
-                        Instruction callInstruction = decoder.Decode();
+                        Instruction nextInstruction = decoder.Decode();
 
-                        if (callInstruction.Mnemonic != Mnemonic.Call)
-                            continue;
+                        if (nextInstruction.Mnemonic == Mnemonic.Mov && nextInstruction.Immediate64 == handleDest)
+                        {
+                            Instruction callInstruction = decoder.Decode();
 
-                        _methodAccessExceptionAddress = callInstruction.Immediate64;
-                        startInstruction = new IntPtr((long)instruction.IP);
+                            if (callInstruction.Mnemonic != Mnemonic.Call)
+                                continue;
+
+                            _methodAccessExceptionAddress = callInstruction.Immediate64;
+                            startInstruction = new IntPtr((long) instruction.IP);
+                            writeAddress = true;
+                        }
+                    }
+                    else if (instruction.Mnemonic == Mnemonic.Call && instruction.Immediate64 == _methodAccessExceptionAddress && instruction.Immediate64 != 0)
+                    {
+                        startInstruction = new IntPtr((long) instruction.IP - movSize);
                         writeAddress = true;
                     }
-                }
-                else if (instruction.Mnemonic == Mnemonic.Call && instruction.Immediate64 == _methodAccessExceptionAddress && instruction.Immediate64 != 0)
-                {
-                    startInstruction = new IntPtr((long)instruction.IP - movSize);
-                    writeAddress = true;
-                }
 
-                if (writeAddress)
-                {
-                    byte[] nopInstructions = new byte[2];
-                    nopInstructions[0] = 0xEB; //jmp near short
-                    nopInstructions[1] = callSize - 2;
+                    if (writeAddress)
+                    {
+                        byte[] nopInstructions = new byte[2];
+                        nopInstructions[0] = 0xEB; //jmp near short
+                        nopInstructions[1] = callSize - 2;
 
-                    Marshal.Copy(nopInstructions, 0, startInstruction, nopInstructions.Length);
-                }
-            } while (decoder.IP < endIp);
+                        Marshal.Copy(nopInstructions, 0, startInstruction, nopInstructions.Length);
+                    }
+                } while (decoder.IP < endIp);
+            }
+            catch
+            {
+                //...
+            }
         }
     }
 }

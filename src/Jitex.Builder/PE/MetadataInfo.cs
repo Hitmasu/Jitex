@@ -72,8 +72,8 @@ namespace Jitex.Builder.PE
         {
             var types = ImmutableDictionary.CreateBuilder<Type, EntityHandle>(TypeComparer.Instance);
 
-            IEnumerable<EntityHandle> typesDef = reader.TypeDefinitions.Select(typeDef => (EntityHandle) typeDef);
-            IEnumerable<EntityHandle> typesRef = reader.TypeReferences.Select(typeRef => (EntityHandle) typeRef);
+            IEnumerable<EntityHandle> typesDef = reader.TypeDefinitions.Select(typeDef => (EntityHandle)typeDef);
+            IEnumerable<EntityHandle> typesRef = reader.TypeReferences.Select(typeRef => (EntityHandle)typeRef);
 
             foreach (EntityHandle entityHandle in typesDef.Concat(typesRef))
             {

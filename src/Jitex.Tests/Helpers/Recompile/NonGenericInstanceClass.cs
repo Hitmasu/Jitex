@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Jitex.Tests.Helpers.Recompile
 {
@@ -11,6 +12,9 @@ namespace Jitex.Tests.Helpers.Recompile
     {
         [MethodImpl(MethodImplOptions.NoInlining)]
         public void NonGeneric() { }
+        
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        public async Task StubAsync(){}
 
         [MethodImpl(MethodImplOptions.NoInlining)]
         public void Generic<T>() { }

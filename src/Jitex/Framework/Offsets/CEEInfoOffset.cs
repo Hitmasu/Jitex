@@ -10,7 +10,7 @@ namespace Jitex.Framework.Offsets
 
         static CEEInfoOffset()
         {
-            RuntimeFramework framework = RuntimeFramework.GetFramework();
+            RuntimeFramework framework = RuntimeFramework.Framework;
             ReadOffset(framework.IsCore, framework.FrameworkVersion);
         }
 

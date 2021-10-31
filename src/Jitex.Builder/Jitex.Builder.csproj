@@ -14,14 +14,18 @@
 		<PackageLicenseFile></PackageLicenseFile>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<PackageTags>JIT Jitex</PackageTags>
-		<Version>1.1.2</Version>
+		<Version>1.1.3</Version>
 		<AssemblyName>Jitex.Builder</AssemblyName>
 		<Nullable>enable</Nullable>
-		<PackageVersion>1.1.2</PackageVersion>
 		<PackageIcon>nuget.png</PackageIcon>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+	  <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+	  <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -30,6 +34,6 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<None Include="..\..\logos\nuget.png" Pack="true" PackagePath=""/>
+		<None Include="..\..\logos\nuget.png" Pack="true" PackagePath="" />
 	</ItemGroup>
 </Project>

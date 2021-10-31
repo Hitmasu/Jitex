@@ -1,10 +1,10 @@
 ﻿using Jitex.Utils.Extension;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
+using RuntimeTypeHandle = System.RuntimeTypeHandle;
 
 namespace Jitex.Utils
 {
@@ -60,7 +60,7 @@ namespace Jitex.Utils
 
             bool hasCanon = false;
 
-            foreach(Type t in types)
+            foreach (Type t in types)
             {
                 if (ignoreCanonType && t == CanonType)
                     continue;

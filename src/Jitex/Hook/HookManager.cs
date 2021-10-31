@@ -5,6 +5,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using Jitex.Utils.NativeAPI.Windows;
 using System.IO;
+using Jitex.Utils;
 using Jitex.Utils.NativeAPI.POSIX;
 using Mono.Unix.Native;
 
@@ -54,26 +55,7 @@ namespace Jitex.Hook
         /// <param name="pointer">Pointer to write.</param>
         private static void WritePointer(IntPtr address, IntPtr pointer)
         {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                Kernel32.MemoryProtection oldFlags = Kernel32.VirtualProtect(address, IntPtr.Size, Kernel32.MemoryProtection.READ_WRITE);
-                Marshal.WriteIntPtr(address, pointer);
-                Kernel32.VirtualProtect(address, IntPtr.Size, oldFlags);
-            }
-            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-            {
-                byte[] newAddress = BitConverter.GetBytes(pointer.ToInt64());
-
-                //Prevent segmentation fault.
-                using FileStream fs = File.Open($"/proc/{Process.GetCurrentProcess().Id}/mem", FileMode.Open, FileAccess.ReadWrite);
-                fs.Seek(address.ToInt64(), SeekOrigin.Begin);
-                fs.Write(newAddress, 0, newAddress.Length);
-            }
-            else
-            {
-                Mman.mprotect(address, (ulong)IntPtr.Size, MmapProts.PROT_WRITE);
-                Marshal.WriteIntPtr(address, pointer);
-            }
+            MemoryHelper.UnprotectWrite(address, pointer);
         }
     }
 }
