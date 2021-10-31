@@ -80,7 +80,7 @@ JitexManager.AddInterceptor(async context =>
     context.ReturnValue = 100;
 });
 
-int result = Sum(5, 5); //Output is 25
+int result = Sum(5, 5); //Output is 100
 Console.WriteLine(result);
 
 int Sum(int n1, int n2) => n1 * n2;
