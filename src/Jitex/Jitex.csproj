@@ -18,7 +18,7 @@
 		<LangVersion>9</LangVersion>
 		<AssemblyName>Jitex</AssemblyName>
 		<PackageIcon>nuget.png</PackageIcon>
-		<Version>6.2.0</Version>
+		<Version>6.2.1</Version>
 		<RepositoryType>Git</RepositoryType>
 	</PropertyGroup>
 
