@@ -4,7 +4,7 @@ using Jitex.Framework.Offsets;
 
 namespace Jitex.JIT.CorInfo
 {
-    internal class SigInfo : CorType
+    public class SigInfo : CorType
     {
         private ushort _numArgs;
         private IntPtr _args;
