@@ -34,14 +34,8 @@ namespace Jitex
         /// </summary>
         public static event MethodCompiledHandler OnMethodCompiled
         {
-            add
-            {
-                AddOnMethodCompiled(value);
-            }
-            remove
-            {
-                RemoveOnMethodCompiled(value);
-            }
+            add => AddOnMethodCompiled(value);
+            remove => RemoveOnMethodCompiled(value);
         }
 
         /// <summary>
@@ -49,14 +43,8 @@ namespace Jitex
         /// </summary>
         public static event MethodResolverHandler MethodResolver
         {
-            add
-            {
-                AddMethodResolver(value);
-            }
-            remove
-            {
-                RemoveMethodResolver(value);
-            }
+            add => AddMethodResolver(value);
+            remove => RemoveMethodResolver(value);
         }
 
 
@@ -65,20 +53,23 @@ namespace Jitex
         /// </summary>
         public static event TokenResolverHandler TokenResolver
         {
-            add
-            {
-                AddTokenResolver(value);
-            }
-            remove
-            {
-                RemoveTokenResolver(value);
-            }
+            add => AddTokenResolver(value);
+            remove => RemoveTokenResolver(value);
+        }
+
+        /// <summary>
+        /// Call interceptor
+        /// </summary>
+        public static event InterceptHandler.InterceptorHandler Interceptor
+        {
+            add => AddInterceptor(value);
+            remove => RemoveInterceptor(value);
         }
 
         /// <summary>
         /// Returns if Jitex is enabled. 
         /// </summary>
-        public static bool IsEnabled => _jit is { IsEnabled: true };
+        public static bool IsEnabled => _jit is {IsEnabled: true};
 
         /// <summary>
         /// Enable Jitex
@@ -100,7 +91,7 @@ namespace Jitex
             {
                 if (!ModuleIsLoaded(typeModule))
                 {
-                    JitexModule module = (JitexModule)Activator.CreateInstance(typeModule);
+                    JitexModule module = (JitexModule) Activator.CreateInstance(typeModule);
 
                     module.LoadResolvers();
 
@@ -122,7 +113,7 @@ namespace Jitex
             {
                 if (!ModuleIsLoaded(typeModule))
                 {
-                    JitexModule module = (JitexModule)instance;
+                    JitexModule module = (JitexModule) instance;
 
                     module.LoadResolvers();
 
@@ -305,7 +296,7 @@ namespace Jitex
         /// <param name="onMethodCompiled"></param>
         public static void AddOnMethodCompiled(MethodCompiledHandler onMethodCompiled)
         {
-            lock(OnMethodCompiledLock)
+            lock (OnMethodCompiledLock)
                 Jit.AddOnMethodCompiledEvent(onMethodCompiled);
         }
 
