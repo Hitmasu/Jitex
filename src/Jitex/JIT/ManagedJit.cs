@@ -19,6 +19,7 @@ using MethodBody = Jitex.Builder.Method.MethodBody;
 using MethodInfo = Jitex.JIT.CorInfo.MethodInfo;
 using static Jitex.JIT.JitexHandler;
 using static Jitex.Utils.JitexLogger;
+using Jitex.JIT.Handlers;
 
 namespace Jitex.JIT
 {
@@ -38,6 +39,12 @@ namespace Jitex.JIT
         /// </summary>
         /// <param name="context">Context of token.</param>
         public delegate void TokenResolverHandler(TokenContext context);
+
+        /// <summary>
+        /// Handler to event after compiled method.
+        /// </summary>
+        /// <param name="code"></param>
+        public delegate void MethodCompiledHandler(MethodCompiled methodCompiled);
     }
 
     /// <summary>
@@ -88,6 +95,8 @@ namespace Jitex.JIT
         /// </summary>
         private CEEInfo.ConstructStringLiteralDelegate? _constructStringLiteral;
 
+        private event MethodCompiledHandler _onMethodCompiled;
+
         private bool _isDisposed;
 
         private MethodResolverHandler? _methodResolvers;
@@ -116,7 +125,7 @@ namespace Jitex.JIT
         private void PrepareHook()
         {
             Log?.LogTrace("Preparing delegate for CompileMethod");
-            RuntimeHelperExtension.PrepareDelegate(_compileMethod, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, (uint) 0, IntPtr.Zero, 0);
+            RuntimeHelperExtension.PrepareDelegate(_compileMethod, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, (uint)0, IntPtr.Zero, 0);
 
             Log?.LogTrace("Preparing delegate for ResolveToken");
             RuntimeHelperExtension.PrepareDelegate(_resolveToken, IntPtr.Zero, IntPtr.Zero);
@@ -145,10 +154,12 @@ namespace Jitex.JIT
 
         internal void RemoveTokenResolver(TokenResolverHandler tokenResolver) => _tokenResolvers -= tokenResolver;
 
+        internal void AddOnMethodCompiledEvent(MethodCompiledHandler handler) => _onMethodCompiled += handler;
+        internal void RemoveOnMethodCompiledEvent(MethodCompiledHandler handler) => _onMethodCompiled -= handler;
+
         internal bool HasMethodResolver(MethodResolverHandler methodResolver) => _methodResolvers != null && _methodResolvers.GetInvocationList().Any(del => del.Method == methodResolver.Method);
 
         internal bool HasTokenResolver(TokenResolverHandler tokenResolver) => _tokenResolvers != null && _tokenResolvers.GetInvocationList().Any(del => del.Method == tokenResolver.Method);
-
         #region Future Feature (Enable/Disable)
 
         /// <summary>
@@ -228,7 +239,7 @@ namespace Jitex.JIT
                 IntPtr ilAddress = IntPtr.Zero;
 
                 //Dont put anything inside "if" to be compiled! Otherwise, will raise a StackOverflow
-                if (_methodResolvers == null || _compileTls.EnterCount > 1)
+                if (_compileTls.EnterCount > 1)
                     return _framework.CompileMethod(thisPtr, comp, info, flags, out nativeEntry, out nativeSizeOfCode);
 
                 MethodInfo methodInfo = new MethodInfo(info);
@@ -249,7 +260,12 @@ namespace Jitex.JIT
                 using var methodScope = Log?.BeginScope(methodFound.ToString());
                 Log?.LogInformation($"Method to be compiled: {methodFound}");
 
-                Delegate[] resolvers = _methodResolvers.GetInvocationList();
+                Delegate[] resolvers = null!;
+
+                if (_methodResolvers == null)
+                    resolvers = new Delegate[0];
+                else
+                    resolvers = _methodResolvers.GetInvocationList();
 
                 if (resolvers.Any())
                 {
@@ -319,7 +335,7 @@ namespace Jitex.JIT
 
                                 methodInfo.Locals.Signature = sigAddress + 1;
                                 methodInfo.Locals.Args = sigAddress + 3;
-                                methodInfo.Locals.NumArgs = (ushort) methodBody.LocalVariables.Count;
+                                methodInfo.Locals.NumArgs = (ushort)methodBody.LocalVariables.Count;
                             }
 
                             methodInfo.MaxStack = methodBody.MaxStackSize;
@@ -334,17 +350,18 @@ namespace Jitex.JIT
                         }
 
                         methodInfo.ILCode = ilAddress;
-                        methodInfo.ILCodeSize = (uint) ilLength;
+                        methodInfo.ILCodeSize = (uint)ilLength;
                     }
                 }
 
                 CorJitResult result = _framework.CompileMethod(thisPtr, comp, info, flags, out nativeEntry, out nativeSizeOfCode);
 
                 if (result != CorJitResult.CORJIT_OK)
-                    Log?.LogCritical($"Result from original compileMethod: {result.ToString()}");
+                    Log?.LogCritical($"Result from original compileMethod: {result}");
 
-                MethodCompiled methodCompiled = new MethodCompiled(methodFound, thisPtr, comp, methodInfo.MethodHandle, flags, nativeEntry, nativeSizeOfCode);
+                MethodCompiled methodCompiled = new(methodFound, methodContext, methodInfo, result, nativeEntry, nativeSizeOfCode);
                 RuntimeMethodCache.AddMethod(methodCompiled);
+                _onMethodCompiled?.Invoke(methodCompiled);
 
                 if (ilAddress != IntPtr.Zero)
                     Marshal.FreeHGlobal(ilAddress);
@@ -352,7 +369,7 @@ namespace Jitex.JIT
                 if (sigAddress != IntPtr.Zero)
                     Marshal.FreeHGlobal(sigAddress);
 
-                if (methodContext.IsResolved)
+                if (methodContext is { IsResolved: true })
                 {
                     if (methodContext?.Mode == MethodContext.ResolveMode.Native)
                     {
@@ -378,8 +395,8 @@ namespace Jitex.JIT
                         if (entryContext.Size > 0)
                             nativeSizeOfCode = entryContext.Size;
 
-                        methodCompiled.NativeCodeAddress = nativeEntry;
-                        methodCompiled.NativeCodeSize = nativeSizeOfCode;
+                        methodCompiled.NativeCode.Address = nativeEntry;
+                        methodCompiled.NativeCode.Size = nativeSizeOfCode;
 
                         Log?.LogDebug("EntryPoint overwrited.");
                     }
@@ -570,7 +587,7 @@ namespace Jitex.JIT
             if (methodContext.NativeCode == null)
                 throw new NullReferenceException(nameof(methodContext.NativeCode));
 
-            System.Reflection.MethodInfo method = (System.Reflection.MethodInfo) methodContext.Method;
+            System.Reflection.MethodInfo method = (System.Reflection.MethodInfo)methodContext.Method;
 
             int metadataToken = method.IsGenericMethod ? 0x2B000001 : method.MetadataToken;
 
@@ -591,26 +608,26 @@ namespace Jitex.JIT
             if (!method.IsStatic)
             {
                 argIndex++;
-                callBody.Add((byte) OpCodes.Ldarg_0.Value);
+                callBody.Add((byte)OpCodes.Ldarg_0.Value);
             }
 
             int totalArgs = method.GetParameters().Count(w => !w.IsOptional);
 
             for (int i = 0; i < totalArgs; i++)
             {
-                callBody.Add((byte) OpCodes.Ldarga_S.Value);
-                callBody.Add((byte) argIndex++);
+                callBody.Add((byte)OpCodes.Ldarga_S.Value);
+                callBody.Add((byte)argIndex++);
             }
 
-            callBody.Add((byte) OpCodes.Call.Value);
+            callBody.Add((byte)OpCodes.Call.Value);
             callBody.AddRange(tokenBytes);
 
             if (!isVoid)
-                callBody.Add((byte) OpCodes.Pop.Value);
+                callBody.Add((byte)OpCodes.Pop.Value);
 
             byte[] callBytes = callBody.ToArray();
 
-            int bodyLength = (int) Math.Ceiling((double) methodContext.NativeCode.Length / callBytes.Length) * callBytes.Length;
+            int bodyLength = (int)Math.Ceiling((double)methodContext.NativeCode.Length / callBytes.Length) * callBytes.Length;
             int retLength = 1;
 
             if (!isVoid)
@@ -630,7 +647,7 @@ namespace Jitex.JIT
                 Marshal.Copy(callBytes, 0, ilAddress + bodyLength, callBytes.Length);
             }
 
-            Marshal.WriteByte(ilAddress + ilSize - 1, (byte) OpCodes.Ret.Value);
+            Marshal.WriteByte(ilAddress + ilSize - 1, (byte)OpCodes.Ret.Value);
 
             return (ilAddress, ilSize);
         }

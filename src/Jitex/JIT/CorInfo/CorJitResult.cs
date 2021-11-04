@@ -1,6 +1,6 @@
 ﻿namespace Jitex.JIT.CorInfo
 {
-    internal enum CorJitResult
+    public enum CorJitResult
     {
         // Note that I dont use FACILITY_NULL for the facility number,
         // we may want to get a 'real' facility number

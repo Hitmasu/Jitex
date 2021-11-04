@@ -6,7 +6,7 @@ using Jitex.Utils;
 
 namespace Jitex.JIT.CorInfo
 {
-    internal class MethodInfo : CorType
+    public class MethodInfo : CorType
     {
         private IntPtr _methodDesc;
         private IntPtr _scope = IntPtr.Zero;
@@ -22,8 +22,14 @@ namespace Jitex.JIT.CorInfo
         private IntPtr MaxStackAddr => HInstance + MethodInfoOffset.MaxStack;
         private IntPtr EHCountAddr => HInstance + MethodInfoOffset.EHCount;
 
+        /// <summary>
+        /// Signature from locals variables.
+        /// </summary>
         public SigInfo Locals { get; }
 
+        /// <summary>
+        /// Handle from method
+        /// </summary>
         public IntPtr MethodHandle
         {
             get
@@ -35,6 +41,9 @@ namespace Jitex.JIT.CorInfo
             }
         }
 
+        /// <summary>
+        /// Module handle from method.
+        /// </summary>
         public IntPtr Scope
         {
             get
@@ -51,13 +60,16 @@ namespace Jitex.JIT.CorInfo
             }
         }
 
+        /// <summary>
+        /// Module from method.
+        /// </summary>
         public Module? Module
         {
             get => AppModules.GetModuleByHandle(_scope);
 
             set
             {
-                if(value == null)
+                if (value == null)
                     throw new ArgumentNullException();
 
                 IntPtr scope = AppModules.GetAddressFromModule(value);
@@ -65,6 +77,9 @@ namespace Jitex.JIT.CorInfo
             }
         }
 
+        /// <summary>
+        /// Address from MSIL
+        /// </summary>
         public IntPtr ILCode
         {
             get
@@ -83,6 +98,9 @@ namespace Jitex.JIT.CorInfo
             }
         }
 
+        /// <summary>
+        /// Size from MSIL
+        /// </summary>
         public uint ILCodeSize
         {
             get
@@ -101,6 +119,9 @@ namespace Jitex.JIT.CorInfo
             }
         }
 
+        /// <summary>
+        /// Maxstack from body
+        /// </summary>
         public uint MaxStack
         {
             get
@@ -119,6 +140,9 @@ namespace Jitex.JIT.CorInfo
             }
         }
 
+        /// <summary>
+        /// Number of exceptions from body
+        /// </summary>
         public uint EHCount
         {
             get

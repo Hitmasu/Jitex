@@ -2,7 +2,7 @@
 
 namespace Jitex.JIT.CorInfo
 {
-    internal abstract class CorType
+    public abstract class CorType
     {
         public IntPtr HInstance { get; }
 

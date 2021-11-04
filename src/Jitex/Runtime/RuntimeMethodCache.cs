@@ -4,7 +4,7 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using Jitex.Exceptions;
-using Jitex.JIT;
+using Jitex.JIT.Handlers;
 using Jitex.Utils;
 using Jitex.Utils.Comparer;
 
@@ -41,7 +41,7 @@ namespace Jitex.Runtime
                 } while (methodCompiled == null);
             }
 
-            return new NativeCode(methodCompiled.NativeCodeAddress, methodCompiled.NativeCodeSize);
+            return new NativeCode(methodCompiled.NativeCode.Address, methodCompiled.NativeCode.Size);
         }
 
         public static MethodCompiled? GetMethodCompiledInfo(MethodBase method)
