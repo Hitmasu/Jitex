@@ -4,9 +4,9 @@ namespace Jitex.Framework.Offsets
 {
     internal static class CEEInfoOffset
     {
-        internal static int ResolveToken { get; private set; }
+        public static int ResolveToken { get; private set; }
 
-        internal static int ConstructStringLiteral { get; private set; }
+        public static int ConstructStringLiteral { get; private set; }
 
         static CEEInfoOffset()
         {
