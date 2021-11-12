@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
+using Jitex.Exceptions;
+using Jitex.Framework;
 using Jitex.Intercept;
 using Jitex.PE;
 using Jitex.Runtime;
@@ -237,6 +239,9 @@ namespace Jitex.JIT.Context
         /// </summary>
         public void InterceptCall()
         {
+            if (RuntimeFramework.Framework.FrameworkVersion >= new Version(6, 0, 0))
+                throw new UnsupportedFrameworkVersion("Interceptors are disabled on .NET 6 for while.");
+            
             InterceptBuilder builder = new InterceptBuilder(Method);
             MethodBase interceptMethod = builder.Create();
 
