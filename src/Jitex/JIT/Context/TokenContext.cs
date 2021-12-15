@@ -217,14 +217,19 @@ namespace Jitex.JIT.Context
             }
         }
 
+        public void ResolverMember(MemberInfo memberInfo)
+        {
+            _resolvedToken!.Module = memberInfo.Module;
+            _resolvedToken.Token = memberInfo.MetadataToken;
+        }
+
         /// <summary>
         /// Resolve token by method.
         /// </summary>
         /// <param name="method">Method to replace.</param>
         public void ResolveMethod(MethodBase method)
         {
-            _resolvedToken!.Module = method.Module;
-            _resolvedToken.Token = method.MetadataToken;
+            ResolverMember(method);
         }
 
         /// <summary>

@@ -14,7 +14,7 @@ namespace Jitex.Builder.IL
     /// <remarks>
     /// Read MSIL instructions from array byte or method.
     /// </remarks>
-    public class ILReader : IEnumerable<Operation>
+    public class ILReader : IEnumerable<Instruction>
     {
         /// <summary>
         /// Instructions IL.
@@ -24,7 +24,7 @@ namespace Jitex.Builder.IL
         /// <summary>
         /// Module token resolver.
         /// </summary>
-        private readonly ITokenResolver _resolver;
+        private readonly TokenResolver? _resolver;
 
         /// <summary>
         /// Generic class arguments used in instructions.
@@ -36,28 +36,35 @@ namespace Jitex.Builder.IL
         /// </summary>
         private readonly Type[]? _genericMethodArguments;
 
+        public ITokenResolver? CustomTokenResolver
+        {
+            get => _resolver?.CustomResolver;
+            
+            set
+            {
+                if (_resolver != null)
+                    _resolver.CustomResolver = value;
+            }
+        }
+
         /// <summary>
         /// Read IL from method.
         /// </summary>
-        /// <param name="methodILBase">Method to read IL.</param>
-        public ILReader(MethodBase methodILBase)
+        /// <param name="method">Method to read IL.</param>
+        public ILReader(MethodBase method)
         {
-            if (methodILBase == null)
-                throw new ArgumentNullException(nameof(methodILBase));
+            if (method == null)
+                throw new ArgumentNullException(nameof(method));
 
-            _il = methodILBase.GetILBytes();
+            _il = method.GetILBytes();
 
-            if (methodILBase is DynamicMethod dynamicMethod)
+            if (method is not DynamicMethod)
             {
-                _resolver = new DynamicMethodTokenResolver(dynamicMethod);
+                _genericTypeArguments = method.DeclaringType!.GenericTypeArguments;
+                _genericMethodArguments = method.GetGenericArguments();
             }
-            else
-            {
-                _genericTypeArguments = methodILBase.DeclaringType!.GenericTypeArguments;
-                _genericMethodArguments = methodILBase.GetGenericArguments();
 
-                _resolver = new ModuleTokenResolver(methodILBase.Module);
-            }
+            _resolver = new TokenResolver(method);
         }
 
         /// <summary>
@@ -67,7 +74,7 @@ namespace Jitex.Builder.IL
         /// <param name="module">Module from IL.</param>
         /// <param name="genericTypeArguments">Generic class arguments used in instructions.</param>
         /// <param name="genericMethodArguments">Generic method arguments used in instructions.</param>
-        public ILReader(byte[] il, Module module, Type[]? genericTypeArguments = null, Type[]? genericMethodArguments = null)
+        public ILReader(byte[] il, Module? module, Type[]? genericTypeArguments = null, Type[]? genericMethodArguments = null)
         {
             _il = il;
 
@@ -75,14 +82,14 @@ namespace Jitex.Builder.IL
             _genericMethodArguments = genericMethodArguments;
 
             if (module != null)
-                _resolver = new ModuleTokenResolver(module);
+                _resolver = new TokenResolver(module);
         }
 
         /// <summary>
         /// Get enumerator from reader.
         /// </summary>
         /// <returns></returns>
-        public IEnumerator<Operation> GetEnumerator()
+        public IEnumerator<Instruction> GetEnumerator()
         {
             return new ILEnumerator(_il, _resolver, _genericTypeArguments, _genericMethodArguments);
         }
@@ -95,7 +102,7 @@ namespace Jitex.Builder.IL
         /// <summary>
         /// Enumerator to read instructions.
         /// </summary>
-        private class ILEnumerator : IEnumerator<Operation>
+        private class ILEnumerator : IEnumerator<Instruction>
         {
             /// <summary>
             /// Instructions IL.
@@ -105,7 +112,7 @@ namespace Jitex.Builder.IL
             /// <summary>
             /// Module token resolver.
             /// </summary>
-            private readonly ITokenResolver _resolver;
+            private readonly TokenResolver? _resolver;
 
             /// <summary>
             /// Index from instructions.
@@ -130,7 +137,7 @@ namespace Jitex.Builder.IL
             /// <summary>
             ///     Current operation.
             /// </summary>
-            public Operation Current => ReadNextOperation();
+            public Instruction Current => ReadNextOperation();
 
             /// <summary>
             /// Current operation.
@@ -144,7 +151,7 @@ namespace Jitex.Builder.IL
             /// <param name="resolver">Module to resolver tokens.</param>
             /// <param name="genericTypeArguments">Generic class arguments used in instructions.</param>
             /// <param name="genericMethodArguments">Generic method arguments used in instructions.</param>
-            public ILEnumerator(byte[] il, ITokenResolver resolver, Type[]? genericTypeArguments, Type[]? genericMethodArguments)
+            public ILEnumerator(byte[] il, TokenResolver resolver, Type[]? genericTypeArguments, Type[]? genericMethodArguments)
             {
                 _il = il;
                 _resolver = resolver;
@@ -166,86 +173,86 @@ namespace Jitex.Builder.IL
             /// Read next operation from IL.
             /// </summary>
             /// <returns>The next operation.</returns>
-            private Operation ReadNextOperation()
+            private Instruction ReadNextOperation()
             {
-                Operation operation;
+                Instruction operation;
 
                 int ilIndex = _position;
 
                 short instruction = _il[_position++];
 
                 if (instruction == 0xFE)
-                    instruction = BitConverter.ToInt16(new[] { _il[_position++], (byte)instruction }, 0);
+                    instruction = BitConverter.ToInt16(new[] {_il[_position++], (byte) instruction}, 0);
 
-                OpCode opCode = Operation.Translate(instruction);
+                OpCode opCode = Instruction.Translate(instruction);
 
                 switch (opCode.OperandType)
                 {
                     case OperandType.InlineI8:
-                        operation = new Operation(opCode, ReadInt64());
+                        operation = new Instruction(opCode, ReadInt64());
                         break;
 
                     case OperandType.InlineR:
-                        operation = new Operation(opCode, ReadDouble());
+                        operation = new Instruction(opCode, ReadDouble());
                         break;
 
                     case OperandType.InlineField:
                         (FieldInfo Field, int Token) field = ReadField();
-                        operation = new Operation(opCode, field.Field, field.Token);
+                        operation = new Instruction(opCode, field.Field, field.Token);
                         break;
 
                     case OperandType.InlineMethod:
                         (MethodBase Method, int Token) method = ReadMethod();
-                        operation = new Operation(opCode, method.Method, method.Token);
+                        operation = new Instruction(opCode, method.Method, method.Token);
                         break;
 
                     case OperandType.InlineString:
                         (string String, int Token) @string = ReadString();
-                        operation = new Operation(opCode, @string.String, @string.Token);
+                        operation = new Instruction(opCode, @string.String, @string.Token);
                         break;
 
                     case OperandType.InlineType:
                         (Type Type, int Token) type = ReadType();
-                        operation = new Operation(opCode, type.Type, type.Token);
+                        operation = new Instruction(opCode, type.Type, type.Token);
                         break;
 
                     case OperandType.InlineI:
-                        operation = new Operation(opCode, ReadInt32());
+                        operation = new Instruction(opCode, ReadInt32());
                         break;
 
                     case OperandType.InlineSig:
                         (byte[] Signature, int Token) signature = ReadSignature();
-                        operation = new Operation(opCode, signature.Signature, signature.Token);
+                        operation = new Instruction(opCode, signature.Signature, signature.Token);
                         break;
 
                     case OperandType.InlineTok:
                         (MemberInfo Member, int Token) member = ReadMember();
-                        operation = new Operation(opCode, member.Member, member.Token);
+                        operation = new Instruction(opCode, member.Member, member.Token);
                         break;
 
                     case OperandType.InlineBrTarget:
-                        operation = new Operation(opCode, ReadInt32() + _position);
+                        operation = new Instruction(opCode, ReadInt32() + _position);
                         break;
 
                     case OperandType.ShortInlineR:
-                        operation = new Operation(opCode, ReadSingle());
+                        operation = new Instruction(opCode, ReadSingle());
                         break;
 
                     case OperandType.InlineVar:
-                        operation = new Operation(opCode, null);
+                        operation = new Instruction(opCode, null);
                         _position += 2;
                         break;
 
                     case OperandType.ShortInlineBrTarget: //Repeat jump from original IL.
                     case OperandType.ShortInlineI:
                         if (opCode == OpCodes.Ldc_I4_S)
-                            operation = new Operation(opCode, (sbyte)ReadByte());
+                            operation = new Instruction(opCode, (sbyte) ReadByte());
                         else
-                            operation = new Operation(opCode, ReadByte());
+                            operation = new Instruction(opCode, ReadByte());
                         break;
 
                     case OperandType.ShortInlineVar:
-                        operation = new Operation(opCode, ReadByte());
+                        operation = new Instruction(opCode, ReadByte());
                         break;
 
                     case OperandType.InlineSwitch:
@@ -255,14 +262,14 @@ namespace Jitex.Builder.IL
                         for (int i = 0; i < length; i++)
                             branches[i] = ReadInt32();
 
-                        operation = new Operation(opCode, branches);
+                        operation = new Instruction(opCode, branches);
                         break;
 
                     case OperandType.InlinePhi:
                         throw new NotImplementedException("[IL Reader] - OperandType.InlinePhi is not implemented!");
 
                     default:
-                        operation = new Operation(opCode, null);
+                        operation = new Instruction(opCode, null);
                         break;
                 }
 

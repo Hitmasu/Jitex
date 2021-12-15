@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -6,13 +7,13 @@ using System.Reflection.Emit;
 namespace Jitex.Builder.IL
 {
     /// <summary>
-    /// Operation from a IL instruction.
+    /// Instruction from a IL instruction.
     /// </summary>
     /// <remarks>
-    /// An operation contains informations from an IL instruction.
+    /// An instruction contains informations from an IL instruction.
     /// </remarks>
-    [DebuggerDisplay("{OpCode} - {Instance}")]
-    public partial class Operation
+    [DebuggerDisplay("{OpCode} - {Value}")]
+    public partial class Instruction
     {
         /// <summary>
         /// MetadataToken from instruction.
@@ -30,7 +31,7 @@ namespace Jitex.Builder.IL
         public int Offset { get; internal set; }
 
         /// <summary>
-        /// Size operation (instruction length + value length)
+        /// Size instruction (opcode length + value length)
         /// </summary>
         public int Size { get; internal set; }
 
@@ -42,49 +43,85 @@ namespace Jitex.Builder.IL
         /// <summary>
         /// Value from instruction.
         /// </summary>
-        public dynamic? Instance { get; set; }
+        public dynamic? Value { get; set; }
 
         /// <summary>
-        /// Create a new operation.
+        /// Create a new instruction.
         /// </summary>
         /// <param name="opCode">Operation Code IL.</param>
-        /// <param name="instance">Value from instruction.</param>
-        internal Operation(OpCode opCode, dynamic? instance)
+        public Instruction(OpCode opCode)
         {
             OpCode = opCode;
-            Instance = instance;
+        }
 
-            if (Instance is MemberInfo member)
+        /// <summary>
+        /// Create a new instruction.
+        /// </summary>
+        /// <param name="opCode">Operation Code IL.</param>
+        /// <param name="value">Value from instruction.</param>
+        public Instruction(OpCode opCode, dynamic? value)
+        {
+            OpCode = opCode;
+            Value = value;
+
+            if (Value is MemberInfo member)
             {
                 MetadataToken = member.MetadataToken;
             }
         }
 
         /// <summary>
-        /// Create a new operation.
+        /// Create a new instruction.
         /// </summary>
         /// <param name="opCode">Operation Code IL.</param>
-        /// <param name="instance">Value from instruction.</param>
+        /// <param name="value">Value from instruction.</param>
         /// <param name="metadataToken">MetadataToken from instruction.</param>
-        internal Operation(OpCode opCode, dynamic? instance, int metadataToken)
+        internal Instruction(OpCode opCode, dynamic? value, int metadataToken)
         {
             OpCode = opCode;
-            Instance = instance;
+            Value = value;
             MetadataToken = metadataToken;
+        }
+
+        public byte[] ToBytes()
+        {
+            List<byte> bytes = new List<byte>();
+
+            if (OpCode.Size == 1)
+                bytes.Add((byte) OpCode.Value);
+            else
+                bytes.AddRange(BitConverter.GetBytes(OpCode.Value));
+
+            if (MetadataToken.HasValue)
+                bytes.AddRange(BitConverter.GetBytes(MetadataToken.Value));
+            else if (Value != null)
+                bytes.AddRange(BitConverter.GetBytes(Value));
+
+            return bytes.ToArray();
+        }
+
+        /// <summary>
+        /// Convert a OpCode to Instruction.
+        /// </summary>
+        /// <param name="opCode">OpCode to convert.</param>
+        /// <returns></returns>
+        public static implicit operator Instruction(OpCode opCode)
+        {
+            return new Instruction(opCode);
         }
     }
 
     /// <summary>
     /// Class helper to read IL instructions.
     /// </summary>
-    public partial class Operation
+    public partial class Instruction
     {
         /// <summary>
         ///     All Operation Codes.
         /// </summary>
         private static readonly IDictionary<short, OpCode> OpCodes;
 
-        static Operation()
+        static Instruction()
         {
             OpCodes = new Dictionary<short, OpCode>();
             LoadOpCodes();
@@ -99,7 +136,7 @@ namespace Jitex.Builder.IL
 
             foreach (FieldInfo field in fields)
             {
-                OpCode opCode = (OpCode)field.GetValue(null);
+                OpCode opCode = (OpCode) field.GetValue(null);
                 OpCodes.Add(opCode.Value, opCode);
             }
         }

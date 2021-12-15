@@ -54,40 +54,48 @@ namespace Jitex.Builder.IL.Resolver
             });
         }
 
-        public FieldInfo ResolveField(int token)
+        public FieldInfo ResolveField(int token, out bool isResolved)
         {
             _tokenResolver.Invoke(token, out IntPtr typeHandle, out _, out IntPtr fieldHandle);
-            return ResolveField(fieldHandle, typeHandle);
+            FieldInfo fieldInfo = ResolveField(fieldHandle, typeHandle);
+            isResolved = true;
+            return fieldInfo;
         }
 
-        public FieldInfo ResolveField(int token, Type[] genericTypeArguments, Type[] genericMethodArguments)
+        public FieldInfo ResolveField(int token, Type[] genericTypeArguments, Type[] genericMethodArguments, out bool isResolved)
         {
             throw new NotImplementedException();
         }
 
-        public MemberInfo ResolveMember(int token)
+        public MemberInfo ResolveMember(int token, out bool isResolved)
         {
             _tokenResolver.Invoke(token, out IntPtr typeHandle, out IntPtr methodHandle, out IntPtr fieldHandle);
 
             if (methodHandle != IntPtr.Zero)
             {
-                return ResolveMethod(methodHandle, typeHandle);
+                MemberInfo memberInfo = ResolveMethod(methodHandle, typeHandle);
+                isResolved = true;
+                return memberInfo;
             }
 
             if (fieldHandle != IntPtr.Zero)
             {
-                return ResolveField(fieldHandle, typeHandle);
+                MemberInfo memberInfo = ResolveField(fieldHandle, typeHandle);
+                isResolved = true;
+                return memberInfo;
             }
 
             if (typeHandle != IntPtr.Zero)
             {
-                return _getTypeFromHandleUnsafe(typeHandle);
+                MemberInfo memberInfo = _getTypeFromHandleUnsafe(typeHandle);
+                isResolved = true;
+                return memberInfo;
             }
 
             throw new NotSupportedException();
         }
 
-        public MemberInfo ResolveMember(int token, Type[] genericTypeArguments, Type[] genericMethodArguments)
+        public MemberInfo ResolveMember(int token, Type[] genericTypeArguments, Type[] genericMethodArguments, out bool isResolved)
         {
             throw new NotImplementedException();
         }
@@ -100,35 +108,43 @@ namespace Jitex.Builder.IL.Resolver
                 _runtimeMethodHandleInternalCtor.Invoke(new object[] {methodHandle})
             });
         }
-        
-        public MethodBase ResolveMethod(int token)
+
+        public MethodBase ResolveMethod(int token, out bool isResolved)
         {
             _tokenResolver.Invoke(token, out IntPtr typeHandle, out IntPtr methodHandle, out _);
-            return ResolveMethod(methodHandle, typeHandle);
+            MethodBase methodBase = ResolveMethod(methodHandle, typeHandle);
+            isResolved = true;
+            return methodBase;
         }
 
-        public MethodBase ResolveMethod(int token, Type[] genericTypeArguments, Type[] genericMethodArguments)
+        public MethodBase ResolveMethod(int token, Type[] genericTypeArguments, Type[] genericMethodArguments, out bool isResolved)
         {
             throw new NotImplementedException();
         }
 
-        public byte[] ResolveSignature(int token)
+        public byte[] ResolveSignature(int token, out bool isResolved)
         {
-            return _signatureResolver.Invoke(token, 0);
+            byte[] signature = _signatureResolver.Invoke(token, 0);
+            isResolved = true;
+            return signature;
         }
 
-        public string ResolveString(int token)
+        public string ResolveString(int token, out bool isResolved)
         {
-            return _stringResolver.Invoke(token);
+            string @string = _stringResolver.Invoke(token);
+            isResolved = true;
+            return @string;
         }
 
-        public Type ResolveType(int token)
+        public Type ResolveType(int token, out bool isResolved)
         {
             _tokenResolver.Invoke(token, out IntPtr typeHandle, out _, out _);
-            return _getTypeFromHandleUnsafe(typeHandle);
+            Type type = _getTypeFromHandleUnsafe(typeHandle);
+            isResolved = true;
+            return type;
         }
 
-        public Type ResolveType(int token, Type[] genericTypeArguments, Type[] genericMethodArguments)
+        public Type ResolveType(int token, Type[] genericTypeArguments, Type[] genericMethodArguments, out bool isResolved)
         {
             throw new NotImplementedException();
         }

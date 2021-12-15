@@ -3,14 +3,17 @@ using System.Reflection;
 
 namespace Jitex.PE
 {
-    internal class ImageInfo
+    public class ImageInfo
     {
-        public Module Module { get; }
-        public IntPtr BaseAddress { get; }
-        public int Size { get; }
-        public uint NumberOfElements { get; }
-        public byte EntryIndexSize { get; }
-        public int BaseOffset { get; set; }
+        public int MethodRefRows { get; internal set; }
+        public int TypeRefRows { get; internal set; }
+
+        public Module Module { get; internal set; }
+        public IntPtr BaseAddress { get; internal set; }
+        public int Size { get; internal set; }
+        public uint NumberOfElements { get; internal set; }
+        public byte EntryIndexSize { get; internal set; }
+        public int BaseOffset { get; internal set; }
 
         public ImageInfo(Module module)
         {
@@ -25,6 +28,22 @@ namespace Jitex.PE
             NumberOfElements = numberOfElements;
             EntryIndexSize = entryIndexSize;
             BaseOffset = baseOffset;
+        }
+
+        public int GetNewMethodRefIndex()
+        {
+            const int memberRefBase = 0x0A000000;
+            
+            int newMemberRefIndex = ++MethodRefRows;
+            return memberRefBase + newMemberRefIndex;
+        }
+
+        public int GetNewTypeRefIndex()
+        {
+            const int typeRefBase = 0x01000000;
+            
+            int newTypeRefIndex = ++TypeRefRows;
+            return typeRefBase + newTypeRefIndex;
         }
     }
 }

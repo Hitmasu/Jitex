@@ -400,34 +400,6 @@ namespace Jitex.JIT
 
                         Log?.LogDebug("EntryPoint overwrited.");
                     }
-                    else if (methodContext?.Mode == MethodContext.ResolveMode.Intercept)
-                    {
-                        Log?.LogDebug("Creating context to intercept method...");
-                        //To make intercept possible, we need compile method 2 times:
-                        //1º method it's method will be detoured
-                        //2º method it's our unmodified method.
-                        //This way, make easy turn on/off interception call.
-
-                        //Compile method again to get a second address (like a clone)
-                        _framework.CompileMethod(thisPtr, comp, info, flags, out IntPtr secondaryNativeEntry, out _);
-
-                        InterceptContext interceptContext = methodContext.InterceptContext;
-
-                        //It's necessary save address from original to be called later (in case interceptor needs call original method) 
-                        interceptContext.MethodOriginalAddress = nativeEntry;
-
-                        //Address which will be detoured (this will be the trampoline to our intercept method).
-                        interceptContext.MethodTrampolineAddress = secondaryNativeEntry;
-
-                        //Set trampoline to be method native address
-                        nativeEntry = secondaryNativeEntry;
-                        //Write detour on method.
-                        Intercept.InterceptManager.GetInstance().AddIntercept(interceptContext);
-
-                        //That's how should work:
-                        //CallerMethod -> Detour Method -> Intercept Method -> Safe Method (MethodAddress)
-                        Log?.LogDebug("Method intercepted.");
-                    }
                 }
 
                 return result;
@@ -558,7 +530,6 @@ namespace Jitex.JIT
 
             IntPtr objectHandle = Marshal.ReadIntPtr(pEntry);
             IntPtr hashMapPtr = Marshal.ReadIntPtr(objectHandle);
-
             byte[] newContent = Encoding.Unicode.GetBytes(content);
 
             objectHandle = Marshal.AllocHGlobal(IntPtr.Size + sizeof(int) + newContent.Length);

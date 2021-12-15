@@ -237,13 +237,10 @@ namespace Jitex.JIT.Context
         /// </summary>
         public void InterceptCall()
         {
-            InterceptBuilder builder = new InterceptBuilder(Method);
-            MethodBase interceptMethod = builder.Create();
-
-            InterceptContext = new InterceptContext(Method, interceptMethod);
-
-            IsResolved = true;
-            Mode = ResolveMode.Intercept;
+            InterceptorBuilder builder = new InterceptorBuilder(Method, Body);
+            MethodBody body = builder.InjectInterceptor();
+            
+            ResolveBody(body);
         }
     }
 }

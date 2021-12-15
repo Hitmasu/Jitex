@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Reflection.Metadata;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Jitex.Exceptions;
@@ -32,15 +33,15 @@ namespace Jitex.Utils
 
             CanonType = Type.GetType("System.__Canon")!;
 
-            CtorRuntimeMethodHandeInternal = runtimeMethodHandleInternalType.GetConstructor(BindingFlags.NonPublic | BindingFlags.Instance, null, new[] { typeof(IntPtr) }, null)!;
+            CtorRuntimeMethodHandeInternal = runtimeMethodHandleInternalType.GetConstructor(BindingFlags.NonPublic | BindingFlags.Instance, null, new[] {typeof(IntPtr)}, null)!;
 
-            GetMethodBase = runtimeType.GetMethod("GetMethodBase", BindingFlags.NonPublic | BindingFlags.Static, null, new[] { runtimeType, runtimeMethodHandleInternalType }, null)!;
+            GetMethodBase = runtimeType.GetMethod("GetMethodBase", BindingFlags.NonPublic | BindingFlags.Static, null, new[] {runtimeType, runtimeMethodHandleInternalType}, null)!;
 
             GetMethodDescriptorInfo = typeof(DynamicMethod).GetMethod("GetMethodDescriptor", BindingFlags.Instance | BindingFlags.NonPublic)!;
 
             GetFunctionPointerInternal = typeof(RuntimeMethodHandle).GetMethod("GetFunctionPointer", BindingFlags.Static | BindingFlags.NonPublic)!;
 
-            GetSlot = typeof(RuntimeMethodHandle).GetMethod("GetSlot", BindingFlags.Static | BindingFlags.NonPublic, null, new[] { iRuntimeMethodInfo }, null)!;
+            GetSlot = typeof(RuntimeMethodHandle).GetMethod("GetSlot", BindingFlags.Static | BindingFlags.NonPublic, null, new[] {iRuntimeMethodInfo}, null)!;
 
             PrecodeFixupThunkAddress = GetPrecodeFixupThunkAddress();
 
@@ -58,12 +59,12 @@ namespace Jitex.Utils
 
         private static object? GetRuntimeMethodHandleInternal(IntPtr methodHandle)
         {
-            return CtorRuntimeMethodHandeInternal!.Invoke(new object?[] { methodHandle });
+            return CtorRuntimeMethodHandeInternal!.Invoke(new object?[] {methodHandle});
         }
 
         private static int GetMethodSlot(MethodInfo method)
         {
-            return (int)GetSlot.Invoke(null, new object[] { method });
+            return (int) GetSlot.Invoke(null, new object[] {method});
         }
 
         internal static MethodBase GetBaseMethodGeneric(MethodBase method)
@@ -93,7 +94,7 @@ namespace Jitex.Utils
 
         internal static bool IsGenericInitialized(MethodBase method)
         {
-            if (method.DeclaringType is { IsGenericType: true })
+            if (method.DeclaringType is {IsGenericType: true})
             {
                 foreach (Type type in method.DeclaringType.GetGenericArguments())
                 {
@@ -104,7 +105,7 @@ namespace Jitex.Utils
 
             if (method.IsGenericMethod)
             {
-                MethodInfo methodInfo = (MethodInfo)method;
+                MethodInfo methodInfo = (MethodInfo) method;
 
                 foreach (Type type in methodInfo.GetGenericArguments())
                 {
@@ -120,7 +121,7 @@ namespace Jitex.Utils
         {
             bool hasCanon = false;
 
-            if (method is MethodInfo { IsGenericMethod: true } methodInfo)
+            if (method is MethodInfo {IsGenericMethod: true} methodInfo)
             {
                 Type[] types = method.GetGenericArguments();
 
@@ -153,7 +154,13 @@ namespace Jitex.Utils
             if (method == null) throw new ArgumentNullException(nameof(method));
 
             if (method is DynamicMethod)
-                return (RuntimeMethodHandle)GetMethodDescriptorInfo.Invoke(method, null);
+                return (RuntimeMethodHandle) GetMethodDescriptorInfo.Invoke(method, null);
+
+            if (DynamicHelpers.IsRTDynamicMethod(method))
+            {
+                method = DynamicHelpers.GetOwner(method);
+                return GetMethodHandle(method);
+            }
 
             return method.MethodHandle;
         }
@@ -161,8 +168,9 @@ namespace Jitex.Utils
         public static IntPtr GetFunctionPointer(IntPtr methodHandle)
         {
             object handle = GetRuntimeMethodHandleInternal(methodHandle);
-            return (IntPtr)GetFunctionPointerInternal.Invoke(null, new[] { handle });
+            return (IntPtr) GetFunctionPointerInternal.Invoke(null, new[] {handle});
         }
+
         private static IntPtr GetDirectMethodHandle(MethodBase method)
         {
             bool methodHasCanon = HasCanon(method, false, true);
@@ -186,7 +194,7 @@ namespace Jitex.Utils
         public static MethodBase? GetMethodFromHandle(IntPtr methodHandle)
         {
             object? handle = GetRuntimeMethodHandleInternal(methodHandle);
-            MethodBase? method = GetMethodBase.Invoke(null, new[] { null, handle }) as MethodBase;
+            MethodBase? method = GetMethodBase.Invoke(null, new[] {null, handle}) as MethodBase;
             return method;
         }
 
@@ -305,7 +313,7 @@ namespace Jitex.Utils
         {
             IntPtr methodHandle = GetDirectMethodHandle(method);
             IntPtr functionPointer = GetFunctionPointer(methodHandle);
-            int jmpSize = (int)(PrecodeFixupThunkAddress.ToInt64() - functionPointer.ToInt64() - 5);
+            int jmpSize = (int) (PrecodeFixupThunkAddress.ToInt64() - functionPointer.ToInt64() - 5);
             int offset = GetFunctionPointerOffset(method);
 
             //Remove funcitonPointer on MethodDesc
@@ -357,7 +365,6 @@ namespace Jitex.Utils
                     }
 
                     startVTable += IntPtr.Size;
-
                 } while (startVTable.ToInt64() < endVTable.ToInt64());
             }
             else
@@ -379,14 +386,13 @@ namespace Jitex.Utils
                         addressFound = true;
                         break;
                     }
-
                 } while (startVTable.ToInt64() < endVTable.ToInt64());
             }
 
             if (!addressFound)
                 return false;
 
-            int originalSlot = GetMethodSlot((MethodInfo)method);
+            int originalSlot = GetMethodSlot((MethodInfo) method);
             int vTableIndex = 0; //+1 is for ctor.
 
             //If method is virtual, we need get the "virtual" function pointer, which sadly, it's not same from MethodHandle.
@@ -400,7 +406,7 @@ namespace Jitex.Utils
             //<address+..>: Virtual Methods Function Pointer
             //--
 
-            IOrderedEnumerable<MethodInfo> methods = method.DeclaringType.GetMethods((BindingFlags)(-1))
+            IOrderedEnumerable<MethodInfo> methods = method.DeclaringType.GetMethods((BindingFlags) (-1))
                 .OrderBy(w => w.MetadataToken);
 
             foreach (MethodInfo methodInfo in methods)
@@ -412,7 +418,7 @@ namespace Jitex.Utils
                     vTableIndex++;
             }
 
-            ConstructorInfo lastCtor = method.DeclaringType!.GetConstructors((BindingFlags)(-1)).Last();
+            ConstructorInfo lastCtor = method.DeclaringType!.GetConstructors((BindingFlags) (-1)).Last();
 
             if (lastCtor.MetadataToken > method.MetadataToken)
             {
@@ -468,7 +474,7 @@ namespace Jitex.Utils
         {
             if (!IsGenericInitialized(method))
             {
-                MethodInfo methodInfo = (MethodInfo)method;
+                MethodInfo methodInfo = (MethodInfo) method;
 
                 if (method == methodInfo.GetGenericMethodDefinition())
                     throw new ArgumentException("Generic methods cannot be recompiled by generic method definition.\n" +
