@@ -1,13 +1,19 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
+using Jitex.Intercept;
+using Jitex.Utils;
 
 namespace Jitex.PE
 {
-    public class ImageInfo
+    internal class ImageInfo
     {
+        private readonly IDictionary<MethodBase, int> MethodRefs = new Dictionary<MethodBase, int>();
+        private readonly IDictionary<Type, int> TypeRefs = new Dictionary<Type, int>();
+
         public int MethodRefRows { get; internal set; }
         public int TypeRefRows { get; internal set; }
-
         public Module Module { get; internal set; }
         public IntPtr BaseAddress { get; internal set; }
         public int Size { get; internal set; }
@@ -15,12 +21,12 @@ namespace Jitex.PE
         public byte EntryIndexSize { get; internal set; }
         public int BaseOffset { get; internal set; }
 
-        public ImageInfo(Module module)
+        internal ImageInfo(Module module)
         {
             Module = module;
         }
 
-        public ImageInfo(Module module, IntPtr baseAddress, int size, int baseOffset, uint numberOfElements, byte entryIndexSize)
+        internal ImageInfo(Module module, IntPtr baseAddress, int size, int baseOffset, uint numberOfElements, byte entryIndexSize)
         {
             Module = module;
             BaseAddress = baseAddress;
@@ -30,20 +36,42 @@ namespace Jitex.PE
             BaseOffset = baseOffset;
         }
 
-        public int GetNewMethodRefIndex()
+        /// <summary>
+        /// Returns
+        /// </summary>
+        /// <param name="method"></param>
+        /// <param name="token"></param>
+        /// <returns></returns>
+        public void AddMethodRef(MethodBase method, out int token)
         {
-            const int memberRefBase = 0x0A000000;
-            
-            int newMemberRefIndex = ++MethodRefRows;
-            return memberRefBase + newMemberRefIndex;
+            if (MethodRefs.TryGetValue(method, out token))
+                return;
+
+            const int methodRefBase = 0x0A000000;
+            int newMethodRefToken = methodRefBase + MethodRefs.Count + 1;
+            token = newMethodRefToken;
+
+            AddTokenToResolution(method, token);
         }
 
-        public int GetNewTypeRefIndex()
+        public void AddTypeRef(Type type, out int token)
         {
+            if (TypeRefs.TryGetValue(type, out token))
+                return;
+
             const int typeRefBase = 0x01000000;
-            
-            int newTypeRefIndex = ++TypeRefRows;
-            return typeRefBase + newTypeRefIndex;
+            int newTypeRefToken = typeRefBase + TypeRefs.Count + 1;
+            token = newTypeRefToken;
+
+            AddTokenToResolution(type, token);
+        }
+
+        internal void AddNewMethodRef(MethodBase methodBase, int refToken) => MethodRefs.Add(methodBase, refToken);
+        internal void AddNewTypeRef(Type type, int refToken) => TypeRefs.Add(type, refToken);
+
+        private void AddTokenToResolution(MemberInfo memberInfo, int token)
+        {
+            InternalModule.Instance.AddTokenToResolution(Module, token, memberInfo);
         }
     }
 }

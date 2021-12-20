@@ -52,7 +52,7 @@ namespace Jitex.Intercept
         {
             if (!JitexManager.TryGetModule(out InternalModule? instance))
             {
-                instance = new InternalModule();
+                instance = InternalModule.Instance;
                 JitexManager.LoadModule(instance);
             }
 
@@ -80,29 +80,37 @@ namespace Jitex.Intercept
             int callManagerInstanceIndex = localVariables.Count - 1;
 
             //TODO: Check if ctor/method was already implemented on module: if (!_imageReader.TryGetRefToken(ObjCtor, out int objCtorMetadataToken)
-            int objCtorMetadataToken = _image!.GetNewTypeRefIndex();
-            AddNewToken(objCtorMetadataToken, typeof(object));
 
-            int callContextCtorMetadataToken = _image!.GetNewMethodRefIndex();
-            AddNewToken(callContextCtorMetadataToken, CallContextCtor);
+            _image!.AddTypeRef(typeof(object), out int objCtorMetadataToken);
+            // int objCtorMetadataToken = _image!.GetNewTypeRefIndex();
+            // AddNewToken(objCtorMetadataToken, typeof(object));
 
-            int callManagerCtorMetadataToken = _image!.GetNewMethodRefIndex();
-            AddNewToken(callManagerCtorMetadataToken, CallManagerCtor);
+            _image!.AddMethodRef(CallContextCtor, out int callContextCtorMetadataToken);
+            // int callContextCtorMetadataToken = _image!.GetNewMethodRefIndex();
+            // AddNewToken(callContextCtorMetadataToken, CallContextCtor);
 
-            int callInterceptorMetadataToken = _image!.GetNewMethodRefIndex();
-            AddNewToken(callInterceptorMetadataToken, CallInterceptors);
+            _image!.AddMethodRef(CallManagerCtor, out int callManagerCtorMetadataToken);
+            // int callManagerCtorMetadataToken = _image!.GetNewMethodRefIndex();
+            // AddNewToken(callManagerCtorMetadataToken, CallManagerCtor);
 
-            int setResultMetadataToken = _image!.GetNewMethodRefIndex();
-            AddNewToken(setResultMetadataToken, SetResult);
+            _image!.AddMethodRef(CallInterceptors, out int callInterceptorMetadataToken);
+            // int callInterceptorMetadataToken = _image!.GetNewMethodRefIndex();
+            // AddNewToken(callInterceptorMetadataToken, CallInterceptors);
 
-            int getResultMetadataToken = _image!.GetNewMethodRefIndex();
-            AddNewToken(getResultMetadataToken, GetResult);
+            _image!.AddMethodRef(SetResult, out int setResultMetadataToken);
+            // int setResultMetadataToken = _image!.GetNewMethodRefIndex();
+            // AddNewToken(setResultMetadataToken, SetResult);
 
-            int releaseTaskMetadataToken = _image!.GetNewMethodRefIndex();
-            AddNewToken(releaseTaskMetadataToken, ReleaseTask);
+            _image!.AddMethodRef(GetResult, out int getResultMetadataToken);
+            // int getResultMetadataToken = _image!.GetNewMethodRefIndex();
+            // AddNewToken(getResultMetadataToken, GetResult);
+
+            _image!.AddMethodRef(ReleaseTask, out int releaseTaskMetadataToken);
+            // int releaseTaskMetadataToken = _image!.GetNewMethodRefIndex();
+            // AddNewToken(releaseTaskMetadataToken, ReleaseTask);
 
             Instructions instructions = new();
-            
+
             instructions.Add(OpCodes.Ldc_I4_S, parameters.Count);
             instructions.Add(OpCodes.Newarr, objCtorMetadataToken);
 
@@ -163,8 +171,10 @@ namespace Jitex.Intercept
             MethodBody body = new(il, _method.Module)
             {
                 LocalVariables = localVariables,
-                CustomTokenResolver = _resolver
+                // CustomTokenResolver = _resolver
             };
+
+            var ops = body.ReadIL();
 
             return body;
         }
@@ -182,7 +192,7 @@ namespace Jitex.Intercept
 
         private void AddNewToken(int metadataToken, MemberInfo method)
         {
-            _internalModule.AddMethodTokenResolution(_method, metadataToken, method);
+            // _internalModule.AddTokenToResolution(_method, metadataToken, method);
             _resolver.AddToken(metadataToken, method);
         }
 

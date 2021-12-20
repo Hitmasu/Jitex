@@ -1,17 +1,20 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using dnlib.DotNet;
 using System.Reflection;
 
 namespace Jitex.PE
 {
-    public class ImageReader : IDisposable
+    internal class ImageReader : IDisposable
     {
+        private static readonly IDictionary<Module, ImageInfo> ImageCache = new Dictionary<Module, ImageInfo>();
+
         private readonly Module _module;
-        private ModuleContext _moduleContext;
-        private ModuleDefMD _moduleDef;
-        private ImageInfo _image;
+        private ModuleContext? _moduleContext;
+        private ModuleDefMD? _moduleDef;
+        private ImageInfo? _image;
 
         public ImageReader(Module module)
         {
@@ -20,16 +23,77 @@ namespace Jitex.PE
 
         public ImageInfo LoadImage()
         {
+            if (!ImageCache.TryGetValue(_module, out _image))
+            {
+                _image = new ImageInfo(_module);
+                ImageCache.Add(_module, _image);
+                ReadImage();
+            }
+
+            return _image;
+        }
+
+        private void ReadImage()
+        {
             _moduleContext = ModuleDef.CreateModuleContext();
             _moduleContext.AssemblyResolver = new CustomResolver();
             _moduleDef = ModuleDefMD.Load(_module, _moduleContext);
 
-            _image = new ImageInfo(_module)
-            {
-                MethodRefRows = (int) _moduleDef.Metadata.TablesStream.MemberRefTable.Rows
-            };
+            IReadOnlyCollection<Module> modules = AppDomain.CurrentDomain.GetAssemblies().SelectMany(w => w.Modules).ToList();
+            LoadMethodRefs(modules);
+            LoadTypeRefs(modules);
+        }
 
-            return _image;
+        private void LoadMethodRefs(IReadOnlyCollection<Module> modules)
+        {
+            foreach (MemberRef memberRef in _moduleDef!.GetMemberRefs())
+            {
+                if (!memberRef.IsMethodRef) continue;
+
+                MethodDef? methodDef = memberRef.ResolveMethod();
+
+                if (methodDef == null) continue;
+
+                Module? module = modules.FirstOrDefault(w => w.FullyQualifiedName == methodDef.Module.Location);
+
+                if (module == null)
+                    continue;
+
+                try
+                {
+                    MethodBase method = module.ResolveMethod((int) methodDef.MDToken.Raw);
+                    _image!.AddNewMethodRef(method, (int) memberRef.MDToken.Raw);
+                }
+                catch
+                {
+                    //Just ignore
+                }
+            }
+        }
+
+        private void LoadTypeRefs(IReadOnlyCollection<Module> modules)
+        {
+            foreach (TypeRef typeRef in _moduleDef!.GetTypeRefs())
+            {
+                TypeDef? typeDef = typeRef.Resolve();
+
+                if (typeDef == null) continue;
+
+                Module? module = modules.FirstOrDefault(w => w.FullyQualifiedName == typeDef.Module.Location);
+
+                if (module == null)
+                    continue;
+
+                try
+                {
+                    Type type = module.ResolveType((int) typeDef.MDToken.Raw);
+                    _image!.AddNewTypeRef(type, (int) typeRef.MDToken.Raw);
+                }
+                catch
+                {
+                    //Just ignore
+                }
+            }
         }
 
         public bool TryGetRefToken(MethodBase method, out int refMetadataToken)

@@ -32,7 +32,7 @@ namespace Jitex.JIT.Context
             get
             {
                 if (TokenType == TokenKind.String)
-                    throw new InvalidOperationException("String don't have context.");
+                    return IntPtr.Zero;
 
                 return _resolvedToken!.Context;
             }
@@ -50,7 +50,7 @@ namespace Jitex.JIT.Context
             get
             {
                 if (TokenType == TokenKind.String)
-                    throw new InvalidOperationException("String don't have scope.");
+                    return IntPtr.Zero;
 
                 return _resolvedToken!.Scope;
             }
@@ -104,7 +104,7 @@ namespace Jitex.JIT.Context
                         return _resolvedToken!.HClass;
 
                     case TokenKind.String:
-                        throw new InvalidOperationException("String don't have handle.");
+                        return IntPtr.Zero;
 
                     default:
                         throw new NotImplementedException();

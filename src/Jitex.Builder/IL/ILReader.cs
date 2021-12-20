@@ -39,7 +39,7 @@ namespace Jitex.Builder.IL
         public ITokenResolver? CustomTokenResolver
         {
             get => _resolver?.CustomResolver;
-            
+
             set
             {
                 if (_resolver != null)
@@ -212,7 +212,7 @@ namespace Jitex.Builder.IL
                         break;
 
                     case OperandType.InlineType:
-                        (Type Type, int Token) type = ReadType();
+                        (dynamic Type, int Token) type = ReadType();
                         operation = new Instruction(opCode, type.Type, type.Token);
                         break;
 
@@ -295,21 +295,22 @@ namespace Jitex.Builder.IL
             ///     Read <see cref="Type" /> reference from module.
             /// </summary>
             /// <returns><see cref="Type" /> referenced.</returns>
-            private (Type Type, int Token) ReadType()
+            private (dynamic Type, int Token) ReadType()
             {
                 int token = ReadInt32();
 
                 if (_resolver == null)
                     return (null, token);
 
-                Type type;
-
-                if (_resolver is ModuleTokenResolver)
-                    type = _resolver.ResolveType(token, _genericTypeArguments, _genericMethodArguments);
-                else
-                    type = _resolver.ResolveType(token);
-
-                return (type, token);
+                try
+                {
+                    Type type = _resolver.ResolveType(token, _genericTypeArguments, _genericMethodArguments);
+                    return (type, token);
+                }
+                catch (Exception ex)
+                {
+                    return (ex, token);
+                }
             }
 
             /// <summary>

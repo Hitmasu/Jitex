@@ -62,11 +62,6 @@ namespace Jitex.Builder.IL.Resolver
             return fieldInfo;
         }
 
-        public FieldInfo ResolveField(int token, Type[] genericTypeArguments, Type[] genericMethodArguments, out bool isResolved)
-        {
-            throw new NotImplementedException();
-        }
-
         public MemberInfo ResolveMember(int token, out bool isResolved)
         {
             _tokenResolver.Invoke(token, out IntPtr typeHandle, out IntPtr methodHandle, out IntPtr fieldHandle);
@@ -95,11 +90,6 @@ namespace Jitex.Builder.IL.Resolver
             throw new NotSupportedException();
         }
 
-        public MemberInfo ResolveMember(int token, Type[] genericTypeArguments, Type[] genericMethodArguments, out bool isResolved)
-        {
-            throw new NotImplementedException();
-        }
-
         private MethodBase ResolveMethod(IntPtr methodHandle, IntPtr typeHandle)
         {
             return (MethodBase) _getMethodBase.Invoke(null, new[]
@@ -115,11 +105,6 @@ namespace Jitex.Builder.IL.Resolver
             MethodBase methodBase = ResolveMethod(methodHandle, typeHandle);
             isResolved = true;
             return methodBase;
-        }
-
-        public MethodBase ResolveMethod(int token, Type[] genericTypeArguments, Type[] genericMethodArguments, out bool isResolved)
-        {
-            throw new NotImplementedException();
         }
 
         public byte[] ResolveSignature(int token, out bool isResolved)
@@ -144,9 +129,48 @@ namespace Jitex.Builder.IL.Resolver
             return type;
         }
 
-        public Type ResolveType(int token, Type[] genericTypeArguments, Type[] genericMethodArguments, out bool isResolved)
+        public Type ResolveType(int token, Type[]? genericTypeArguments, Type[] genericMethodArguments, out bool isResolved)
         {
-            throw new NotImplementedException();
+            if (genericTypeArguments is {Length: > 0})
+                throw new NotImplementedException();
+
+            if (genericMethodArguments is {Length: > 0})
+                throw new NotImplementedException();
+
+            return ResolveType(token, out isResolved);
+        }
+
+        public MethodBase ResolveMethod(int token, Type[] genericTypeArguments, Type[] genericMethodArguments, out bool isResolved)
+        {
+            if (genericTypeArguments is {Length: > 0})
+                throw new NotImplementedException();
+
+            if (genericMethodArguments is {Length: > 0})
+                throw new NotImplementedException();
+
+            return ResolveMethod(token, out isResolved);
+        }
+
+        public MemberInfo ResolveMember(int token, Type[] genericTypeArguments, Type[] genericMethodArguments, out bool isResolved)
+        {
+            if (genericTypeArguments is {Length: > 0})
+                throw new NotImplementedException();
+
+            if (genericMethodArguments is {Length: > 0})
+                throw new NotImplementedException();
+
+            return ResolveMember(token, out isResolved);
+        }
+
+        public FieldInfo ResolveField(int token, Type[] genericTypeArguments, Type[] genericMethodArguments, out bool isResolved)
+        {
+            if (genericTypeArguments is {Length: > 0})
+                throw new NotImplementedException();
+
+            if (genericMethodArguments is {Length: > 0})
+                throw new NotImplementedException();
+
+            return ResolveField(token, out isResolved);
         }
     }
 }
