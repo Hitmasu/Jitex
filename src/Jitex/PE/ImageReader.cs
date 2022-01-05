@@ -40,13 +40,18 @@ namespace Jitex.PE
             _moduleDef = ModuleDefMD.Load(_module, _moduleContext);
 
             IReadOnlyCollection<Module> modules = AppDomain.CurrentDomain.GetAssemblies().SelectMany(w => w.Modules).ToList();
-            LoadMethodRefs(modules);
+
+
+            LoadMemberRefs(modules);
             LoadTypeRefs(modules);
         }
 
-        private void LoadMethodRefs(IReadOnlyCollection<Module> modules)
+        private void LoadMemberRefs(IReadOnlyCollection<Module> modules)
         {
-            foreach (MemberRef memberRef in _moduleDef!.GetMemberRefs())
+            IList<MemberRef> memberRefs = _moduleDef!.GetMemberRefs().ToList();
+            _image!.NumberOfMemberRefRows = memberRefs.Count;
+
+            foreach (MemberRef memberRef in memberRefs)
             {
                 if (!memberRef.IsMethodRef) continue;
 
@@ -62,7 +67,7 @@ namespace Jitex.PE
                 try
                 {
                     MethodBase method = module.ResolveMethod((int) methodDef.MDToken.Raw);
-                    _image!.AddNewMethodRef(method, (int) memberRef.MDToken.Raw);
+                    _image!.AddMemberRefFromImage(method, (int) memberRef.MDToken.Raw);
                 }
                 catch
                 {
@@ -73,7 +78,10 @@ namespace Jitex.PE
 
         private void LoadTypeRefs(IReadOnlyCollection<Module> modules)
         {
-            foreach (TypeRef typeRef in _moduleDef!.GetTypeRefs())
+            IList<TypeRef> typeRefs = _moduleDef!.GetTypeRefs().ToList();
+            _image!.NumberOfTypeRefRows = typeRefs.Count;
+
+            foreach (TypeRef typeRef in typeRefs)
             {
                 TypeDef? typeDef = typeRef.Resolve();
 
@@ -87,7 +95,7 @@ namespace Jitex.PE
                 try
                 {
                     Type type = module.ResolveType((int) typeDef.MDToken.Raw);
-                    _image!.AddNewTypeRef(type, (int) typeRef.MDToken.Raw);
+                    _image!.AddTypeRefFromImage(type, (int) typeRef.MDToken.Raw);
                 }
                 catch
                 {
@@ -96,30 +104,9 @@ namespace Jitex.PE
             }
         }
 
-        public bool TryGetRefToken(MethodBase method, out int refMetadataToken)
-        {
-            foreach (MemberRef memberRef in _moduleDef.GetMemberRefs())
-            {
-                if (!memberRef.IsMethodRef) continue;
-
-                MethodDef methodRef = memberRef.ResolveMethod();
-
-                if (methodRef == null) continue;
-
-                if (methodRef.MDToken.Raw == method.MetadataToken && methodRef.Module.Location == method.Module.FullyQualifiedName)
-                {
-                    refMetadataToken = (int) memberRef.MDToken.Raw;
-                    return true;
-                }
-            }
-
-            refMetadataToken = 0;
-            return false;
-        }
-
         public void Dispose()
         {
-            _moduleDef.Dispose();
+            _moduleDef?.Dispose();
         }
 
         private class CustomResolver : AssemblyResolver

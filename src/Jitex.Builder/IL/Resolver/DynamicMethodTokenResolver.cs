@@ -129,7 +129,7 @@ namespace Jitex.Builder.IL.Resolver
             return type;
         }
 
-        public Type ResolveType(int token, Type[]? genericTypeArguments, Type[] genericMethodArguments, out bool isResolved)
+        public Type ResolveType(int token, Type[]? genericTypeArguments, Type[]? genericMethodArguments, out bool isResolved)
         {
             if (genericTypeArguments is {Length: > 0})
                 throw new NotImplementedException();
@@ -140,7 +140,7 @@ namespace Jitex.Builder.IL.Resolver
             return ResolveType(token, out isResolved);
         }
 
-        public MethodBase ResolveMethod(int token, Type[] genericTypeArguments, Type[] genericMethodArguments, out bool isResolved)
+        public MethodBase ResolveMethod(int token, Type[]? genericTypeArguments, Type[]? genericMethodArguments, out bool isResolved)
         {
             if (genericTypeArguments is {Length: > 0})
                 throw new NotImplementedException();
@@ -151,7 +151,7 @@ namespace Jitex.Builder.IL.Resolver
             return ResolveMethod(token, out isResolved);
         }
 
-        public MemberInfo ResolveMember(int token, Type[] genericTypeArguments, Type[] genericMethodArguments, out bool isResolved)
+        public MemberInfo ResolveMember(int token, Type[]? genericTypeArguments, Type[]? genericMethodArguments, out bool isResolved)
         {
             if (genericTypeArguments is {Length: > 0})
                 throw new NotImplementedException();
@@ -162,7 +162,7 @@ namespace Jitex.Builder.IL.Resolver
             return ResolveMember(token, out isResolved);
         }
 
-        public FieldInfo ResolveField(int token, Type[] genericTypeArguments, Type[] genericMethodArguments, out bool isResolved)
+        public FieldInfo ResolveField(int token, Type[]? genericTypeArguments, Type[]? genericMethodArguments, out bool isResolved)
         {
             if (genericTypeArguments is {Length: > 0})
                 throw new NotImplementedException();

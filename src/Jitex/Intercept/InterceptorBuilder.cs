@@ -21,16 +21,14 @@ namespace Jitex.Intercept
 
         private readonly MethodBase _method;
         private readonly MethodBody _body;
-        private readonly InternalModule _internalModule;
-        private readonly TokenResolver _resolver;
 
         private ImageReader? _imageReader;
         private ImageInfo? _image;
 
         static InterceptorBuilder()
         {
-            CallContextCtor = typeof(CallContext).GetConstructor(new[] {typeof(object[])})!;
-            CallManagerCtor = typeof(CallManager).GetConstructor(new[] {typeof(CallContext)})!;
+            CallContextCtor = typeof(CallContext).GetConstructor(new[] { typeof(object[]) })!;
+            CallManagerCtor = typeof(CallManager).GetConstructor(new[] { typeof(CallContext) })!;
             CallInterceptors = typeof(CallManager).GetMethod(nameof(CallManager.CallInterceptors), BindingFlags.Public | BindingFlags.Instance)!;
             ReleaseTask = typeof(CallManager).GetMethod(nameof(CallManager.ReleaseTask), BindingFlags.Public | BindingFlags.Instance)!;
 
@@ -43,20 +41,6 @@ namespace Jitex.Intercept
         {
             _method = method;
             _body = body;
-
-            _internalModule = InitializeModule();
-            _resolver = new TokenResolver();
-        }
-
-        private static InternalModule InitializeModule()
-        {
-            if (!JitexManager.TryGetModule(out InternalModule? instance))
-            {
-                instance = InternalModule.Instance;
-                JitexManager.LoadModule(instance);
-            }
-
-            return instance!;
         }
 
         public MethodBody InjectInterceptor()
@@ -74,40 +58,18 @@ namespace Jitex.Intercept
             if (methodInfo != null && !methodInfo.IsStatic)
                 parameters.Add(methodInfo.DeclaringType);
 
-            IList<LocalVariableInfo>? localVariables = _body.LocalVariables ?? new List<LocalVariableInfo>();
+            IList<LocalVariableInfo> localVariables = _body.LocalVariables ?? new List<LocalVariableInfo>();
             localVariables.Add(new(typeof(CallManager)));
 
             int callManagerInstanceIndex = localVariables.Count - 1;
-
-            //TODO: Check if ctor/method was already implemented on module: if (!_imageReader.TryGetRefToken(ObjCtor, out int objCtorMetadataToken)
-
+            
             _image!.AddTypeRef(typeof(object), out int objCtorMetadataToken);
-            // int objCtorMetadataToken = _image!.GetNewTypeRefIndex();
-            // AddNewToken(objCtorMetadataToken, typeof(object));
-
-            _image!.AddMethodRef(CallContextCtor, out int callContextCtorMetadataToken);
-            // int callContextCtorMetadataToken = _image!.GetNewMethodRefIndex();
-            // AddNewToken(callContextCtorMetadataToken, CallContextCtor);
-
-            _image!.AddMethodRef(CallManagerCtor, out int callManagerCtorMetadataToken);
-            // int callManagerCtorMetadataToken = _image!.GetNewMethodRefIndex();
-            // AddNewToken(callManagerCtorMetadataToken, CallManagerCtor);
-
-            _image!.AddMethodRef(CallInterceptors, out int callInterceptorMetadataToken);
-            // int callInterceptorMetadataToken = _image!.GetNewMethodRefIndex();
-            // AddNewToken(callInterceptorMetadataToken, CallInterceptors);
-
-            _image!.AddMethodRef(SetResult, out int setResultMetadataToken);
-            // int setResultMetadataToken = _image!.GetNewMethodRefIndex();
-            // AddNewToken(setResultMetadataToken, SetResult);
-
-            _image!.AddMethodRef(GetResult, out int getResultMetadataToken);
-            // int getResultMetadataToken = _image!.GetNewMethodRefIndex();
-            // AddNewToken(getResultMetadataToken, GetResult);
-
-            _image!.AddMethodRef(ReleaseTask, out int releaseTaskMetadataToken);
-            // int releaseTaskMetadataToken = _image!.GetNewMethodRefIndex();
-            // AddNewToken(releaseTaskMetadataToken, ReleaseTask);
+            _image!.AddMemberRef(CallContextCtor, out int callContextCtorMetadataToken);
+            _image!.AddMemberRef(CallManagerCtor, out int callManagerCtorMetadataToken);
+            _image!.AddMemberRef(CallInterceptors, out int callInterceptorMetadataToken);
+            _image!.AddMemberRef(SetResult, out int setResultMetadataToken);
+            _image!.AddMemberRef(GetResult, out int getResultMetadataToken);
+            _image!.AddMemberRef(ReleaseTask, out int releaseTaskMetadataToken);
 
             Instructions instructions = new();
 
@@ -124,8 +86,8 @@ namespace Jitex.Intercept
 
                 if (parameter.IsValueType)
                 {
-                    instructions.Add(OpCodes.Box, parameter.MetadataToken);
-                    AddNewToken(parameter.MetadataToken, parameter); //TODO: Check if token already exists
+                    _image.AddTypeRef(parameter, out int parameterMetadataToken);
+                    instructions.Add(OpCodes.Box, parameterMetadataToken);
                 }
 
                 instructions.Add(OpCodes.Stelem_Ref);
@@ -150,10 +112,12 @@ namespace Jitex.Intercept
 
                 if (returnType.IsPrimitive)
                 {
-                    instructions.Add(OpCodes.Box, returnType.MetadataToken);
-                    AddNewToken(returnType.MetadataToken, returnType);
+                    _image.AddTypeRef(returnType, out int returnTypeMetadataToken);
 
-                    retInstruction = new Instruction(OpCodes.Unbox_Any, returnType.MetadataToken);
+                     instructions.Add(OpCodes.Box, returnTypeMetadataToken);
+
+                    if (returnType.IsPrimitive || returnType.IsEnum)
+                        retInstruction = new Instruction(OpCodes.Unbox_Any, returnTypeMetadataToken);
                 }
             }
 
@@ -166,34 +130,15 @@ namespace Jitex.Intercept
                 instructions.Add(retInstruction);
 
             instructions.Add(OpCodes.Ret);
+
             byte[] il = instructions;
 
             MethodBody body = new(il, _method.Module)
             {
-                LocalVariables = localVariables,
-                // CustomTokenResolver = _resolver
+                LocalVariables = localVariables
             };
-
-            var ops = body.ReadIL();
-
+            var bodil = body.ReadIL().Where(w => w.OpCode != OpCodes.Nop);
             return body;
-        }
-
-        private static byte[] GetBytesFromToken(int token)
-        {
-            return new[]
-            {
-                (byte) (token & 0x000000FF),
-                (byte) (token & 0x0000FF00),
-                (byte) (token & 0x00FF0000),
-                (byte) (token & 0xFF000000),
-            };
-        }
-
-        private void AddNewToken(int metadataToken, MemberInfo method)
-        {
-            // _internalModule.AddTokenToResolution(_method, metadataToken, method);
-            _resolver.AddToken(metadataToken, method);
         }
 
         public void Dispose()

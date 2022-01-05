@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Threading;
+﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Jitex.Intercept
@@ -18,6 +16,7 @@ namespace Jitex.Intercept
         public void CallInterceptors()
         {
             CallInterceptorsAsync();
+            _context.WaitToContinue();
         }
 
         private async Task CallInterceptorsAsync()
@@ -29,13 +28,15 @@ namespace Jitex.Intercept
                 _currentInterceptor = interceptor(_context);
                 await _currentInterceptor;
             }
+
+            _context.ContinueWithCode();
         }
 
         public void ReleaseTask()
         {
             if (!_context.IsWaitingForEnd)
                 return;
-            
+
             _context.ReleaseSignal();
             _currentInterceptor.GetAwaiter().GetResult();
         }

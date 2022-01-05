@@ -7,13 +7,15 @@ using Jitex.Utils;
 
 namespace Jitex.PE
 {
-    internal class ImageInfo
+    internal sealed class ImageInfo
     {
-        private readonly IDictionary<MethodBase, int> MethodRefs = new Dictionary<MethodBase, int>();
-        private readonly IDictionary<Type, int> TypeRefs = new Dictionary<Type, int>();
+        private readonly IDictionary<MethodBase, int> _memberRefs = new Dictionary<MethodBase, int>();
+        private readonly IDictionary<Type, int> _typeRefs = new Dictionary<Type, int>();
 
-        public int MethodRefRows { get; internal set; }
-        public int TypeRefRows { get; internal set; }
+        public int NumberOfMemberRefRows { get; internal set; }
+
+        public int NumberOfTypeRefRows { get; internal set; }
+
         public Module Module { get; internal set; }
         public IntPtr BaseAddress { get; internal set; }
         public int Size { get; internal set; }
@@ -36,42 +38,44 @@ namespace Jitex.PE
             BaseOffset = baseOffset;
         }
 
-        /// <summary>
-        /// Returns
-        /// </summary>
-        /// <param name="method"></param>
-        /// <param name="token"></param>
-        /// <returns></returns>
-        public void AddMethodRef(MethodBase method, out int token)
+        public void AddMemberRef(MethodBase method, out int token)
         {
-            if (MethodRefs.TryGetValue(method, out token))
+            if (_memberRefs.TryGetValue(method, out token))
                 return;
 
-            const int methodRefBase = 0x0A000000;
-            int newMethodRefToken = methodRefBase + MethodRefs.Count + 1;
-            token = newMethodRefToken;
+            const int memberRefBase = 0x0A000000;
+            token = memberRefBase + NumberOfMemberRefRows + 1;
+            NumberOfMemberRefRows++;
 
-            AddTokenToResolution(method, token);
+            AddMemberToResolution(method, token);
         }
 
         public void AddTypeRef(Type type, out int token)
         {
-            if (TypeRefs.TryGetValue(type, out token))
+            if (_typeRefs.TryGetValue(type, out token))
                 return;
 
             const int typeRefBase = 0x01000000;
-            int newTypeRefToken = typeRefBase + TypeRefs.Count + 1;
-            token = newTypeRefToken;
+            token = typeRefBase + NumberOfTypeRefRows + 1;
+            NumberOfTypeRefRows++;
 
-            AddTokenToResolution(type, token);
+            AddMemberToResolution(type, token);
         }
-
-        internal void AddNewMethodRef(MethodBase methodBase, int refToken) => MethodRefs.Add(methodBase, refToken);
-        internal void AddNewTypeRef(Type type, int refToken) => TypeRefs.Add(type, refToken);
-
-        private void AddTokenToResolution(MemberInfo memberInfo, int token)
+        
+        /// <summary>
+        /// Add a new MemberInfo to resolution on internal module.
+        /// </summary>
+        /// <param name="memberInfo">MemberInfo resolution.</param>
+        /// <param name="token">Token to resolve.</param>
+        private void AddMemberToResolution(MemberInfo memberInfo, int token)
         {
-            InternalModule.Instance.AddTokenToResolution(Module, token, memberInfo);
+            if (!JitexManager.ModuleIsLoaded<InternalModule>())
+                JitexManager.LoadModule(InternalModule.Instance);
+
+            InternalModule.Instance.AddMemberToResolution(Module, token, memberInfo);
         }
+
+        internal void AddMemberRefFromImage(MethodBase methodBase, int refToken) => _memberRefs.Add(methodBase, refToken);
+        internal void AddTypeRefFromImage(Type type, int refToken) => _typeRefs.Add(type, refToken);
     }
 }

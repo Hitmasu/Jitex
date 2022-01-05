@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using Jitex.Builder.IL.Resolver;
@@ -134,6 +135,8 @@ namespace Jitex.Builder.IL
             /// </summary>
             private readonly Type[]? _genericMethodArguments;
 
+            private readonly bool _isGeneric;
+
             /// <summary>
             ///     Current operation.
             /// </summary>
@@ -144,6 +147,7 @@ namespace Jitex.Builder.IL
             /// </summary>
             object IEnumerator.Current => Current;
 
+
             /// <summary>
             /// Create a new enumerator to read instructions.
             /// </summary>
@@ -151,12 +155,14 @@ namespace Jitex.Builder.IL
             /// <param name="resolver">Module to resolver tokens.</param>
             /// <param name="genericTypeArguments">Generic class arguments used in instructions.</param>
             /// <param name="genericMethodArguments">Generic method arguments used in instructions.</param>
-            public ILEnumerator(byte[] il, TokenResolver resolver, Type[]? genericTypeArguments, Type[]? genericMethodArguments)
+            public ILEnumerator(byte[] il, TokenResolver? resolver, Type[]? genericTypeArguments, Type[]? genericMethodArguments)
             {
                 _il = il;
                 _resolver = resolver;
                 _genericTypeArguments = genericTypeArguments;
                 _genericMethodArguments = genericMethodArguments;
+
+                _isGeneric = _genericMethodArguments is { Length: > 0 } || _genericTypeArguments is { Length: > 0 };
             }
 
             public void Dispose()
@@ -182,7 +188,7 @@ namespace Jitex.Builder.IL
                 short instruction = _il[_position++];
 
                 if (instruction == 0xFE)
-                    instruction = BitConverter.ToInt16(new[] {_il[_position++], (byte) instruction}, 0);
+                    instruction = BitConverter.ToInt16(new[] { _il[_position++], (byte)instruction }, 0);
 
                 OpCode opCode = Instruction.Translate(instruction);
 
@@ -197,12 +203,12 @@ namespace Jitex.Builder.IL
                         break;
 
                     case OperandType.InlineField:
-                        (FieldInfo Field, int Token) field = ReadField();
+                        (dynamic? Field, int Token) field = ReadField();
                         operation = new Instruction(opCode, field.Field, field.Token);
                         break;
 
                     case OperandType.InlineMethod:
-                        (MethodBase Method, int Token) method = ReadMethod();
+                        (dynamic? Method, int Token) method = ReadMethod();
                         operation = new Instruction(opCode, method.Method, method.Token);
                         break;
 
@@ -212,7 +218,7 @@ namespace Jitex.Builder.IL
                         break;
 
                     case OperandType.InlineType:
-                        (dynamic Type, int Token) type = ReadType();
+                        (dynamic? Type, int Token) type = ReadType();
                         operation = new Instruction(opCode, type.Type, type.Token);
                         break;
 
@@ -226,7 +232,7 @@ namespace Jitex.Builder.IL
                         break;
 
                     case OperandType.InlineTok:
-                        (MemberInfo Member, int Token) member = ReadMember();
+                        (dynamic? Member, int Token) member = ReadMember();
                         operation = new Instruction(opCode, member.Member, member.Token);
                         break;
 
@@ -246,7 +252,7 @@ namespace Jitex.Builder.IL
                     case OperandType.ShortInlineBrTarget: //Repeat jump from original IL.
                     case OperandType.ShortInlineI:
                         if (opCode == OpCodes.Ldc_I4_S)
-                            operation = new Instruction(opCode, (sbyte) ReadByte());
+                            operation = new Instruction(opCode, (sbyte)ReadByte());
                         else
                             operation = new Instruction(opCode, ReadByte());
                         break;
@@ -295,7 +301,7 @@ namespace Jitex.Builder.IL
             ///     Read <see cref="Type" /> reference from module.
             /// </summary>
             /// <returns><see cref="Type" /> referenced.</returns>
-            private (dynamic Type, int Token) ReadType()
+            private (dynamic? Type, int Token) ReadType()
             {
                 int token = ReadInt32();
 
@@ -317,7 +323,7 @@ namespace Jitex.Builder.IL
             ///     Read <see cref="string" /> reference from module.
             /// </summary>
             /// <returns><see cref="string" /> referenced.</returns>
-            private (string String, int Token) ReadString()
+            private (string? String, int Token) ReadString()
             {
                 int token = ReadInt32();
 
@@ -331,7 +337,7 @@ namespace Jitex.Builder.IL
             ///     Read <see cref="MethodInfo" /> reference from module.
             /// </summary>
             /// <returns><see cref="MethodInfo" /> referenced.</returns>
-            private (MethodBase Method, int Token) ReadMethod()
+            private (dynamic? Method, int Token) ReadMethod()
             {
                 int token = ReadInt32();
 
@@ -340,19 +346,26 @@ namespace Jitex.Builder.IL
 
                 MethodBase method;
 
-                if (_resolver is ModuleTokenResolver)
-                    method = _resolver.ResolveMethod(token, _genericTypeArguments, _genericMethodArguments);
-                else
-                    method = _resolver.ResolveMethod(token);
+                try
+                {
+                    if (_isGeneric)
+                        method = _resolver.ResolveMethod(token, _genericTypeArguments, _genericMethodArguments);
+                    else
+                        method = _resolver.ResolveMethod(token);
 
-                return (method, token);
+                    return (method, token);
+                }
+                catch (Exception ex)
+                {
+                    return (ex, token);
+                }
             }
 
             /// <summary>
             ///     Read <see cref="FieldInfo" /> reference from module.
             /// </summary>
             /// <returns><see cref="FieldInfo" /> referenced.</returns>
-            private (FieldInfo Field, int Token) ReadField()
+            private (dynamic? Field, int Token) ReadField()
             {
                 int token = ReadInt32();
 
@@ -361,34 +374,26 @@ namespace Jitex.Builder.IL
 
                 FieldInfo field;
 
-                if (_resolver is ModuleTokenResolver)
-                    field = _resolver.ResolveField(token, _genericTypeArguments, _genericMethodArguments);
-                else
-                    field = _resolver.ResolveField(token);
+                try
+                {
+                    if (_isGeneric)
+                        field = _resolver.ResolveField(token, _genericTypeArguments, _genericMethodArguments);
+                    else
+                        field = _resolver.ResolveField(token);
 
-                return (field, token);
-            }
-
-            /// <summary>
-            ///     Read Signature reference from module.
-            /// </summary>
-            /// <returns></returns>
-            private (byte[] Signature, int Token) ReadSignature()
-            {
-                int token = ReadInt32();
-
-                if (_resolver == null)
-                    return (null, token);
-
-                byte[] signature = _resolver.ResolveSignature(token);
-                return (signature, token);
+                    return (field, token);
+                }
+                catch (Exception ex)
+                {
+                    return (ex, token);
+                }
             }
 
             /// <summary>
             ///     Read <see cref="MemberInfo" /> reference from module.
             /// </summary>
             /// <returns></returns>
-            private (MemberInfo Member, int Token) ReadMember()
+            private (dynamic? Member, int Token) ReadMember()
             {
                 int token = ReadInt32();
 
@@ -397,12 +402,34 @@ namespace Jitex.Builder.IL
 
                 MemberInfo member;
 
-                if (_resolver is ModuleTokenResolver)
-                    member = _resolver.ResolveMember(token, _genericTypeArguments, _genericMethodArguments);
-                else
-                    member = _resolver.ResolveMember(token);
+                try
+                {
+                    if (_isGeneric)
+                        member = _resolver.ResolveMember(token, _genericTypeArguments, _genericMethodArguments);
+                    else
+                        member = _resolver.ResolveMethod(token);
 
-                return (member, token);
+                    return (member, token);
+                }
+                catch (Exception ex)
+                {
+                    return (ex, token);
+                }
+            }
+
+            /// <summary>
+            ///     Read Signature reference from module.
+            /// </summary>
+            /// <returns></returns>
+            private (byte[]? Signature, int Token) ReadSignature()
+            {
+                int token = ReadInt32();
+
+                if (_resolver == null)
+                    return (null, token);
+
+                byte[] signature = _resolver.ResolveSignature(token);
+                return (signature, token);
             }
 
             /// <summary>

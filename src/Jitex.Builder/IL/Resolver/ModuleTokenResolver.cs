@@ -19,7 +19,7 @@ namespace Jitex.Builder.IL.Resolver
             return fieldInfo;
         }
 
-        public FieldInfo ResolveField(int token, Type[] genericTypeArguments, Type[] genericMethodArguments, out bool isResolved)
+        public FieldInfo ResolveField(int token, Type[]? genericTypeArguments, Type[]? genericMethodArguments, out bool isResolved)
         {
             FieldInfo fieldInfo = _module.ResolveField(token, genericTypeArguments, genericMethodArguments);
             isResolved = true;
@@ -33,7 +33,7 @@ namespace Jitex.Builder.IL.Resolver
             return memberInfo;
         }
 
-        public MemberInfo ResolveMember(int token, Type[] genericTypeArguments, Type[] genericMethodArguments, out bool isResolved)
+        public MemberInfo ResolveMember(int token, Type[]? genericTypeArguments, Type[]? genericMethodArguments, out bool isResolved)
         {
             MemberInfo memberInfo = _module.ResolveMember(token, genericTypeArguments, genericMethodArguments);
             isResolved = true;
@@ -47,7 +47,7 @@ namespace Jitex.Builder.IL.Resolver
             return methodBase;
         }
 
-        public MethodBase ResolveMethod(int token, Type[] genericTypeArguments, Type[] genericMethodArguments, out bool isResolved)
+        public MethodBase ResolveMethod(int token, Type[]? genericTypeArguments, Type[]? genericMethodArguments, out bool isResolved)
         {
             MethodBase methodBase = _module.ResolveMethod(token, genericTypeArguments, genericMethodArguments);
             isResolved = true;
@@ -75,7 +75,7 @@ namespace Jitex.Builder.IL.Resolver
             return type;
         }
 
-        public Type ResolveType(int token, Type[] genericTypeArguments, Type[] genericMethodArguments, out bool isResolved)
+        public Type ResolveType(int token, Type[]? genericTypeArguments, Type[]? genericMethodArguments, out bool isResolved)
         {
             Type type = _module.ResolveType(token, genericTypeArguments, genericMethodArguments);
             isResolved = true;

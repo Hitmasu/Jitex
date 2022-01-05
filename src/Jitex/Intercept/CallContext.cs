@@ -1,14 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Reflection;
-using System.Text;
-using System.Threading;
+﻿using System.Threading;
 using System.Threading.Tasks;
 
 namespace Jitex.Intercept
 {
     public class CallContext
     {
+        private AutoResetEvent _autoResetEvent;
         private SemaphoreSlim _semaphoreSlim;
         public object[] Parameters { get; set; }
         public object? Result { get; set; }
@@ -19,8 +16,20 @@ namespace Jitex.Intercept
             Parameters = parameters;
         }
 
+        public void WaitToContinue()
+        {
+            _autoResetEvent = new AutoResetEvent(false);
+            _autoResetEvent.WaitOne();
+        }
+
+        public void ContinueWithCode()
+        {
+            _autoResetEvent.Set();
+        }
+
         public Task ContinueAsync()
         {
+            ContinueWithCode();
             _semaphoreSlim = new SemaphoreSlim(0);
             IsWaitingForEnd = true;
             return _semaphoreSlim.WaitAsync();
@@ -33,7 +42,7 @@ namespace Jitex.Intercept
             if (Result == null)
                 return default;
 
-            return (T) Result;
+            return (T)Result;
         }
 
         internal void ReleaseSignal()
