@@ -7,6 +7,7 @@ using System.Reflection.Emit;
 using Jitex.Builder.IL;
 using LocalVariableInfo = Jitex.Builder.Method.LocalVariableInfo;
 using MethodBody = Jitex.Builder.Method.MethodBody;
+using Pointer = Jitex.Utils.Pointer;
 
 namespace Jitex.Intercept
 {
@@ -14,10 +15,12 @@ namespace Jitex.Intercept
     {
         private static readonly ConstructorInfo CallContextCtor;
         private static readonly ConstructorInfo CallManagerCtor;
+
         private static readonly MethodInfo CallInterceptors;
         private static readonly MethodInfo SetResult;
         private static readonly MethodInfo GetResult;
         private static readonly MethodInfo ReleaseTask;
+        private static readonly MethodInfo PointerBox;
 
         private readonly MethodBase _method;
         private readonly MethodBody _body;
@@ -27,10 +30,11 @@ namespace Jitex.Intercept
 
         static InterceptorBuilder()
         {
-            CallContextCtor = typeof(CallContext).GetConstructor(new[] { typeof(object[]) })!;
-            CallManagerCtor = typeof(CallManager).GetConstructor(new[] { typeof(CallContext) })!;
+            CallContextCtor = typeof(CallContext).GetConstructor(new[] {typeof(object[])})!;
+            CallManagerCtor = typeof(CallManager).GetConstructor(new[] {typeof(CallContext)})!;
             CallInterceptors = typeof(CallManager).GetMethod(nameof(CallManager.CallInterceptors), BindingFlags.Public | BindingFlags.Instance)!;
             ReleaseTask = typeof(CallManager).GetMethod(nameof(CallManager.ReleaseTask), BindingFlags.Public | BindingFlags.Instance)!;
+            PointerBox = typeof(Pointer).GetMethod(nameof(Pointer.Box))!;
 
             PropertyInfo result = typeof(CallContext).GetProperty(nameof(CallContext.Result))!;
             GetResult = result.GetGetMethod();
@@ -62,7 +66,7 @@ namespace Jitex.Intercept
             localVariables.Add(new(typeof(CallManager)));
 
             int callManagerInstanceIndex = localVariables.Count - 1;
-            
+
             _image!.AddTypeRef(typeof(object), out int objCtorMetadataToken);
             _image!.AddMemberRef(CallContextCtor, out int callContextCtorMetadataToken);
             _image!.AddMemberRef(CallManagerCtor, out int callManagerCtorMetadataToken);
@@ -70,6 +74,7 @@ namespace Jitex.Intercept
             _image!.AddMemberRef(SetResult, out int setResultMetadataToken);
             _image!.AddMemberRef(GetResult, out int getResultMetadataToken);
             _image!.AddMemberRef(ReleaseTask, out int releaseTaskMetadataToken);
+            _image!.AddMemberRef(PointerBox, out int pointerBoxMetadataToken);
 
             Instructions instructions = new();
 
@@ -84,7 +89,18 @@ namespace Jitex.Intercept
                 instructions.Add(OpCodes.Ldc_I4_S, i);
                 instructions.Add(OpCodes.Ldarg_S, i);
 
-                if (parameter.IsValueType)
+                //TODO: Maybe set variable as pinned too?
+                if (parameter.IsPointer)
+                {
+                    instructions.Add(OpCodes.Call, pointerBoxMetadataToken);
+                }
+
+                if (parameter.IsByRef)
+                {
+                    instructions.Add(OpCodes.Conv_U);
+                    instructions.Add(OpCodes.Call, pointerBoxMetadataToken);
+                }
+                else if (parameter.IsValueType)
                 {
                     _image.AddTypeRef(parameter, out int parameterMetadataToken);
                     instructions.Add(OpCodes.Box, parameterMetadataToken);
@@ -114,7 +130,7 @@ namespace Jitex.Intercept
                 {
                     _image.AddTypeRef(returnType, out int returnTypeMetadataToken);
 
-                     instructions.Add(OpCodes.Box, returnTypeMetadataToken);
+                    instructions.Add(OpCodes.Box, returnTypeMetadataToken);
 
                     if (returnType.IsPrimitive || returnType.IsEnum)
                         retInstruction = new Instruction(OpCodes.Unbox_Any, returnTypeMetadataToken);
@@ -137,7 +153,7 @@ namespace Jitex.Intercept
             {
                 LocalVariables = localVariables
             };
-            var bodil = body.ReadIL().Where(w => w.OpCode != OpCodes.Nop);
+
             return body;
         }
 

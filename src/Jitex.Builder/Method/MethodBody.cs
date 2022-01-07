@@ -42,7 +42,7 @@ namespace Jitex.Builder.Method
         /// <summary>
         /// IL from body.
         /// </summary>
-        public byte[] IL { get; }
+        public byte[] IL { get; set; }
 
         /// <summary>
         ///     Local variables from method.
@@ -190,7 +190,7 @@ namespace Jitex.Builder.Method
                 maxStackSize += CalculateMaxStack(operation.OpCode);
 
                 if (maxStackSize > highMaxStack)
-                    highMaxStack = (uint) maxStackSize;
+                    highMaxStack = (uint)maxStackSize;
 
                 if (operation.OpCode == OpCodes.Leave || operation.OpCode == OpCodes.Leave_S)
                     EHCount++;
@@ -281,7 +281,7 @@ namespace Jitex.Builder.Method
             byte[] signature = new byte[blobSignature.Length + 1];
 
             Array.Copy(blobSignature, 0, signature, 1, blobSignature.Length);
-            signature[0] = (byte) blobSignature.Length;
+            signature[0] = (byte)blobSignature.Length;
 
             return signature;
         }

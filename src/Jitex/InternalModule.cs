@@ -42,7 +42,7 @@ namespace Jitex.Intercept
         /// <param name="module">Module from token.</param>
         /// <param name="metadataToken">Token to be resolved.</param>
         /// <param name="memberResolution">Member identifier from token.</param>
-        public void AddTokenToResolution(Module module, int metadataToken, MemberInfo memberResolution)
+        public void AddMemberToResolution(Module module, int metadataToken, MemberInfo memberResolution)
         {
             IntPtr handle = AppModules.GetHandleFromModule(module);
             _methodResolutions.TryAdd(new(handle, metadataToken), memberResolution);
