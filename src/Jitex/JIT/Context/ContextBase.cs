@@ -13,7 +13,7 @@ namespace Jitex.JIT.Context
         /// <summary>
         /// If context has source method from call.
         /// </summary>
-        internal bool HasSource { get; private set; }
+        public bool HasSource { get; private set; }
 
         /// <summary>
         /// Method source from call

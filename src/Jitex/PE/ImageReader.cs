@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using dnlib.DotNet;
@@ -40,13 +41,20 @@ namespace Jitex.PE
             _moduleDef = ModuleDefMD.Load(_module, _moduleContext);
 
             IReadOnlyCollection<Module> modules = AppDomain.CurrentDomain.GetAssemblies().SelectMany(w => w.Modules).ToList();
+            IDictionary<string, Module> dicModules = new Dictionary<string, Module>();
 
+            foreach (Module module in modules)
+            {
+                if(!dicModules.ContainsKey(module.FullyQualifiedName))
+                    dicModules.Add(module.FullyQualifiedName,module);
+            }
 
-            LoadMemberRefs(modules);
-            LoadTypeRefs(modules);
+            LoadMemberRefs(dicModules);
+            LoadTypeRefs(dicModules);
+            LoadMethodSpecs(dicModules);
         }
 
-        private void LoadMemberRefs(IReadOnlyCollection<Module> modules)
+        private void LoadMemberRefs(IDictionary<string, Module> modules)
         {
             IList<MemberRef> memberRefs = _moduleDef!.GetMemberRefs().ToList();
             _image!.NumberOfMemberRefRows = memberRefs.Count;
@@ -55,18 +63,14 @@ namespace Jitex.PE
             {
                 if (!memberRef.IsMethodRef) continue;
 
-                MethodDef? methodDef = memberRef.ResolveMethod();
-
-                if (methodDef == null) continue;
-
-                Module? module = modules.FirstOrDefault(w => w.FullyQualifiedName == methodDef.Module.Location);
+                Module? module = GetModule(modules, memberRef.Module.Location, _module.Name);
 
                 if (module == null)
                     continue;
 
                 try
                 {
-                    MethodBase method = module.ResolveMethod((int) methodDef.MDToken.Raw);
+                    MethodBase method = module.ResolveMethod((int) memberRef.MDToken.Raw);
                     _image!.AddMemberRefFromImage(method, (int) memberRef.MDToken.Raw);
                 }
                 catch
@@ -76,25 +80,21 @@ namespace Jitex.PE
             }
         }
 
-        private void LoadTypeRefs(IReadOnlyCollection<Module> modules)
+        private void LoadTypeRefs(IDictionary<string, Module> modules)
         {
             IList<TypeRef> typeRefs = _moduleDef!.GetTypeRefs().ToList();
             _image!.NumberOfTypeRefRows = typeRefs.Count;
 
             foreach (TypeRef typeRef in typeRefs)
             {
-                TypeDef? typeDef = typeRef.Resolve();
-
-                if (typeDef == null) continue;
-
-                Module? module = modules.FirstOrDefault(w => w.FullyQualifiedName == typeDef.Module.Location);
+                Module? module = GetModule(modules, typeRef.Module.Location, typeRef.Module.Name);
 
                 if (module == null)
                     continue;
 
                 try
                 {
-                    Type type = module.ResolveType((int) typeDef.MDToken.Raw);
+                    Type type = module.ResolveType((int) typeRef.MDToken.Raw);
                     _image!.AddTypeRefFromImage(type, (int) typeRef.MDToken.Raw);
                 }
                 catch
@@ -102,6 +102,81 @@ namespace Jitex.PE
                     //Just ignore
                 }
             }
+        }
+
+        private void LoadMethodSpecs(IDictionary<string, Module> modules)
+        {
+            _image!.NumberOfMethodSpecRows = (int) _moduleDef!.TablesStream.MethodSpecTable.Rows;
+
+            for (int i = 0; i < _image!.NumberOfMethodSpecRows; i++)
+            {
+                MethodSpec methodSpec = _moduleDef.ResolveMethodSpec((uint) (i + 1));
+
+                Module? module = GetModule(modules, methodSpec.Module.Location, methodSpec.Module.Name);
+
+                if (module == null)
+                    continue;
+
+                Type declaringType = ResolveTypeGeneric(modules, methodSpec.DeclaringType);
+
+                Type[] genericArguments = new Type[methodSpec.GenericInstMethodSig.GenericArguments.Count];
+
+                for (int j = 0; j < genericArguments.Length; j++)
+                {
+                    ITypeDefOrRef genericArgument = methodSpec.GenericInstMethodSig.GenericArguments[j].ToTypeDefOrRef();
+                    genericArguments[j] = ResolveTypeGeneric(modules, genericArgument);
+                }
+
+                MethodInfo methodInfo = (MethodInfo) module.ResolveMethod((int) methodSpec.MDToken.Raw, declaringType.GetGenericArguments(), genericArguments);
+                _image.AddMethodSpecFromImage(methodInfo, (int) methodSpec.MDToken.Raw);
+            }
+        }
+
+        private Type ResolveTypeGeneric(IDictionary<string, Module> modules, ITypeDefOrRef typeDefOrRef)
+        {
+            if (typeDefOrRef.IsTypeRef)
+            {
+                Type? typeRef = _image!.GetTypeRef((int) typeDefOrRef.MDToken.Raw);
+
+                if (typeRef != null)
+                    return typeRef;
+
+                typeDefOrRef = typeDefOrRef.ResolveTypeDef();
+            }
+
+            Type[] genericArguments = new Type[typeDefOrRef.NumberOfGenericParameters];
+
+            if (genericArguments.Length > 0)
+            {
+                IList<TypeSig> sigs = typeDefOrRef.TryGetGenericInstSig().GenericArguments;
+                typeDefOrRef = typeDefOrRef.TryGetGenericInstSig().GenericType.ToTypeDefOrRef();
+                for (int i = 0; i < sigs.Count; i++)
+                {
+                    TypeSig genericArgument = sigs[i];
+                    ITypeDefOrRef? genericTypeDefOrRef = genericArgument.ToTypeDefOrRef();
+                    genericArguments[i] = ResolveTypeGeneric(modules, genericTypeDefOrRef);
+                }
+            }
+
+            Module? module = GetModule(modules, typeDefOrRef.Module.Location, typeDefOrRef.Module.Name);
+
+            if (module == null)
+                throw new Exception("Module not found!");
+
+            Type type = module.ResolveType((int) typeDefOrRef.MDToken.Raw);
+
+            if (genericArguments.Length > 0)
+                type = type.MakeGenericType(genericArguments);
+
+            return type;
+        }
+
+        private Module? GetModule(IDictionary<string, Module> modules, string location, string moduleName)
+        {
+            if (modules.TryGetValue(location, out Module module))
+                return module;
+
+            return moduleName == _module.Name ? _module : null;
         }
 
         public void Dispose()

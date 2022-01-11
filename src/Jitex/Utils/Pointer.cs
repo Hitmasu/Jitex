@@ -8,6 +8,8 @@ namespace Jitex.Utils
     public sealed unsafe class Pointer
     {
         private readonly void* _ptr;
+            
+        internal IntPtr Address => new IntPtr(_ptr);
 
         private Pointer(void* ptr)
         {
@@ -16,14 +18,7 @@ namespace Jitex.Utils
 
         public static object Box(void* ptr) => new Pointer(ptr);
 
-        public static ref T UnBox<T>(object ptr) => ref Unsafe.AsRef<T>(GetPointer(ptr));
-
-        public static void* GetPointer(object ptr)
-        {
-            if (ptr is not Pointer pointer)
-                throw new ArgumentException($"Parameter {ptr.GetType()} is not a Pointer.");
-
-            return pointer._ptr;
-        }
+        internal object Unbox(Type type) => MarshalHelper.GetObjectFromAddress(Address, type);
+        internal ref T Unbox<T>() => ref Unsafe.AsRef<T>(_ptr);
     }
 }

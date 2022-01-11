@@ -10,7 +10,7 @@ namespace Jitex.Utils
     /// 
     /// </summary>
     //That class should be public, because is used by InterceptBuilder to get parameters references.
-    public static class MarshalHelper
+    internal static class MarshalHelper
     {
         private static readonly IntPtr ObjectTypeHandle;
 
@@ -45,9 +45,7 @@ namespace Jitex.Utils
         internal static object GetObjectFromAddress(IntPtr address, Type type)
         {
             if (type.IsStruct())
-            {
                 return GetStructFromAddress(address, type);
-            }
 
             return GetObjectFromReference(address);
         }

@@ -162,7 +162,7 @@ namespace Jitex.Builder.IL
                 _genericTypeArguments = genericTypeArguments;
                 _genericMethodArguments = genericMethodArguments;
 
-                _isGeneric = _genericMethodArguments is { Length: > 0 } || _genericTypeArguments is { Length: > 0 };
+                _isGeneric = _genericMethodArguments is {Length: > 0} || _genericTypeArguments is {Length: > 0};
             }
 
             public void Dispose()
@@ -188,7 +188,7 @@ namespace Jitex.Builder.IL
                 short instruction = _il[_position++];
 
                 if (instruction == 0xFE)
-                    instruction = BitConverter.ToInt16(new[] { _il[_position++], (byte)instruction }, 0);
+                    instruction = BitConverter.ToInt16(new[] {_il[_position++], (byte) instruction}, 0);
 
                 OpCode opCode = Instruction.Translate(instruction);
 
@@ -252,7 +252,7 @@ namespace Jitex.Builder.IL
                     case OperandType.ShortInlineBrTarget: //Repeat jump from original IL.
                     case OperandType.ShortInlineI:
                         if (opCode == OpCodes.Ldc_I4_S)
-                            operation = new Instruction(opCode, (sbyte)ReadByte());
+                            operation = new Instruction(opCode, (sbyte) ReadByte());
                         else
                             operation = new Instruction(opCode, ReadByte());
                         break;
@@ -284,9 +284,6 @@ namespace Jitex.Builder.IL
 
                 //Current position in array byte
                 operation.Offset = ilIndex;
-
-                //Size bytes of operation
-                operation.Size = _position - ilIndex;
                 return operation;
             }
 

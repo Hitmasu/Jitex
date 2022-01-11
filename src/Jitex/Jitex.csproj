@@ -12,7 +12,6 @@
 		<RepositoryUrl>https://github.com/Hitmasu/Jitex</RepositoryUrl>
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 		<PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
-		<PackageLicenseFile></PackageLicenseFile>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<PackageTags>JIT</PackageTags>
 		<LangVersion>9</LangVersion>

@@ -223,6 +223,12 @@ namespace Jitex.JIT.Context
             _resolvedToken.Token = memberInfo.MetadataToken;
         }
 
+        public void ResolverMember(Module module, int md)
+        {
+            _resolvedToken!.Module = module;
+            _resolvedToken.Token = md;
+        }
+
         /// <summary>
         /// Resolve token by method.
         /// </summary>

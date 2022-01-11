@@ -1,27 +1,50 @@
 ﻿using System;
+using System.Drawing;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-
+using Jitex.Utils;
 using Pointer = Jitex.Utils.Pointer;
 
 namespace Jitex.Intercept
 {
     public class CallContext
     {
+        private object? _returnValue;
+        private readonly Parameter[] _parameters;
         private AutoResetEvent? _autoResetEvent;
         private SemaphoreSlim? _semaphoreSlim;
-
         public MethodBase Method { get; }
-        public object[] Parameters { get; set; }
-        public object? Result { get; set; }
+
+
+        public object? ReturnValue
+        {
+            get => _returnValue;
+            set
+            {
+                _returnValue = value;
+                ProceedCall = false;
+            }
+        }
+
+        public object Instance { get; }
+        public bool ProceedCall { get; set; } = true;
         internal bool IsWaitingForEnd { get; private set; }
 
-        public CallContext(params object[] parameters)
+        public CallContext(long methodHandle, object instance, params object[] parameters)
         {
-            Parameters = parameters;
-            Method = null;
+            _parameters = new Parameter[parameters.Length];
+            Instance = instance;
+
+            //TODO: Move to out from constructor
+            Method = MethodHelper.GetMethodFromHandle(new IntPtr(methodHandle))!;
+
+            Type[] types = Method.GetParameters().Select(w => w.ParameterType).ToArray();
+
+            for (int i = 0; i < parameters.Length; i++)
+                _parameters[i] = new Parameter(parameters[i], types[i]);
         }
 
         public Task ContinueAsync()
@@ -37,49 +60,62 @@ namespace Jitex.Intercept
         {
             await ContinueAsync();
 
-            if (Result == null)
+            if (ReturnValue == null)
                 return default;
 
-            return (T)Result;
+            return (T) ReturnValue;
         }
 
-        public object? GetParameter(int index)
+        public object? GetParameterValue(int index)
         {
-            if (index >= Parameters.Length || index < 0)
-                throw new ArgumentOutOfRangeException(nameof(index));
+            ValidateParameterIndex(index);
 
-            return Parameters[index];
+            Parameter parameter = _parameters[index];
+            return parameter.GetValue();
         }
 
-        public T? GetParameter<T>(int index)
+        public ref T? GetParameterValue<T>(int index)
         {
-            object? parameterValue = GetParameter(index);
+            ValidateParameterIndex(index);
 
-            if (parameterValue == null)
+            Parameter parameter = _parameters[index];
+            return ref parameter.GetValueRef<T>();
+        }
+
+        public IntPtr? GetParameterAddress(int index)
+        {
+            ValidateParameterIndex(index);
+
+            Parameter parameter = _parameters[index];
+            return parameter.GetAddress();
+        }
+
+        public void SetParameterValue<T>(int index, ref T value)
+        {
+            ref T parameterValue = ref GetParameterValue<T>(index)!;
+            parameterValue = value;
+        }
+
+        public void SetParameterValue<T>(int index, T value)
+        {
+            ref T parameterValue = ref GetParameterValue<T>(index)!;
+            parameterValue = value;
+        }
+
+        public T GetReturnValue<T>()
+        {
+            if (ReturnValue == null)
                 return default;
 
-            return (T)Parameters[index];
+            return (T) ReturnValue;
         }
 
-        public ref T? GetParameterAsRef<T>(int index)
+        public void SetReturnValue<T>(T value)
         {
-            object? parameterValue = GetParameter(index);
-
-            if (parameterValue == null)
-                return ref Unsafe.NullRef<T?>();
-
-            return ref Pointer.UnBox<T>(parameterValue)!;
+            ReturnValue = value;
         }
 
-        public unsafe void* GetParameterAsPointer(int index)
-        {
-            object? parameterValue = GetParameter(index);
-
-            if (parameterValue == null)
-                return default;
-
-            return Pointer.GetPointer(parameterValue);
-        }
+        public T GetInstance<T>() => (T) Instance;
 
         internal void WaitToContinue()
         {
@@ -103,6 +139,20 @@ namespace Jitex.Intercept
                 throw new InvalidOperationException("Interceptor is not waiting.");
 
             _semaphoreSlim.Release();
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void ValidateParameterIndex(int index)
+        {
+            if (index > _parameters.Length - 1 || index < 0)
+                throw new ArgumentOutOfRangeException(nameof(index), "Index was out of range. Must be non-negative and less than the size of the collection.");
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void ValidateInstance()
+        {
+            if (Method.IsStatic)
+                throw new InvalidOperationException("Method static don't have instance.");
         }
     }
 }

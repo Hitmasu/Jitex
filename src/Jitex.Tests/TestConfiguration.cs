@@ -31,7 +31,7 @@ namespace Jitex.Tests
             JitexManager.AddInterceptor(InterceptorCall);
         }
 
-        private async ValueTask InterceptorCall(CallContext context)
+        private async Task InterceptorCall(CallContext context)
         {
             // //When return of method is a ValueTask, DisposeTestClass will raise an exception "Internal CLR Error"
             // //I dont know why that happen in xunit, but preventing him to be called, resolve this problem.
