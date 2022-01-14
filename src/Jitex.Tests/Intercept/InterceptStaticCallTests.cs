@@ -569,7 +569,7 @@ namespace Jitex.Tests.Intercept
 
             if (testSource.Name == nameof(ModifyPrimitiveReturnTest))
             {
-                context.ReturnValue = 11;
+                context.SetReturnValue(11);
             }
             else if (testSource.Name == nameof(ModifyPrimitiveParametersTest))
             {
@@ -603,7 +603,8 @@ namespace Jitex.Tests.Intercept
                 string newName = ReverseText(person.Name);
                 int newAge = person.Age * person.Age;
 
-                context.ReturnValue = new InterceptPerson(newName, newAge);
+                InterceptPerson returnValue = new(newName, newAge);
+                context.SetReturnValue(returnValue);
             }
             else if (testSource.Name == nameof(ModifyRefPrimitiveParametersTest) && context.Method.Name == nameof(SimpleSumRef))
             {
@@ -614,8 +615,11 @@ namespace Jitex.Tests.Intercept
                     ref int n1 = ref context.GetParameterValue<int>(0);
                     ref int n2 = ref context.GetParameterValue<int>(1);
 
-                    n1 *= n2;
-                    n2 += n1;
+                    int newN1 = n1 * n2;
+                    int newN2 = n2 + n1;
+
+                    n1 = newN1;
+                    n2 = newN2;
                 }
             }
             else if (testSource.Name == nameof(ModifyOutParametersTest) && context.Method.Name == nameof(SimpleSumOut))
@@ -628,12 +632,12 @@ namespace Jitex.Tests.Intercept
                     ref int n2 = ref context.GetParameterValue<int>(1);
                     ref int result = ref context.GetParameterValue<int>(2);
 
-                    n1 *= n2;
-                    n2 += n1;
-                    result = n1 + n2;
-                }
+                    int newN1 = n1 * n2;
+                    int newN2 = n1 + n2;
+                    result = newN1 + newN2;
 
-                context.ProceedCall = false;
+                    context.ProceedCall = false;
+                }
             }
             else if (testSource.Name == nameof(ModifyRefValueTypeReturn) && context.Method.Name == nameof(ModifyReturnStructRef))
             {
@@ -641,7 +645,7 @@ namespace Jitex.Tests.Intercept
                 int y = context.GetParameterValue<int>(1);
 
                 Point point = new(x + y, x - y);
-                context.ReturnValue = point;
+                context.SetReturnValue(point);
             }
             else if (testSource.Name == nameof(ModifyRefClassReturn) && context.Method.Name == nameof(ModifyReturnObjectRef))
             {
@@ -649,7 +653,7 @@ namespace Jitex.Tests.Intercept
                 int age = context.GetParameterValue<int>(1);
 
                 InterceptPerson person = new(name + " " + name, age + age);
-                context.ReturnValue = person;
+                context.SetReturnValue(person);
             }
         }
 

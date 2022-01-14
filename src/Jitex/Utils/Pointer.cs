@@ -1,24 +1,20 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Runtime.CompilerServices;
-using System.Text;
+using System.Runtime.InteropServices;
 
 namespace Jitex.Utils
 {
     public sealed unsafe class Pointer
     {
-        private readonly void* _ptr;
-            
-        internal IntPtr Address => new IntPtr(_ptr);
+        internal void* Ptr;
 
-        private Pointer(void* ptr)
+        internal IntPtr Address => new(Ptr);
+
+        internal Pointer(void* ptr)
         {
-            _ptr = ptr;
+            Ptr = ptr;
         }
 
-        public static object Box(void* ptr) => new Pointer(ptr);
-
-        internal object Unbox(Type type) => MarshalHelper.GetObjectFromAddress(Address, type);
-        internal ref T Unbox<T>() => ref Unsafe.AsRef<T>(_ptr);
+        public static Pointer Box(void* ptr) => new(ptr);
     }
 }

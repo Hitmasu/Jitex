@@ -45,7 +45,7 @@ namespace Jitex.Utils
             generator.Emit(OpCodes.Sizeof, type);
             generator.Emit(OpCodes.Ret);
 
-            return (Func<int>)dm.CreateDelegate(typeof(Func<int>));
+            return (Func<int>) dm.CreateDelegate(typeof(Func<int>));
         }
 
         internal static bool HasCanon(Type? type, bool ignoreCanonType = false)
@@ -76,11 +76,11 @@ namespace Jitex.Utils
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsGeneric(Type? type) => type is { IsGenericType: true };
+        public static bool IsGeneric(Type? type) => type is {IsGenericType: true};
 
         public static Type GetTypeFromHandle(IntPtr handle)
         {
-            return (Type)GetTypeFromHandleUnsafe.Invoke(null, new object[] { handle });
+            return (Type) GetTypeFromHandleUnsafe.Invoke(null, new object[] {handle});
         }
 
         public static Type GetBaseTypeGeneric(Type type)

@@ -92,7 +92,7 @@ namespace Jitex.Utils
             return GetBaseMethodGeneric(method);
         }
 
-        internal static bool IsGenericInitialized(MethodBase method)
+        private static bool IsGenericInitialized(MethodBase method)
         {
             if (method.DeclaringType is {IsGenericType: true})
             {
@@ -309,7 +309,7 @@ namespace Jitex.Utils
             return SetMethodPreCode(method);
         }
 
-        internal static bool SetMethodPreCode(MethodBase method)
+        private static bool SetMethodPreCode(MethodBase method)
         {
             IntPtr methodHandle = GetDirectMethodHandle(method);
             IntPtr functionPointer = GetFunctionPointer(methodHandle);

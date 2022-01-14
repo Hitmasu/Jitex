@@ -537,7 +537,7 @@ namespace Jitex.Tests.Intercept
 
             if (testSource.Name == nameof(ModifyPrimitiveReturnTest))
             {
-                context.ReturnValue = 11;
+                context.SetReturnValue(11);
             }
             else if (testSource.Name == nameof(ModifyPrimitiveParametersTest))
             {
@@ -571,7 +571,8 @@ namespace Jitex.Tests.Intercept
                 string newName = ReverseText(person.Name);
                 int newAge = person.Age * person.Age;
 
-                context.ReturnValue = new InterceptPerson(newName, newAge);
+                InterceptPerson returnValue = new InterceptPerson(newName, newAge);
+                context.SetReturnValue(returnValue);
             }
             else if (testSource.Name == nameof(ModifyRefPrimitiveParametersTest) && context.Method.Name == nameof(SimpleSumRef))
             {
@@ -612,7 +613,7 @@ namespace Jitex.Tests.Intercept
                 int y = context.GetParameterValue<int>(1);
 
                 Point point = new(x + y, x - y);
-                context.ReturnValue = point;
+                context.SetReturnValue(point);
             }
             else if (testSource.Name == nameof(ModifyRefClassReturn) && context.Method.Name == nameof(CreatePerson))
             {
@@ -620,7 +621,7 @@ namespace Jitex.Tests.Intercept
                 int age = context.GetParameterValue<int>(1);
 
                 InterceptPerson person = new(name + " " + name, age + age);
-                context.ReturnValue = person;
+                context.SetReturnValue(person);
             }
         }
 
