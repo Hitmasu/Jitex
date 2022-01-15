@@ -44,8 +44,8 @@ namespace Jitex.PE
 
             foreach (Module module in modules)
             {
-                if(!dicModules.ContainsKey(module.FullyQualifiedName))
-                    dicModules.Add(module.FullyQualifiedName,module);
+                if (!dicModules.ContainsKey(module.FullyQualifiedName))
+                    dicModules.Add(module.FullyQualifiedName, module);
             }
 
             LoadMemberRefs(dicModules);
@@ -120,19 +120,35 @@ namespace Jitex.PE
 
                 Type[] genericArguments = new Type[methodSpec.GenericInstMethodSig.GenericArguments.Count];
 
+                bool failedResolve = false;
+
                 for (int j = 0; j < genericArguments.Length; j++)
                 {
                     ITypeDefOrRef genericArgument = methodSpec.GenericInstMethodSig.GenericArguments[j].ToTypeDefOrRef();
-                    genericArguments[j] = ResolveTypeGeneric(modules, genericArgument);
+                    Type? typeResolved = ResolveTypeGeneric(modules, genericArgument);
+
+                    if (typeResolved == null)
+                    {
+                        failedResolve = true;
+                        break;
+                    }
+
+                    genericArguments[j] = typeResolved;
                 }
 
+                if (failedResolve)
+                    continue;
+                
                 MethodInfo methodInfo = (MethodInfo) module.ResolveMethod((int) methodSpec.MDToken.Raw, declaringType.GetGenericArguments(), genericArguments);
                 _image.AddMethodSpecFromImage(methodInfo, (int) methodSpec.MDToken.Raw);
             }
         }
 
-        private Type ResolveTypeGeneric(IDictionary<string, Module> modules, ITypeDefOrRef typeDefOrRef)
+        private Type? ResolveTypeGeneric(IDictionary<string, Module> modules, ITypeDefOrRef typeDefOrRef)
         {
+            if (typeDefOrRef.Module == null)
+                return null;
+            
             if (typeDefOrRef.IsTypeRef)
             {
                 Type? typeRef = _image!.GetTypeRef((int) typeDefOrRef.MDToken.Raw);
@@ -160,7 +176,7 @@ namespace Jitex.PE
             Module? module = GetModule(modules, typeDefOrRef.Module.Location, typeDefOrRef.Module.Name);
 
             if (module == null)
-                throw new Exception("Module not found!");
+                return null;
 
             Type type = module.ResolveType((int) typeDefOrRef.MDToken.Raw);
 

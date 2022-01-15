@@ -40,12 +40,6 @@ namespace Jitex.PE
 
         public void AddMemberRef(MethodBase method, out int token)
         {
-            //if (method is MethodInfo {IsGenericMethod: true} methodInfo)
-            //{
-            //    AddMethodSpec(methodInfo, out token);
-            //    return;
-            //}
-
             if (_memberRefs.TryGetValue(method, out token))
                 return;
 
@@ -68,19 +62,6 @@ namespace Jitex.PE
 
             _typeRefs.Add(type, token);
             AddMemberToResolution(type, token);
-        }
-
-        public void AddMethodSpec(MethodInfo method, out int token)
-        {
-            if (_methodsSpecs.TryGetValue(method, out token))
-                return;
-
-            const int specRefBase = 0x2B000000;
-            token = specRefBase + NumberOfMethodSpecRows + 1;
-            NumberOfMethodSpecRows++;
-
-            _methodsSpecs.Add(method, token);
-            AddMemberToResolution(method, token);
         }
 
         /// <summary>

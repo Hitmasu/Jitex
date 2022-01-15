@@ -21,7 +21,7 @@ namespace Jitex.Intercept
             return null;
         }
 
-        public FieldInfo? ResolveField(int token, Type[] genericTypeArguments, Type[] genericMethodArguments, out bool isResolved)
+        public FieldInfo? ResolveField(int token, Type[]? genericTypeArguments, Type[]? genericMethodArguments, out bool isResolved)
         {
             isResolved = false;
             return null;
@@ -33,7 +33,7 @@ namespace Jitex.Intercept
             return null;
         }
 
-        public MemberInfo? ResolveMember(int token, Type[] genericTypeArguments, Type[] genericMethodArguments, out bool isResolved)
+        public MemberInfo? ResolveMember(int token, Type[]? genericTypeArguments, Type[]? genericMethodArguments, out bool isResolved)
         {
             isResolved = false;
             return null;
@@ -45,7 +45,7 @@ namespace Jitex.Intercept
             return member as MethodBase;
         }
 
-        public MethodBase? ResolveMethod(int token, Type[] genericTypeArguments, Type[] genericMethodArguments, out bool isResolved)
+        public MethodBase? ResolveMethod(int token, Type[]? genericTypeArguments, Type[]? genericMethodArguments, out bool isResolved)
         {
             isResolved = false;
             return null;
@@ -57,7 +57,7 @@ namespace Jitex.Intercept
             return member as Type;
         }
 
-        public Type? ResolveType(int token, Type[] genericTypeArguments, Type[] genericMethodArguments, out bool isResolved)
+        public Type? ResolveType(int token, Type[]? genericTypeArguments, Type[]? genericMethodArguments, out bool isResolved)
         {
             isResolved = false;
             return null;

@@ -8,7 +8,7 @@ namespace Jitex.Intercept
     {
         public Type Type { get; }
         private readonly Pointer _pointer;
-        private object _value;
+        private object? _value;
 
         public VariableInfo(Pointer pointer, Type type)
         {
@@ -24,7 +24,7 @@ namespace Jitex.Intercept
         {
             if (Type.IsByRef)
             {
-                void** refPtr = (void**)_pointer.Ptr;
+                void** refPtr = (void**) _pointer.Ptr;
 
                 return ref Unsafe.AsRef<T>(*refPtr)!;
             }
@@ -38,7 +38,7 @@ namespace Jitex.Intercept
             {
                 unsafe
                 {
-                    void** refPtr = (void**)_pointer.Ptr;
+                    void** refPtr = (void**) _pointer.Ptr;
                     *refPtr = Unsafe.AsPointer(ref value);
                 }
             }
@@ -57,8 +57,8 @@ namespace Jitex.Intercept
                 unsafe
                 {
                     _value = value!; //To prevent GC collect passed value
-                    void*** refPtr = (void***)_pointer.Ptr;
-                    *refPtr = (void**)Unsafe.AsPointer(ref _value);
+                    void*** refPtr = (void***) _pointer.Ptr;
+                    *refPtr = (void**) Unsafe.AsPointer(ref _value);
                     refValue = ref GetValueRef<T>();
                 }
             }

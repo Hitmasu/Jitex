@@ -18,7 +18,6 @@ namespace Jitex.Intercept
         private static readonly ConstructorInfo CallManagerCtor;
 
         private static readonly MethodInfo CallInterceptors;
-        private static readonly MethodInfo SetReturnValue;
         private static readonly MethodInfo ReleaseTask;
         private static readonly MethodInfo PointerBox;
         private static readonly MethodInfo GetProceedCall;
@@ -41,9 +40,8 @@ namespace Jitex.Intercept
             PointerBox = typeof(Pointer).GetMethod(nameof(Pointer.Box))!;
             GetReturnValue = typeof(CallContext).GetMethods(BindingFlags.Public | BindingFlags.Instance)
                 .First(w => w.Name == nameof(CallContext.GetReturnValue) && w.IsGenericMethod);
-            GetReturnValuePointer = typeof(CallContext).GetMethod(nameof(CallContext.GetReturnValuePointer), BindingFlags.Public | BindingFlags.Instance)!;
+            GetReturnValuePointer = typeof(CallManager).GetMethod(nameof(CallManager.GetReturnValuePointer), BindingFlags.Public | BindingFlags.Instance)!;
             GetReturnValueNoRef = typeof(CallManager).GetMethod(nameof(CallManager.GetReturnValueNoRef), BindingFlags.Public | BindingFlags.Instance)!;
-            SetReturnValue = typeof(CallManager).GetMethod(nameof(CallManager.SetReturnValue), BindingFlags.Public | BindingFlags.Instance)!;
 
             PropertyInfo proceedCall = typeof(CallContext).GetProperty(nameof(CallContext.ProceedCall))!;
             GetProceedCall = proceedCall.GetGetMethod();

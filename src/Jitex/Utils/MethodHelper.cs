@@ -56,7 +56,7 @@ namespace Jitex.Utils
             return functionPointer + jmpSize + 5;
         }
 
-        private static object? GetRuntimeMethodHandleInternal(IntPtr methodHandle)
+        private static object GetRuntimeMethodHandleInternal(IntPtr methodHandle)
         {
             return CtorRuntimeMethodHandeInternal!.Invoke(new object?[] {methodHandle});
         }

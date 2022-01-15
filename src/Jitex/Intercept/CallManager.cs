@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Jitex.Utils;
@@ -34,13 +35,6 @@ namespace Jitex.Intercept
             _context.ContinueWithCode();
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void SetReturnValue(Pointer pointer)
-        {
-            _context.SetReturnValue(pointer);
-        }
-
-
         /// <summary>
         /// Get return value from context ignoring ref.
         /// </summary>
@@ -53,6 +47,13 @@ namespace Jitex.Intercept
         {
             ref T? value = ref _context.GetReturnValue<T>();
             return Unsafe.IsNullRef(ref value) ? default : value;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe void* GetReturnValuePointer()
+        {
+            IntPtr address = _context.GetReturnValueAddress();
+            return address.ToPointer();
         }
 
         public void ReleaseTask()
