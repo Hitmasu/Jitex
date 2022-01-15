@@ -14,6 +14,7 @@ using static Jitex.Tests.LogOutput;
 
 namespace Jitex.Tests.Helpers
 {
+    [Collection("Manager")]
     public class RecompileTests
     {
         private static IList<MethodBase> MethodsCompiled { get; } = new List<MethodBase>();

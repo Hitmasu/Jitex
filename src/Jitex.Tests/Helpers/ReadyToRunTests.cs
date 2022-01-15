@@ -9,10 +9,11 @@ using Xunit;
 
 namespace Jitex.Tests.Helpers
 {
+    [Collection("Manager")]
     public class ReadyToRunTests
     {
         [Fact]
-        public void DetectMethodIsReadyToRunTest()
+        public void De3tectMethodIsReadyToRunTest()
         {
 #if NETCOREAPP2
             return;
