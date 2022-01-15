@@ -7,7 +7,7 @@ A library to modify MSIL/Native code at runtime.
 It's a library built in .NET Standard 2.0, works on all version >=.NET Core 2.0.
 
 
-|             | .NET Core (2.0 ~ 3.1) | .NET 5             | .NET Framework (4.6.1 ~ 4.8)           | Mono              |
+|             | .NET Core (2.1 ~ 3.1) | .NET 5~6           | .NET Framework (4.6.1 ~ 4.8)           | Mono              |
 | ----------- | --------------------- | ------------------ | -------------------------------------- | ----------------- |
 | **Windows** | :heavy_check_mark:    | :heavy_check_mark: | :building_construction: In development | :x: Not supported |
 | **Linux**   | :heavy_check_mark:    | :heavy_check_mark: | :x: Not supported                      | :x: Not supported |
@@ -51,6 +51,8 @@ static int Mul(int n1, int n2) => n1 * n2;
 
 
 ## Intercept call
+
+> ⚠️ - Disabled on .NET 6 to fix some bugs (I'm working on that). Works normally on .NET 5 or below...
 
 ```c#
 using System;
