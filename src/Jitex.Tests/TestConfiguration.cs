@@ -1,12 +1,9 @@
-﻿using System;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using Jitex.Intercept;
 using Jitex.JIT.Context;
 using Jitex.Utils;
 using Microsoft.Extensions.Logging;
 using Serilog;
-using Serilog.Core;
-using Serilog.Events;
 using Xunit.Abstractions;
 using Xunit.Sdk;
 using ILogger = Serilog.ILogger;

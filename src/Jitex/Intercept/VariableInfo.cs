@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
 using Jitex.Utils;
-using Jitex.Utils.Extension;
 
 namespace Jitex.Intercept
 {

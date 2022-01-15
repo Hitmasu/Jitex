@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
-using RuntimeTypeHandle = System.RuntimeTypeHandle;
 
 namespace Jitex.Utils
 {

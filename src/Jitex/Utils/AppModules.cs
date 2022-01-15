@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using Jitex.Utils.Comparer;
 
 namespace Jitex.Utils
 {

@@ -2,9 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using Jitex.Intercept;
 using Jitex.Internal;
-using Jitex.Utils;
 
 namespace Jitex.PE
 {
