@@ -46,7 +46,7 @@ namespace Jitex.Builder.Method
         /// <summary>
         ///     Local variables from method.
         /// </summary>
-        public IList<LocalVariableInfo>? LocalVariables { get; set; }
+        public IList<LocalVariableInfo> LocalVariables { get; set; }
 
         /// <summary>
         /// If body contains some local variable.
@@ -78,7 +78,6 @@ namespace Jitex.Builder.Method
         /// Create a body from method.
         /// </summary>
         /// <param name="methodBase">Method to read.</param>
-        /// <param name="readIl">Read il on constructor.</param>
         public MethodBody(MethodBase methodBase)
         {
             Method = methodBase;
@@ -86,15 +85,14 @@ namespace Jitex.Builder.Method
 
             if (methodBase is not DynamicMethod)
             {
-                LocalVariables = methodBase.GetMethodBody().LocalVariables.Select(s => new LocalVariableInfo(s.LocalType, s.IsPinned)).ToList();
-
                 if (methodBase.IsGenericMethod)
                     GenericMethodArguments = methodBase.GetGenericArguments();
 
-                if (methodBase.DeclaringType.IsGenericType)
+                if (methodBase.DeclaringType!.IsGenericType)
                     GenericTypeArguments = methodBase.DeclaringType.GetGenericArguments();
             }
 
+            LocalVariables = methodBase.GetMethodBody().LocalVariables.Select(s => new LocalVariableInfo(s.LocalType!, s.IsPinned)).ToList();
             IL = methodBase.GetILBytes();
         }
 
@@ -156,6 +154,7 @@ namespace Jitex.Builder.Method
         {
             IL = il.ToArray();
             MaxStackSize = maxStack;
+            LocalVariables = Array.Empty<LocalVariableInfo>();
         }
 
         /// <summary>
@@ -189,7 +188,7 @@ namespace Jitex.Builder.Method
                 maxStackSize += CalculateMaxStack(operation.OpCode);
 
                 if (maxStackSize > highMaxStack)
-                    highMaxStack = (uint)maxStackSize;
+                    highMaxStack = (uint) maxStackSize;
 
                 if (operation.OpCode == OpCodes.Leave || operation.OpCode == OpCodes.Leave_S)
                     EHCount++;
@@ -272,15 +271,14 @@ namespace Jitex.Builder.Method
         {
             SignatureHelper signatureHelper = SignatureHelper.GetLocalVarSigHelper();
 
-            if (LocalVariables != null)
-                foreach (LocalVariableInfo variable in LocalVariables)
-                    signatureHelper.AddArgument(variable.Type, variable.IsPinned);
+            foreach (LocalVariableInfo variable in LocalVariables)
+                signatureHelper.AddArgument(variable.Type, variable.IsPinned);
 
             byte[] blobSignature = signatureHelper.GetSignature();
             byte[] signature = new byte[blobSignature.Length + 1];
 
             Array.Copy(blobSignature, 0, signature, 1, blobSignature.Length);
-            signature[0] = (byte)blobSignature.Length;
+            signature[0] = (byte) blobSignature.Length;
 
             return signature;
         }

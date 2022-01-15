@@ -19,6 +19,7 @@ using MethodInfo = Jitex.JIT.CorInfo.MethodInfo;
 using static Jitex.JIT.JitexHandler;
 using static Jitex.Utils.JitexLogger;
 using Jitex.JIT.Handlers;
+
 namespace Jitex.JIT
 {
     /// <summary>
@@ -41,7 +42,7 @@ namespace Jitex.JIT
         /// <summary>
         /// Handler to event after compiled method.
         /// </summary>
-        /// <param name="code"></param>
+        /// <param name="methodCompiled">Method compiled.</param>
         public delegate void MethodCompiledHandler(MethodCompiled methodCompiled);
     }
 
@@ -81,21 +82,21 @@ namespace Jitex.JIT
         /// <summary>
         /// Custom compíle method.
         /// </summary>
-        private RuntimeFramework.CompileMethodDelegate? _compileMethod;
+        private RuntimeFramework.CompileMethodDelegate _compileMethod;
 
         /// <summary>
         /// Custom resolve token.
         /// </summary>
-        private CEEInfo.ResolveTokenDelegate? _resolveToken;
+        private CEEInfo.ResolveTokenDelegate _resolveToken;
 
         /// <summary>
         /// Custom construct string literal.
         /// </summary>
-        private CEEInfo.ConstructStringLiteralDelegate? _constructStringLiteral;
+        private CEEInfo.ConstructStringLiteralDelegate _constructStringLiteral;
 
         private bool _isDisposed;
 
-        private event MethodCompiledHandler? _onMethodCompiled;
+        private event MethodCompiledHandler? OnMethodCompiled;
 
         private MethodResolverHandler? _methodResolvers;
 
@@ -152,8 +153,8 @@ namespace Jitex.JIT
 
         internal void RemoveTokenResolver(TokenResolverHandler tokenResolver) => _tokenResolvers -= tokenResolver;
 
-        internal void AddOnMethodCompiledEvent(MethodCompiledHandler handler) => _onMethodCompiled += handler;
-        internal void RemoveOnMethodCompiledEvent(MethodCompiledHandler handler) => _onMethodCompiled -= handler;
+        internal void AddOnMethodCompiledEvent(MethodCompiledHandler handler) => OnMethodCompiled += handler;
+        internal void RemoveOnMethodCompiledEvent(MethodCompiledHandler handler) => OnMethodCompiled -= handler;
 
         internal bool HasMethodResolver(MethodResolverHandler methodResolver) => _methodResolvers != null && _methodResolvers.GetInvocationList().Any(del => del.Method == methodResolver.Method);
 
@@ -171,12 +172,12 @@ namespace Jitex.JIT
                 if (IsEnabled)
                     return;
 
-                _hookManager.InjectHook(_framework.ICorJitCompileVTable, _compileMethod!);
+                _hookManager.InjectHook(_framework.ICorJitCompileVTable, _compileMethod);
 
                 if (_framework.CEEInfoVTable != IntPtr.Zero)
                 {
-                    _hookManager.InjectHook(CEEInfo.ResolveTokenIndex, _resolveToken!);
-                    _hookManager.InjectHook(CEEInfo.ConstructStringLiteralIndex, _constructStringLiteral!);
+                    _hookManager.InjectHook(CEEInfo.ResolveTokenIndex, _resolveToken);
+                    _hookManager.InjectHook(CEEInfo.ConstructStringLiteralIndex, _constructStringLiteral);
                 }
             }
 
@@ -193,12 +194,12 @@ namespace Jitex.JIT
                 if (!IsEnabled)
                     return;
 
-                _hookManager.RemoveHook(_compileMethod!);
+                _hookManager.RemoveHook(_compileMethod);
 
                 if (_framework.CEEInfoVTable != IntPtr.Zero)
                 {
-                    _hookManager.RemoveHook(_resolveToken!);
-                    _hookManager.RemoveHook(_constructStringLiteral!);
+                    _hookManager.RemoveHook(_resolveToken);
+                    _hookManager.RemoveHook(_constructStringLiteral);
                 }
             }
 
@@ -218,7 +219,7 @@ namespace Jitex.JIT
         /// <param name="nativeSizeOfCode">(OUT) - Size of NativeEntry.</param>
         private CorJitResult CompileMethod(IntPtr thisPtr, IntPtr comp, IntPtr info, uint flags, out IntPtr nativeEntry, out int nativeSizeOfCode)
         {
-            using var compileMethodScope = Log?.BeginScope("CompileMethod");
+            using IDisposable compileMethodScope = Log?.BeginScope("CompileMethod")!;
 
             _compileTls ??= new CompileTls();
 
@@ -256,15 +257,10 @@ namespace Jitex.JIT
                     methodFound = DynamicHelpers.GetOwner(methodFound);
                 }
 
-                using var methodScope = Log?.BeginScope(methodFound.ToString());
+                using IDisposable methodScope = Log?.BeginScope(methodFound.ToString())!;
                 Log?.LogInformation($"Method to be compiled: {methodFound}");
 
-                Delegate[] resolvers = null!;
-
-                if (_methodResolvers == null)
-                    resolvers = new Delegate[0];
-                else
-                    resolvers = _methodResolvers.GetInvocationList();
+                Delegate[] resolvers = _methodResolvers == null ? Array.Empty<Delegate>() : _methodResolvers.GetInvocationList();
 
                 if (resolvers.Any())
                 {
@@ -276,9 +272,9 @@ namespace Jitex.JIT
                             _framework.ReadICorJitInfoVTable(comp);
 
                             Log?.LogTrace("Injecting hook for ResolveToken");
-                            _hookManager.InjectHook(CEEInfo.ResolveTokenIndex, _resolveToken!);
+                            _hookManager.InjectHook(CEEInfo.ResolveTokenIndex, _resolveToken);
                             Log?.LogTrace("Injecting hook for ConstructStringLiteralIndex");
-                            _hookManager.InjectHook(CEEInfo.ConstructStringLiteralIndex, _constructStringLiteral!);
+                            _hookManager.InjectHook(CEEInfo.ConstructStringLiteralIndex, _constructStringLiteral);
                         }
                     }
 
@@ -296,17 +292,17 @@ namespace Jitex.JIT
                     {
                         try
                         {
-                            Log?.LogInformation($"Calling resolver [{resolver.Method.DeclaringType.FullName}.{resolver.Method.Name}]");
+                            Log?.LogInformation($"Calling resolver [{resolver.Method.DeclaringType?.FullName}.{resolver.Method.Name}]");
                             resolver(methodContext);
                         }
                         catch (Exception ex)
                         {
-                            Log?.LogError(ex, $"Failed to execute resolver [{resolver.Method.DeclaringType.FullName}.{resolver.Method.Name}].");
+                            Log?.LogError(ex, $"Failed to execute resolver [{resolver.Method.DeclaringType?.FullName}.{resolver.Method.Name}].");
                         }
 
                         if (methodContext.IsResolved)
                         {
-                            Log?.LogInformation($"Method resolved by [{resolver.Method.DeclaringType.FullName}.{resolver.Method.Name}]");
+                            Log?.LogInformation($"Method resolved by [{resolver.Method.DeclaringType?.FullName}.{resolver.Method.Name}]");
                             break;
                         }
                     }
@@ -360,7 +356,7 @@ namespace Jitex.JIT
 
                 MethodCompiled methodCompiled = new(methodFound, methodContext, methodInfo, result, nativeEntry, nativeSizeOfCode);
                 RuntimeMethodCache.AddMethod(methodCompiled);
-                _onMethodCompiled?.Invoke(methodCompiled);
+                OnMethodCompiled?.Invoke(methodCompiled);
 
                 if (ilAddress != IntPtr.Zero)
                     Marshal.FreeHGlobal(ilAddress);
@@ -586,7 +582,7 @@ namespace Jitex.JIT
 
             for (int i = 0; i < totalArgs; i++)
             {
-                callBody.Add((byte)OpCodes.Ldarg_S.Value);
+                callBody.Add((byte) OpCodes.Ldarg_S.Value);
                 callBody.Add((byte) argIndex++);
             }
 
@@ -634,11 +630,6 @@ namespace Jitex.JIT
 
                 _methodResolvers = null;
                 _tokenResolvers = null;
-                _constructStringLiteral = null;
-
-                _compileMethod = null;
-                _resolveToken = null;
-                _constructStringLiteral = null;
 
                 _instance = null;
                 _isDisposed = true;
