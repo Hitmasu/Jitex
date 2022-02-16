@@ -12,7 +12,8 @@ namespace Jitex.Utils
     /// </summary>
     internal static class TypeHelper
     {
-        private static readonly Type CanonType;
+        public static Type CanonType { get; }
+
         private static readonly MethodInfo GetTypeFromHandleUnsafe;
         private static readonly IDictionary<Type, int> CacheSizeOf = new Dictionary<Type, int>();
 
@@ -49,10 +50,7 @@ namespace Jitex.Utils
 
         internal static bool HasCanon(Type? type, bool ignoreCanonType = false)
         {
-            if (type == null)
-                return false;
-
-            if (!type.IsGenericType)
+            if (type is not {IsGenericType: true})
                 return false;
 
             Type[] types = type.GetGenericArguments();
@@ -73,9 +71,6 @@ namespace Jitex.Utils
 
             return hasCanon;
         }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsGeneric(Type? type) => type is {IsGenericType: true};
 
         public static Type GetTypeFromHandle(IntPtr handle)
         {

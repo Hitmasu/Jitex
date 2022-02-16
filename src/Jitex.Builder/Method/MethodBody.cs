@@ -166,7 +166,7 @@ namespace Jitex.Builder.Method
             ILReader reader;
 
             if (Method != null)
-                reader = new ILReader(Method);
+                reader = new(Method);
             else
                 reader = new(IL, Module, GenericTypeArguments, GenericMethodArguments);
 

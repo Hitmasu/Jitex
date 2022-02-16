@@ -2,6 +2,7 @@
 using System.Reflection;
 using Jitex.JIT.CorInfo;
 using Jitex.Utils;
+using MethodInfo = System.Reflection.MethodInfo;
 
 namespace Jitex.JIT.Context
 {
@@ -21,7 +22,7 @@ namespace Jitex.JIT.Context
         public TokenKind TokenType
         {
             get => _resolvedToken?.Type ?? _tokenType;
-            internal set => _tokenType = value;
+            private set => _tokenType = value;
         }
 
         /// <summary>
@@ -226,7 +227,7 @@ namespace Jitex.JIT.Context
         public void ResolverMember(Module module, int md)
         {
             _resolvedToken!.Module = module;
-            _resolvedToken.Token = md;
+            _resolvedToken!.Token = md;
         }
 
         /// <summary>
@@ -245,6 +246,12 @@ namespace Jitex.JIT.Context
         public void ResolveConstructor(ConstructorInfo constructor)
         {
             ResolveMethod(constructor);
+        }
+
+        public void ResolveTypeSpec(Module module, int metadataToken)
+        {
+            _resolvedToken!.Module = module;
+            _resolvedToken!.Token = metadataToken;
         }
 
         /// <summary>

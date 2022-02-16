@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using dnlib.DotNet;
 using System.Reflection;
+using Jitex.Utils;
 
 namespace Jitex.PE
 {
@@ -107,7 +109,7 @@ namespace Jitex.PE
         {
             _image!.NumberOfMethodSpecRows = (int) _moduleDef!.TablesStream.MethodSpecTable.Rows;
 
-            for (int i = 0; i < _image!.NumberOfMethodSpecRows; i++)
+            for (int i = 0; i < _image.NumberOfMethodSpecRows; i++)
             {
                 MethodSpec methodSpec = _moduleDef.ResolveMethodSpec((uint) (i + 1));
 
@@ -138,17 +140,18 @@ namespace Jitex.PE
 
                 if (failedResolve)
                     continue;
-                
+
                 MethodInfo methodInfo = (MethodInfo) module.ResolveMethod((int) methodSpec.MDToken.Raw, declaringType.GetGenericArguments(), genericArguments);
                 _image.AddMethodSpecFromImage(methodInfo, (int) methodSpec.MDToken.Raw);
             }
         }
 
+
         private Type? ResolveTypeGeneric(IDictionary<string, Module> modules, ITypeDefOrRef typeDefOrRef)
         {
             if (typeDefOrRef.Module == null)
                 return null;
-            
+
             if (typeDefOrRef.IsTypeRef)
             {
                 Type? typeRef = _image!.GetTypeRef((int) typeDefOrRef.MDToken.Raw);

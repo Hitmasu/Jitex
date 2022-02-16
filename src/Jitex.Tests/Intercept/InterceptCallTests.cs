@@ -418,6 +418,24 @@ namespace Jitex.Tests.Intercept
             MethodsCalled.TryRemove(nameof(ValueTaskGenericWithParameters), out _);
         }
 
+        [Fact]
+        public void GenericParametersTest()
+        {
+            string typesName = GetTypesGeneric<int, InterceptPerson, Point>(10, _person, _point);
+            string expected = $"{nameof(Int32)}.{nameof(InterceptPerson)}.{nameof(Point)}";
+
+            Assert.Equal(expected, typesName);
+
+            Assert.True(HasCalled(nameof(GetTypesGeneric)), "Call not continued!");
+            Assert.True(HasIntercepted(nameof(GetTypesGeneric)), "Method not intercepted!");
+
+            Assert.True(CountCalls(nameof(GetTypesGeneric)) == 1, "Called more than expected!");
+            Assert.True(CountIntercept(nameof(GetTypesGeneric)) == 1, "Intercepted more than expected!");
+
+            CallsIntercepted.TryRemove(nameof(GetTypesGeneric), out _);
+            MethodsCalled.TryRemove(nameof(GetTypesGeneric), out _);
+        }
+
         private static string ReverseText(string text) => new(text.Reverse().ToArray());
 
         [InterceptCall]
@@ -458,7 +476,7 @@ namespace Jitex.Tests.Intercept
         [MethodImpl(MethodImplOptions.NoInlining)]
         private void SimpleSumOut(ref int n1, ref int n2, out int result)
         {
-            // AddMethodCall(nameof(SimpleSumOut));
+            AddMethodCall(nameof(SimpleSumOut));
             result = n1 + n2;
         }
 
@@ -524,6 +542,14 @@ namespace Jitex.Tests.Intercept
         {
             AddMethodCall(nameof(SumValueTaskAsync), caller: nameof(ValueTaskGenericWithParameters));
             return await new ValueTask<int>(n1 + n2);
+        }
+
+        [InterceptCall]
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private string GetTypesGeneric<T1, T2, T3>(T1 p1, T2 p2, T3 p3)
+        {
+            AddMethodCall(nameof(GenericParametersTest));
+            return $"{p1.GetType().Name}.{p2.GetType().Name}.{p3.GetType().Name}";
         }
 
         private static async Task InterceptorCall(CallContext context)
@@ -622,6 +648,10 @@ namespace Jitex.Tests.Intercept
 
                 InterceptPerson person = new(name + " " + name, age + age);
                 context.SetReturnValue(person);
+            }
+            else if (testSource.Name == nameof(GenericParametersTest) && context.Method.Name == nameof(GetTypesGeneric))
+            {
+                var genericArgs = context.Method.GetGenericArguments();
             }
         }
 

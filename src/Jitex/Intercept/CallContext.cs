@@ -44,28 +44,32 @@ namespace Jitex.Intercept
         /// Create a new context from call (Should not be called directly). 
         /// </summary>
         /// <param name="methodHandle">Handle from method called.</param>
+        /// <param name="methodGenericArguments"></param>
         /// <param name="instance">Instance passed on call.</param>
         /// <param name="returnValue">Pointer to variable of return method.</param>
         /// <param name="parameters">Pointer for each parameter from call.</param>
-        public CallContext(long methodHandle, Pointer? instance, Pointer? returnValue, params Pointer[] parameters)
+        /// <param name="typeGenericArguments"></param>
+        public CallContext(long methodHandle, Type[]? typeGenericArguments, Type[]? methodGenericArguments, Pointer? instance, Pointer? returnValue, params Pointer[] parameters)
         {
             //TODO: Move to out from constructor
             Method = MethodHelper.GetMethodFromHandle(new IntPtr(methodHandle))!;
-
-            _parameters = new VariableInfo[parameters.Length];
-
-            if (instance != null)
-                _instance = new VariableInfo(instance, Method.DeclaringType!);
 
             if (Method is MethodInfo methodInfo)
             {
                 _returnType = methodInfo.ReturnType;
                 _returnValue = new VariableInfo(returnValue!, _returnType);
+                
+                Method = MethodHelper.TryInitializeGenericMethod(Method, typeGenericArguments, methodGenericArguments);
             }
             else
             {
                 _returnType = typeof(void);
             }
+
+            _parameters = new VariableInfo[parameters.Length];
+
+            if (instance != null)
+                _instance = new VariableInfo(instance, Method.DeclaringType!);
 
             Type[] types = Method.GetParameters().Select(w => w.ParameterType).ToArray();
 

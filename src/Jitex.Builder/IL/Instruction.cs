@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 
@@ -105,7 +106,7 @@ namespace Jitex.Builder.IL
             if (OpCode.Size == 1)
                 bytes.Add((byte)OpCode.Value);
             else
-                bytes.AddRange(BitConverter.GetBytes(OpCode.Value));
+                bytes.AddRange(BitConverter.GetBytes(OpCode.Value).Reverse());
 
             if (MetadataToken.HasValue)
                 bytes.AddRange(BitConverter.GetBytes(MetadataToken.Value));

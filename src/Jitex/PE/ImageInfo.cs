@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using Jitex.Internal;
+using Jitex.Utils;
 
 namespace Jitex.PE
 {
@@ -38,26 +40,24 @@ namespace Jitex.PE
             BaseOffset = baseOffset;
         }
 
-        public void AddMemberRef(MethodBase method, out int token)
+        public void AddOrGetMemberRef(MethodBase method, out int token)
         {
             if (_memberRefs.TryGetValue(method, out token))
                 return;
 
-            const int memberRefBase = 0x0A000000;
-            token = memberRefBase + NumberOfMemberRefRows + 1;
+            token = MetadataTokenBase.MemberRef + NumberOfMemberRefRows + 1;
             NumberOfMemberRefRows++;
 
             _memberRefs.Add(method, token);
             AddMemberToResolution(method, token);
         }
 
-        public void AddTypeRef(Type type, out int token)
+        public void AddOrGetTypeRef(Type type, out int token)
         {
             if (_typeRefs.TryGetValue(type, out token))
                 return;
 
-            const int typeRefBase = 0x01000000;
-            token = typeRefBase + NumberOfTypeRefRows + 1;
+            token = MetadataTokenBase.TypeRef + NumberOfTypeRefRows + 1;
             NumberOfTypeRefRows++;
 
             _typeRefs.Add(type, token);
@@ -80,6 +80,7 @@ namespace Jitex.PE
         internal Type? GetTypeRef(int refToken) => _typeRefs.FirstOrDefault(w => w.Value == refToken).Key;
 
         internal void AddMemberRefFromImage(MethodBase methodBase, int refToken) => _memberRefs.Add(methodBase, refToken);
+
         internal void AddTypeRefFromImage(Type type, int refToken) => _typeRefs.Add(type, refToken);
         internal void AddMethodSpecFromImage(MethodInfo methodInfo, int refToken) => _methodsSpecs.Add(methodInfo, refToken);
     }

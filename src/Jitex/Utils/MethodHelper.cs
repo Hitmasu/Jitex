@@ -120,7 +120,7 @@ namespace Jitex.Utils
         {
             bool hasCanon = false;
 
-            if (method is MethodInfo {IsGenericMethod: true} methodInfo)
+            if (method is MethodInfo {IsGenericMethod: true})
             {
                 Type[] types = method.GetGenericArguments();
 
@@ -446,13 +446,48 @@ namespace Jitex.Utils
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int GetFunctionPointerOffset(MethodBase method)
         {
-            if ((TypeHelper.IsGeneric(method.DeclaringType) && !method.IsGenericMethod) || method.IsVirtual)
+            if (method.DeclaringType is {IsGenericType: true} && !method.IsGenericMethod || method.IsVirtual)
                 return 1;
 
             if (method.IsGenericMethod)
                 return 5;
 
             return 2;
+        }
+
+        /// <summary>
+        /// Initialize generic method if method is generic.
+        /// </summary>
+        /// <param name="method">Method to initialize.</param>
+        /// <param name="typeGenericArguments">Generic arguments from declared type.</param>
+        /// <param name="methodGenericArguments">Generic arguments from method.</param>
+        /// <returns>If method or declared type is generic, returns a MethodInfo with arguements typed, otherwise return parameter method.</returns>
+        /// <exception cref="ArgumentNullException"></exception>
+        internal static MethodBase TryInitializeGenericMethod(MethodBase method, Type[]? typeGenericArguments, Type[]? methodGenericArguments)
+        {
+            if (!method.IsGenericMethod && method.DeclaringType is not {IsGenericType: true})
+                return method;
+
+            Type declaringType = method.DeclaringType;
+
+            if (TypeHelper.HasCanon(declaringType))
+            {
+                if (typeGenericArguments == null)
+                    throw new ArgumentNullException(nameof(typeGenericArguments));
+
+                declaringType = declaringType.MakeGenericType(typeGenericArguments);
+            }
+
+            if (HasCanon(method, false))
+            {
+                if (methodGenericArguments == null)
+                    throw new ArgumentNullException(nameof(methodGenericArguments));
+
+                MethodInfo methodInfo = (MethodInfo) method;
+                method = methodInfo.GetGenericMethodDefinition().MakeGenericMethod(methodGenericArguments);
+            }
+
+            return GetMethodFromHandle(method.MethodHandle.Value, declaringType.TypeHandle.Value)!;
         }
 
         internal static void PrepareMethod(MethodBase method)

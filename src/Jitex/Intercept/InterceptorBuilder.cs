@@ -3,27 +3,29 @@ using System.Collections.Generic;
 using System.Linq;
 using Jitex.PE;
 using System.Reflection;
-using System.Reflection.Emit;
 using Jitex.Builder.IL;
+using Jitex.Internal;
 using Jitex.Utils;
 using LocalVariableInfo = Jitex.Builder.Method.LocalVariableInfo;
 using MethodBody = Jitex.Builder.Method.MethodBody;
 using Pointer = Jitex.Utils.Pointer;
+using static System.Reflection.Emit.OpCodes;
 
 namespace Jitex.Intercept
 {
     internal class InterceptorBuilder : IDisposable
     {
-        private static readonly ConstructorInfo CallContextCtor;
-        private static readonly ConstructorInfo CallManagerCtor;
+        private static readonly ConstructorInfo CallContextCtor = typeof(CallContext).GetConstructor(new[] {typeof(long), typeof(Type[]), typeof(Type[]), typeof(Pointer), typeof(Pointer), typeof(Pointer[])})!;
+        private static readonly ConstructorInfo CallManagerCtor = typeof(CallManager).GetConstructor(new[] {typeof(CallContext)})!;
 
-        private static readonly MethodInfo CallInterceptors;
-        private static readonly MethodInfo ReleaseTask;
-        private static readonly MethodInfo PointerBox;
-        private static readonly MethodInfo GetProceedCall;
-        private static readonly MethodInfo GetReturnValue;
-        private static readonly MethodInfo GetReturnValuePointer;
-        private static readonly MethodInfo GetReturnValueNoRef;
+        private static readonly MethodInfo CallInterceptors = typeof(CallManager).GetMethod(nameof(CallManager.CallInterceptors), BindingFlags.Public | BindingFlags.Instance)!;
+        private static readonly MethodInfo ReleaseTask = typeof(CallManager).GetMethod(nameof(CallManager.ReleaseTask), BindingFlags.Public | BindingFlags.Instance)!;
+        private static readonly MethodInfo PointerBox = typeof(Pointer).GetMethod(nameof(Pointer.Box))!;
+        private static readonly MethodInfo GetProceedCall = typeof(CallContext).GetProperty(nameof(CallContext.ProceedCall))!.GetGetMethod()!;
+        private static readonly MethodInfo GetReturnValue = typeof(CallContext).GetMethods(BindingFlags.Public | BindingFlags.Instance).First(w => w.Name == nameof(CallContext.GetReturnValue) && w.IsGenericMethod);
+        private static readonly MethodInfo GetReturnValuePointer = typeof(CallManager).GetMethod(nameof(CallManager.GetReturnValuePointer), BindingFlags.Public | BindingFlags.Instance)!;
+        private static readonly MethodInfo GetReturnValueNoRef = typeof(CallManager).GetMethod(nameof(CallManager.GetReturnValueNoRef), BindingFlags.Public | BindingFlags.Instance)!;
+        private static readonly MethodInfo GetTypeFromHandle = GetTypeFromHandle = typeof(Type).GetMethod(nameof(Type.GetTypeFromHandle))!;
 
         private readonly MethodBase _method;
         private readonly MethodBody _body;
@@ -33,18 +35,8 @@ namespace Jitex.Intercept
 
         static InterceptorBuilder()
         {
-            CallContextCtor = typeof(CallContext).GetConstructor(new[] { typeof(long), typeof(Pointer), typeof(Pointer), typeof(Pointer[]) })!;
-            CallManagerCtor = typeof(CallManager).GetConstructor(new[] { typeof(CallContext) })!;
-            CallInterceptors = typeof(CallManager).GetMethod(nameof(CallManager.CallInterceptors), BindingFlags.Public | BindingFlags.Instance)!;
-            ReleaseTask = typeof(CallManager).GetMethod(nameof(CallManager.ReleaseTask), BindingFlags.Public | BindingFlags.Instance)!;
-            PointerBox = typeof(Pointer).GetMethod(nameof(Pointer.Box))!;
-            GetReturnValue = typeof(CallContext).GetMethods(BindingFlags.Public | BindingFlags.Instance)
-                .First(w => w.Name == nameof(CallContext.GetReturnValue) && w.IsGenericMethod);
-            GetReturnValuePointer = typeof(CallManager).GetMethod(nameof(CallManager.GetReturnValuePointer), BindingFlags.Public | BindingFlags.Instance)!;
-            GetReturnValueNoRef = typeof(CallManager).GetMethod(nameof(CallManager.GetReturnValueNoRef), BindingFlags.Public | BindingFlags.Instance)!;
-
-            PropertyInfo proceedCall = typeof(CallContext).GetProperty(nameof(CallContext.ProceedCall))!;
-            GetProceedCall = proceedCall.GetGetMethod();
+            if (!JitexManager.ModuleIsLoaded<InternalModule>())
+                JitexManager.LoadModule(InternalModule.Instance);
         }
 
         public InterceptorBuilder(MethodBase method, MethodBody body)
@@ -89,8 +81,6 @@ namespace Jitex.Intercept
                 _image = _imageReader.LoadImage();
             }
 
-            IList<Type> parameters = new List<Type>(_method.GetParameters().Select(s => s.ParameterType));
-
             IList<LocalVariableInfo> localVariables = _body.LocalVariables ?? new List<LocalVariableInfo>();
 
             localVariables.Add(new LocalVariableInfo(typeof(CallContext)));
@@ -99,147 +89,53 @@ namespace Jitex.Intercept
             localVariables.Add(new LocalVariableInfo(typeof(CallManager)));
             int callManagerVariableIndex = localVariables.Count - 1;
 
-            _image!.AddTypeRef(typeof(Pointer), out int pointerTypeMetadataToken);
-
-            _image!.AddMemberRef(CallContextCtor, out int callContextCtorMetadataToken);
-            _image!.AddMemberRef(CallManagerCtor, out int callManagerCtorMetadataToken);
-            _image!.AddMemberRef(CallInterceptors, out int callInterceptorMetadataToken);
-            _image!.AddMemberRef(GetProceedCall, out int getProceedCallMetadataToken);
-            _image!.AddMemberRef(ReleaseTask, out int releaseTaskMetadataToken);
-            _image!.AddMemberRef(PointerBox, out int pointerBoxMetadataToken);
-
+            _image!.AddOrGetMemberRef(CallContextCtor, out int callContextCtorMetadataToken);
+            _image!.AddOrGetMemberRef(CallManagerCtor, out int callManagerCtorMetadataToken);
+            _image!.AddOrGetMemberRef(CallInterceptors, out int callInterceptorMetadataToken);
+            _image!.AddOrGetMemberRef(GetProceedCall, out int getProceedCallMetadataToken);
+            _image!.AddOrGetMemberRef(ReleaseTask, out int releaseTaskMetadataToken);
 
             Instructions instructions = new();
             long methodHandle = MethodHelper.GetMethodHandle(_method).Value.ToInt64();
-            instructions.Add(OpCodes.Ldc_I8, methodHandle);
+            instructions.Add(Ldc_I8, methodHandle);
 
-            Type returnType;
+            WriteGenericArguments(instructions);
+
             MethodInfo? methodInfo = _method as MethodInfo;
-            int ldargIndex = 0;
-            int returnVariableIndex = 0;
+            Type returnType = methodInfo!.ReturnType;
 
-            if (methodInfo != null)
-            {
-                returnType = methodInfo.ReturnType;
+            int ldargIndex = WriteInstanceParameter(instructions);
+            int? returnVariableIndex = WriteReturnType(localVariables, instructions);
 
-                //Load this.
-                if (!methodInfo.IsStatic)
-                {
-                    instructions.Add(OpCodes.Ldarga_S, 0);
-                    instructions.Add(OpCodes.Conv_U);
-                    instructions.Add(OpCodes.Call, pointerBoxMetadataToken);
-                    ldargIndex = 1;
-                }
-                else
-                {
-                    instructions.Add(OpCodes.Ldnull);
-                }
+            WriteParameters(instructions, ldargIndex);
 
-                if (returnType != typeof(void))
-                {
-                    localVariables.Add(new LocalVariableInfo(methodInfo.ReturnType));
-                    returnVariableIndex = localVariables.Count - 1;
+            instructions.Add(Newobj, callContextCtorMetadataToken);
+            instructions.Add(Stloc_S, callContextVariableIndex);
+            instructions.Add(Ldloc_S, callContextVariableIndex);
 
-                    instructions.Add(OpCodes.Ldloca_S, returnVariableIndex);
+            instructions.Add(Newobj, callManagerCtorMetadataToken);
+            instructions.Add(Stloc_S, callManagerVariableIndex);
+            instructions.Add(Ldloc_S, callManagerVariableIndex);
 
-                    if (returnType.IsPointer)
-                    {
-                        instructions.Add(OpCodes.Call, pointerBoxMetadataToken);
-                    }
-                    else
-                    {
-                        instructions.Add(OpCodes.Conv_U);
-                        instructions.Add(OpCodes.Call, pointerBoxMetadataToken);
-                    }
-                }
-                else
-                {
-                    instructions.Add(OpCodes.Ldnull);
-                }
-            }
-            else
-            {
-                instructions.Add(OpCodes.Ldnull);
-                instructions.Add(OpCodes.Ldnull);
+            instructions.Add(Callvirt, callInterceptorMetadataToken);
 
-                returnType = typeof(void);
-            }
-
-            instructions.Add(OpCodes.Ldc_I4_S, parameters.Count);
-            instructions.Add(OpCodes.Newarr, pointerTypeMetadataToken);
-
-            for (int i = 0; i < parameters.Count; i++)
-            {
-                Type parameter = parameters[i];
-
-                instructions.Add(OpCodes.Dup);
-                instructions.Add(OpCodes.Ldc_I4_S, i);
-
-                instructions.Add(OpCodes.Ldarga_S, ldargIndex++);
-
-                //TODO: Maybe set variable as pinned too?
-                if (parameter.IsPointer)
-                {
-                    instructions.Add(OpCodes.Call, pointerBoxMetadataToken);
-                }
-                else
-                {
-                    instructions.Add(OpCodes.Conv_U);
-                    instructions.Add(OpCodes.Call, pointerBoxMetadataToken);
-                }
-
-                instructions.Add(OpCodes.Stelem_Ref);
-            }
-
-            instructions.Add(OpCodes.Newobj, callContextCtorMetadataToken);
-            instructions.Add(OpCodes.Stloc_S, callContextVariableIndex);
-            instructions.Add(OpCodes.Ldloc_S, callContextVariableIndex);
-
-            instructions.Add(OpCodes.Newobj, callManagerCtorMetadataToken);
-            instructions.Add(OpCodes.Stloc_S, callManagerVariableIndex);
-            instructions.Add(OpCodes.Ldloc_S, callManagerVariableIndex);
-
-            instructions.Add(OpCodes.Callvirt, callInterceptorMetadataToken);
-
-            instructions.Add(OpCodes.Ldloc_S, callContextVariableIndex);
-            instructions.Add(OpCodes.Callvirt, getProceedCallMetadataToken);
-            Instruction gotoInstruction = instructions.Add(OpCodes.Brfalse_S, (byte)0x00); //if(context.ProceedCall)
+            instructions.Add(Ldloc_S, callContextVariableIndex);
+            instructions.Add(Callvirt, getProceedCallMetadataToken);
+            Instruction gotoInstruction = instructions.Add(Brfalse_S, (byte) 0x00); //if(context.ProceedCall)
 
             instructions.AddRange(_body.ReadIL());
             instructions.RemoveLast(); //Remove Ret instruction.
 
             if (returnType != typeof(void))
-                instructions.Add(OpCodes.Stloc_S, returnVariableIndex);
+                instructions.Add(Stloc_S, returnVariableIndex);
 
-            Instruction endpointGoto = instructions.Add(OpCodes.Ldloc_S, callManagerVariableIndex);
-            instructions.Add(OpCodes.Callvirt, releaseTaskMetadataToken);
-            gotoInstruction.Value = (byte)(endpointGoto.Offset - gotoInstruction.Offset - gotoInstruction.Size);
+            Instruction endpointGoto = instructions.Add(Ldloc_S, callManagerVariableIndex);
+            instructions.Add(Callvirt, releaseTaskMetadataToken);
+            gotoInstruction.Value = (byte) (endpointGoto.Offset - gotoInstruction.Offset - gotoInstruction.Size);
 
-            if (returnType != typeof(void))
-            {
-                MethodInfo getResult;
+            WriteGetReturnValue(instructions, callContextVariableIndex, callManagerVariableIndex);
 
-                if (returnType.IsByRef)
-                {
-                    instructions.Add(OpCodes.Ldloc_S, callContextVariableIndex);
-                    getResult = GetReturnValue.MakeGenericMethod(returnType.GetElementType());
-                }
-                else if (returnType.IsPointer)
-                {
-                    instructions.Add(OpCodes.Ldloc_S, callContextVariableIndex);
-                    getResult = GetReturnValuePointer;
-                }
-                else
-                {
-                    instructions.Add(OpCodes.Ldloc_S, callManagerVariableIndex);
-                    getResult = GetReturnValueNoRef.MakeGenericMethod(returnType);
-                }
-
-                _image.AddMemberRef(getResult, out int getResultMetadataToken);
-                instructions.Add(OpCodes.Callvirt, getResultMetadataToken);
-            }
-
-            instructions.Add(OpCodes.Ret);
+            instructions.Add(Ret);
 
             byte[] il = instructions;
 
@@ -248,7 +144,180 @@ namespace Jitex.Intercept
                 LocalVariables = localVariables
             };
 
+            var inst = body.ReadIL().ToList();
             return body;
+        }
+
+        private void WriteGetReturnValue(Instructions instructions, int callContextVariableIndex, int callManagerVariableIndex)
+        {
+            if (_method is not MethodInfo methodInfo)
+                return;
+
+            Type returnType = methodInfo.ReturnType;
+
+            if (returnType == typeof(void))
+                return;
+
+            MethodInfo getResult;
+
+            if (returnType.IsByRef)
+            {
+                instructions.Add(Ldloc_S, callContextVariableIndex);
+                getResult = GetReturnValue.MakeGenericMethod(returnType.GetElementType());
+            }
+            else if (returnType.IsPointer)
+            {
+                instructions.Add(Ldloc_S, callContextVariableIndex);
+                getResult = GetReturnValuePointer;
+            }
+            else
+            {
+                instructions.Add(Ldloc_S, callManagerVariableIndex);
+                getResult = GetReturnValueNoRef.MakeGenericMethod(returnType);
+            }
+
+            _image!.AddOrGetMemberRef(getResult, out int getResultMetadataToken);
+            instructions.Add(Callvirt, getResultMetadataToken);
+        }
+
+        private void WriteParameters(Instructions instructions, int ldargIndex)
+        {
+            _image!.AddOrGetTypeRef(typeof(Pointer), out int pointerTypeMetadataToken);
+            _image!.AddOrGetMemberRef(PointerBox, out int pointerBoxMetadataToken);
+
+            Type[] parameters = _method.GetParameters().Select(w => w.ParameterType).ToArray();
+
+            instructions.Add(Ldc_I4_S, parameters.Length);
+            instructions.Add(Newarr, pointerTypeMetadataToken);
+
+            for (int i = 0; i < parameters.Length; i++)
+            {
+                Type parameter = parameters[i];
+
+                instructions.Add(Dup);
+                instructions.Add(Ldc_I4_S, i);
+
+                instructions.Add(Ldarga_S, ldargIndex++);
+
+                //TODO: Maybe set variable as pinned too?
+                if (parameter.IsPointer)
+                {
+                    instructions.Add(Call, pointerBoxMetadataToken);
+                }
+                else
+                {
+                    instructions.Add(Conv_U);
+                    instructions.Add(Call, pointerBoxMetadataToken);
+                }
+
+                instructions.Add(Stelem_Ref);
+            }
+        }
+
+        private int WriteInstanceParameter(Instructions instructions)
+        {
+            if (_method.IsStatic)
+            {
+                instructions.Add(Ldnull);
+                return 0;
+            }
+
+            _image!.AddOrGetMemberRef(PointerBox, out int pointerBoxMetadataToken);
+
+            instructions.Add(Ldarga_S, 0);
+            instructions.Add(Conv_U);
+            instructions.Add(Call, pointerBoxMetadataToken);
+            return 1;
+        }
+
+        private int? WriteReturnType(IList<LocalVariableInfo> variables, Instructions instructions)
+        {
+            if (_method is not MethodInfo methodInfo)
+            {
+                instructions.Add(Ldnull);
+                return null;
+            }
+
+            Type returnType = methodInfo.ReturnType;
+
+            if (returnType == typeof(void))
+            {
+                instructions.Add(Ldnull);
+                return null;
+            }
+
+            _image!.AddOrGetMemberRef(PointerBox, out int pointerBoxMetadataToken);
+
+            variables.Add(new LocalVariableInfo(methodInfo.ReturnType));
+            int returnVariableIndex = variables.Count - 1;
+
+            instructions.Add(Ldloca_S, returnVariableIndex);
+
+            if (returnType.IsPointer)
+            {
+                instructions.Add(Call, pointerBoxMetadataToken);
+            }
+            else
+            {
+                instructions.Add(Conv_U);
+                instructions.Add(Call, pointerBoxMetadataToken);
+            }
+
+            return returnVariableIndex;
+        }
+
+        private void WriteGenericArguments(Instructions instructions)
+        {
+            if (TypeHelper.HasCanon(_method.DeclaringType))
+            {
+                Type[] types = _method.DeclaringType!.GetGenericTypeDefinition().GetGenericArguments();
+                WriteTypesOnArray(instructions, types);
+            }
+            else
+            {
+                instructions.Add(Ldnull);
+            }
+
+            if (MethodHelper.HasCanon(_method, false))
+            {
+                MethodInfo methodInfo = (MethodInfo) _method;
+                Type[] types = methodInfo.GetGenericMethodDefinition().GetGenericArguments();
+                WriteTypesOnArray(instructions, types);
+                
+                InternalModule.Instance.LoadMethodSpec(methodInfo);
+            }
+            else
+            {
+                instructions.Add(Ldnull);
+            }
+        }
+
+        private void WriteTypesOnArray(Instructions instructions, IReadOnlyCollection<Type> types)
+        {
+            ValidateImageLoaded();
+
+            _image!.AddOrGetTypeRef(typeof(Type), out int typeMetadataToken);
+            _image!.AddOrGetMemberRef(GetTypeFromHandle, out int getTypeFromHandleMetadataToken);
+
+            instructions.Add(Ldc_I4_S, types.Count);
+            instructions.Add(Newarr, typeMetadataToken);
+
+            for (int i = 0; i < types.Count; i++)
+            {
+                int ldToken = MetadataTokenBase.TypeSpec + i;
+
+                instructions.Add(Dup);
+                instructions.Add(Ldc_I4_S, i);
+                instructions.Add(Ldtoken, ldToken);
+                instructions.Add(Call, getTypeFromHandleMetadataToken);
+                instructions.Add(Stelem_Ref);
+            }
+        }
+
+        private void ValidateImageLoaded()
+        {
+            if (_image == null)
+                throw new InvalidOperationException("Image not loaded!");
         }
 
         public void Dispose()
