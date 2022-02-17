@@ -121,8 +121,9 @@ namespace Jitex.Intercept
 
             instructions.Add(Ldloc_S, callContextVariableIndex);
             instructions.Add(Callvirt, getProceedCallMetadataToken);
-            Instruction gotoInstruction = instructions.Add(Brfalse_S, (byte) 0x00); //if(context.ProceedCall)
+            Instruction gotoInstruction = instructions.Add(Brfalse, 0); //if(context.ProceedCall)
 
+            var appp = _body.ReadIL().Where(w => w.OpCode != Nop);
             instructions.AddRange(_body.ReadIL());
             instructions.RemoveLast(); //Remove Ret instruction.
 
@@ -131,7 +132,7 @@ namespace Jitex.Intercept
 
             Instruction endpointGoto = instructions.Add(Ldloc_S, callManagerVariableIndex);
             instructions.Add(Callvirt, releaseTaskMetadataToken);
-            gotoInstruction.Value = (byte) (endpointGoto.Offset - gotoInstruction.Offset - gotoInstruction.Size);
+            gotoInstruction.Value = (endpointGoto.Offset - gotoInstruction.Offset - gotoInstruction.Size);
 
             WriteGetReturnValue(instructions, callContextVariableIndex, callManagerVariableIndex);
 
@@ -144,7 +145,7 @@ namespace Jitex.Intercept
                 LocalVariables = localVariables
             };
 
-            var inst = body.ReadIL().ToList();
+            var inst = body.ReadIL().ToList().Where(w => w.OpCode != Nop);
             return body;
         }
 
@@ -153,7 +154,12 @@ namespace Jitex.Intercept
             if (_method is not MethodInfo methodInfo)
                 return;
 
-            Type returnType = methodInfo.ReturnType;
+            Type returnType;
+
+            if (MethodHelper.HasCanon(methodInfo))
+                returnType = methodInfo.GetGenericMethodDefinition().ReturnType;
+            else
+                returnType = methodInfo.ReturnType;
 
             if (returnType == typeof(void))
                 return;
@@ -283,7 +289,7 @@ namespace Jitex.Intercept
                 MethodInfo methodInfo = (MethodInfo) _method;
                 Type[] types = methodInfo.GetGenericMethodDefinition().GetGenericArguments();
                 WriteTypesOnArray(instructions, types);
-                
+
                 InternalModule.Instance.LoadMethodSpec(methodInfo);
             }
             else

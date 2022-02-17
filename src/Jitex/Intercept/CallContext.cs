@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Jitex.Utils;
+using Jitex.Utils.Extension;
 using Pointer = Jitex.Utils.Pointer;
 
 namespace Jitex.Intercept
@@ -58,7 +59,7 @@ namespace Jitex.Intercept
             {
                 _returnType = methodInfo.ReturnType;
                 _returnValue = new VariableInfo(returnValue!, _returnType);
-                
+
                 Method = MethodHelper.TryInitializeGenericMethod(Method, typeGenericArguments, methodGenericArguments);
             }
             else
@@ -316,6 +317,9 @@ namespace Jitex.Intercept
 
             if (expectedType.IsByRef)
                 expectedType = expectedType.GetElementType()!;
+
+            if (expectedType == TypeHelper.CanonType && typeArgument.IsCanon())
+                return;
 
             if (typeArgument != expectedType)
                 throw new ArgumentException($"Invalid type passed by argument. Expected: {expectedType!.FullName}, Passed: {typeArgument.FullName}");

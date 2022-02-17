@@ -4,6 +4,7 @@ using Jitex.Utils;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -19,6 +20,7 @@ using MethodInfo = Jitex.JIT.CorInfo.MethodInfo;
 using static Jitex.JIT.JitexHandler;
 using static Jitex.Utils.JitexLogger;
 using Jitex.JIT.Handlers;
+using Exception = System.Exception;
 
 namespace Jitex.JIT
 {
@@ -124,7 +126,7 @@ namespace Jitex.JIT
         private void PrepareHook()
         {
             Log?.LogTrace("Preparing delegate for CompileMethod");
-            RuntimeHelperExtension.PrepareDelegate(_compileMethod, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, (uint) 0, IntPtr.Zero, 0);
+            RuntimeHelperExtension.PrepareDelegate(_compileMethod, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, (uint)0, IntPtr.Zero, 0);
 
             Log?.LogTrace("Preparing delegate for ResolveToken");
             RuntimeHelperExtension.PrepareDelegate(_resolveToken, IntPtr.Zero, IntPtr.Zero);
@@ -330,7 +332,7 @@ namespace Jitex.JIT
 
                                 methodInfo.Locals.Signature = sigAddress + 1;
                                 methodInfo.Locals.Args = sigAddress + 3;
-                                methodInfo.Locals.NumArgs = (ushort) methodBody.LocalVariables.Count;
+                                methodInfo.Locals.NumArgs = (ushort)methodBody.LocalVariables.Count;
                             }
 
                             methodInfo.MaxStack = methodBody.MaxStackSize;
@@ -345,7 +347,7 @@ namespace Jitex.JIT
                         }
 
                         methodInfo.ILCode = ilAddress;
-                        methodInfo.ILCodeSize = (uint) ilLength;
+                        methodInfo.ILCodeSize = (uint)ilLength;
                     }
                 }
 
@@ -364,7 +366,7 @@ namespace Jitex.JIT
                 if (sigAddress != IntPtr.Zero)
                     Marshal.FreeHGlobal(sigAddress);
 
-                if (methodContext is {IsResolved: true})
+                if (methodContext is { IsResolved: true })
                 {
                     if (methodContext?.Mode == MethodContext.ResolveMode.Native)
                     {
@@ -404,6 +406,7 @@ namespace Jitex.JIT
                 Log?.LogCritical(ex, "Failed to compile method.");
                 nativeEntry = default;
                 nativeSizeOfCode = default;
+                throw new Exception("Failed compile method.", ex);
                 return 0;
             }
             finally
@@ -423,6 +426,8 @@ namespace Jitex.JIT
                 return;
             }
 
+            int token = 0;
+
             try
             {
                 if (_tokenTls.EnterCount > 1 || _tokenResolvers == null)
@@ -440,6 +445,7 @@ namespace Jitex.JIT
                 }
 
                 ResolvedToken resolvedToken = new ResolvedToken(pResolvedToken);
+                token = resolvedToken.Token; //Just to show on exception.
 
                 IntPtr sourceAddress = Marshal.ReadIntPtr(thisHandle, IntPtr.Size * 2);
                 MethodBase? source = MethodHelper.GetMethodFromHandle(sourceAddress);
@@ -461,6 +467,10 @@ namespace Jitex.JIT
                         _handleSource[resolvedToken.HMethod] = source;
                     }
                 }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to resolve token: 0x{token:X}.", ex);
             }
             finally
             {
@@ -554,7 +564,7 @@ namespace Jitex.JIT
             if (methodContext.NativeCode == null)
                 throw new NullReferenceException(nameof(methodContext.NativeCode));
 
-            System.Reflection.MethodInfo method = (System.Reflection.MethodInfo) methodContext.Method;
+            System.Reflection.MethodInfo method = (System.Reflection.MethodInfo)methodContext.Method;
 
             int metadataToken = method.IsGenericMethod ? 0x2B000001 : method.MetadataToken;
 
@@ -575,26 +585,26 @@ namespace Jitex.JIT
             if (!method.IsStatic)
             {
                 argIndex++;
-                callBody.Add((byte) OpCodes.Ldarg_0.Value);
+                callBody.Add((byte)OpCodes.Ldarg_0.Value);
             }
 
             int totalArgs = method.GetParameters().Count(w => !w.IsOptional);
 
             for (int i = 0; i < totalArgs; i++)
             {
-                callBody.Add((byte) OpCodes.Ldarg_S.Value);
-                callBody.Add((byte) argIndex++);
+                callBody.Add((byte)OpCodes.Ldarg_S.Value);
+                callBody.Add((byte)argIndex++);
             }
 
-            callBody.Add((byte) OpCodes.Call.Value);
+            callBody.Add((byte)OpCodes.Call.Value);
             callBody.AddRange(tokenBytes);
 
             if (!isVoid)
-                callBody.Add((byte) OpCodes.Pop.Value);
+                callBody.Add((byte)OpCodes.Pop.Value);
 
             byte[] callBytes = callBody.ToArray();
 
-            int bodyLength = (int) Math.Ceiling((double) methodContext.NativeCode.Length / callBytes.Length) * callBytes.Length;
+            int bodyLength = (int)Math.Ceiling((double)methodContext.NativeCode.Length / callBytes.Length) * callBytes.Length;
             int retLength = 1;
 
             if (!isVoid)
@@ -614,7 +624,7 @@ namespace Jitex.JIT
                 Marshal.Copy(callBytes, 0, ilAddress + bodyLength, callBytes.Length);
             }
 
-            Marshal.WriteByte(ilAddress + ilSize - 1, (byte) OpCodes.Ret.Value);
+            Marshal.WriteByte(ilAddress + ilSize - 1, (byte)OpCodes.Ret.Value);
 
             return (ilAddress, ilSize);
         }

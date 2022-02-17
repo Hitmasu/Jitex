@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
+using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using Jitex.JIT.Context;
@@ -26,11 +27,6 @@ namespace Jitex.Internal
         /// </summary>
         private readonly ConcurrentDictionary<(Module Module, int MetadataToken), MemberInfo> _methodResolutions = new();
 
-        /// <summary>
-        /// Method specs to be resolved
-        /// </summary>
-        private static readonly Dictionary<(Module Module, int MetadataToken), Module> MethodSpecCache = new();
-
         protected override void MethodResolver(MethodContext context)
         {
         }
@@ -44,6 +40,10 @@ namespace Jitex.Internal
                 return;
 
             if (context.TokenType is TokenKind.LdToken or TokenKind.Constrained)
+                context.ResolveTypeSpec(resolution.Module, context.MetadataToken);
+            else if (resolution is MethodInfo {IsGenericMethod: true})
+                context.ResolverMember(resolution.Module, MetadataTokenBase.MethodSpec);
+            else if (context.TokenType is TokenKind.LdToken or TokenKind.Constrained)
                 context.ResolverMember(resolution.Module, context.MetadataToken);
             else
                 context.ResolverMember(resolution);
@@ -57,28 +57,27 @@ namespace Jitex.Internal
         /// <param name="memberResolution">Member identifier from token.</param>
         public void AddMemberToResolution(Module module, int metadataToken, MemberInfo memberResolution)
         {
-            _methodResolutions.TryAdd(new(module, metadataToken), memberResolution);
-
             if (memberResolution is MethodInfo methodInfo)
-                LoadMethodSpec(methodInfo);
+            {
+                MethodBase methodResolution = LoadMethodSpec(methodInfo);
+                _methodResolutions.TryAdd((module, metadataToken), methodResolution);
+            }
+            else
+            {
+                _methodResolutions.TryAdd((module, metadataToken), memberResolution);
+            }
         }
 
         /// <summary>
         /// Load specification (TypeSpec and MethodSpec) from a MethodInfo.
         /// </summary>
         /// <param name="methodInfo"></param>
-        public void LoadMethodSpec(MethodInfo methodInfo)
+        public MethodBase LoadMethodSpec(MethodInfo methodInfo)
         {
             if (!methodInfo.IsGenericMethod)
-                return;
+                return methodInfo;
 
-            (Module Module, int MetadataToken) key = (methodInfo.Module, methodInfo.MetadataToken);
-
-            if (!MethodSpecCache.ContainsKey(key))
-            {
-                Module specModule = CreateMethodSpecFor(methodInfo).Module;
-                MethodSpecCache[key] = specModule;
-            }
+            return CreateMethodSpecFor(methodInfo);
         }
 
         private MethodBase CreateMethodSpecFor(MethodInfo method)
@@ -117,7 +116,6 @@ namespace Jitex.Internal
             }
 
             generator.Emit(OpCodes.Pop);
-
 
             if (!method.IsStatic)
             {

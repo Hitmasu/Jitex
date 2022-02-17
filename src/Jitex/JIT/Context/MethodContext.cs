@@ -239,7 +239,7 @@ namespace Jitex.JIT.Context
         {
             InterceptorBuilder builder = new InterceptorBuilder(Method, Body);
             MethodBody body = builder.InjectInterceptor();
-            
+
             ResolveBody(body);
         }
     }

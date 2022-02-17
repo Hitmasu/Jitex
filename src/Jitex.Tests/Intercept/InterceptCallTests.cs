@@ -421,7 +421,7 @@ namespace Jitex.Tests.Intercept
         [Fact]
         public void GenericParametersTest()
         {
-            string typesName = GetTypesGeneric<int, InterceptPerson, Point>(10, _person, _point);
+            string typesName = GetTypesGeneric<int, InterceptPerson, Point>(10, new InterceptPerson(default), new Point());
             string expected = $"{nameof(Int32)}.{nameof(InterceptPerson)}.{nameof(Point)}";
 
             Assert.Equal(expected, typesName);
@@ -548,7 +548,7 @@ namespace Jitex.Tests.Intercept
         [MethodImpl(MethodImplOptions.NoInlining)]
         private string GetTypesGeneric<T1, T2, T3>(T1 p1, T2 p2, T3 p3)
         {
-            AddMethodCall(nameof(GenericParametersTest));
+            AddMethodCall(nameof(GetTypesGeneric));
             return $"{p1.GetType().Name}.{p2.GetType().Name}.{p3.GetType().Name}";
         }
 
@@ -648,10 +648,6 @@ namespace Jitex.Tests.Intercept
 
                 InterceptPerson person = new(name + " " + name, age + age);
                 context.SetReturnValue(person);
-            }
-            else if (testSource.Name == nameof(GenericParametersTest) && context.Method.Name == nameof(GetTypesGeneric))
-            {
-                var genericArgs = context.Method.GetGenericArguments();
             }
         }
 
