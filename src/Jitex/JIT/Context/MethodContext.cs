@@ -40,11 +40,6 @@ namespace Jitex.JIT.Context
             Detour = 1 << 2,
 
             /// <summary>
-            /// Intercept call
-            /// </summary>
-            Intercept = 1 << 3,
-
-            /// <summary>
             /// Native entry of method
             /// </summary>
             Entry = 1 << 4
@@ -235,10 +230,11 @@ namespace Jitex.JIT.Context
         /// <summary>
         /// Intercept calls from method.
         /// </summary>
-        public void InterceptCall()
+        /// <param name="reuseReferences">If should reuse references on assembly.</param>
+        public void InterceptCall(bool reuseReferences = false)
         {
             InterceptorBuilder builder = new InterceptorBuilder(Method, Body);
-            MethodBody body = builder.InjectInterceptor();
+            MethodBody body = builder.InjectInterceptor(reuseReferences);
 
             ResolveBody(body);
         }

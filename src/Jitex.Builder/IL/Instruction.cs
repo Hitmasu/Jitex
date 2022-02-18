@@ -4,6 +4,9 @@ using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using Jitex.Builder.Utils;
 
 namespace Jitex.Builder.IL
 {
@@ -16,6 +19,7 @@ namespace Jitex.Builder.IL
     [DebuggerDisplay("{OpCode} - {Value}")]
     public partial class Instruction
     {
+        private Type? _type;
         private bool _shouldUpdateBytes = true;
         private dynamic? _value;
         private byte[]? _bytes;
@@ -40,7 +44,7 @@ namespace Jitex.Builder.IL
         /// <summary>
         /// Size instruction (opcode length + value length)
         /// </summary>
-        public int Size => Bytes.Length;
+        public int Size => GetSize();
 
         /// <summary>
         /// Operation Code IL.
@@ -74,10 +78,13 @@ namespace Jitex.Builder.IL
         /// </summary>
         /// <param name="opCode">Operation Code IL.</param>
         /// <param name="value">Value from instruction.</param>
-        public Instruction(OpCode opCode, dynamic? value)
+        internal Instruction(OpCode opCode, object? value)
         {
             OpCode = opCode;
             Value = value;
+
+            if (value != null)
+                _type = value.GetType();
 
             if (Value is MemberInfo member)
                 MetadataToken = member.MetadataToken;
@@ -89,11 +96,28 @@ namespace Jitex.Builder.IL
         /// <param name="opCode">Operation Code IL.</param>
         /// <param name="value">Value from instruction.</param>
         /// <param name="metadataToken">MetadataToken from instruction.</param>
-        internal Instruction(OpCode opCode, dynamic? value, int metadataToken)
+        internal Instruction(OpCode opCode, object? value, int metadataToken)
         {
             OpCode = opCode;
             Value = value;
             MetadataToken = metadataToken;
+
+            if (value != null)
+                _type = value.GetType();
+        }
+
+        public int GetSize()
+        {
+            int size = OpCode.Size == 1 ? 1 : 2;
+
+            if (MetadataToken.HasValue)
+                size += 4;
+            else if (Value is byte)
+                size += 1;
+            else if (_type != null)
+                size += SizeOfHelper.SizeOf(_type!);
+
+            return size;
         }
 
         public byte[] ToBytes()
@@ -101,7 +125,7 @@ namespace Jitex.Builder.IL
             if (!_shouldUpdateBytes)
                 return _bytes!;
 
-            List<byte> bytes = new();
+            List<byte> bytes = new(10);
 
             if (OpCode.Size == 1)
                 bytes.Add((byte)OpCode.Value);
@@ -112,8 +136,8 @@ namespace Jitex.Builder.IL
                 bytes.AddRange(BitConverter.GetBytes(MetadataToken.Value));
             else if (Value is byte b)
                 bytes.Add(b);
-            else if (Value != null)
-                bytes.AddRange(BitConverter.GetBytes(Value));
+            else if (_value != null)
+                bytes.AddRange(BitConverter.GetBytes(_value));
 
             _bytes = bytes.ToArray();
             _shouldUpdateBytes = false;

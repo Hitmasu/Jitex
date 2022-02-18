@@ -72,12 +72,12 @@ namespace Jitex.Utils
             return hasCanon;
         }
 
-        public static Type GetTypeFromHandle(IntPtr handle)
+        internal static Type GetTypeFromHandle(IntPtr handle)
         {
             return (Type) GetTypeFromHandleUnsafe.Invoke(null, new object[] {handle});
         }
 
-        public static Type GetBaseTypeGeneric(Type type)
+        internal static Type GetBaseTypeGeneric(Type type)
         {
             if (!type.IsGenericType)
                 return type;

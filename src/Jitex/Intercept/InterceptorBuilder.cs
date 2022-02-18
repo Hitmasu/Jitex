@@ -73,15 +73,15 @@ namespace Jitex.Intercept
         /// </code>
         /// </remarks>
         /// <returns></returns>
-        public MethodBody InjectInterceptor()
+        public MethodBody InjectInterceptor(bool reuseReferences)
         {
             if (_imageReader == null)
             {
                 _imageReader = new(_method.Module);
-                _image = _imageReader.LoadImage();
+                _image = _imageReader.LoadImage(reuseReferences);
             }
 
-            IList<LocalVariableInfo> localVariables = _body.LocalVariables ?? new List<LocalVariableInfo>();
+            IList<LocalVariableInfo> localVariables = _body.LocalVariables;
 
             localVariables.Add(new LocalVariableInfo(typeof(CallContext)));
             int callContextVariableIndex = localVariables.Count - 1;
@@ -123,7 +123,6 @@ namespace Jitex.Intercept
             instructions.Add(Callvirt, getProceedCallMetadataToken);
             Instruction gotoInstruction = instructions.Add(Brfalse, 0); //if(context.ProceedCall)
 
-            var appp = _body.ReadIL().Where(w => w.OpCode != Nop);
             instructions.AddRange(_body.ReadIL());
             instructions.RemoveLast(); //Remove Ret instruction.
 
@@ -145,7 +144,6 @@ namespace Jitex.Intercept
                 LocalVariables = localVariables
             };
 
-            var inst = body.ReadIL().ToList().Where(w => w.OpCode != Nop);
             return body;
         }
 

@@ -23,19 +23,19 @@ namespace Jitex.PE
             _module = module;
         }
 
-        public ImageInfo LoadImage()
+        public ImageInfo LoadImage(bool reuseReferences)
         {
             if (!ImageCache.TryGetValue(_module, out _image))
             {
                 _image = new ImageInfo(_module);
                 ImageCache.Add(_module, _image);
-                ReadImage();
+                ReadImage(reuseReferences);
             }
 
             return _image;
         }
 
-        private void ReadImage()
+        private void ReadImage(bool readReferences)
         {
             _moduleContext = ModuleDef.CreateModuleContext();
             _moduleContext.AssemblyResolver = new CustomResolver();
@@ -50,9 +50,18 @@ namespace Jitex.PE
                     dicModules.Add(module.FullyQualifiedName, module);
             }
 
-            LoadMemberRefs(dicModules);
-            LoadTypeRefs(dicModules);
-            LoadMethodSpecs(dicModules);
+            if (readReferences)
+            {
+                LoadMemberRefs(dicModules);
+                LoadTypeRefs(dicModules);
+                LoadMethodSpecs(dicModules);
+            }
+            else
+            {
+                _image!.NumberOfMemberRefRows = (int) _moduleDef.TablesStream.MemberRefTable.Rows;
+                _image!.NumberOfTypeRefRows = (int) _moduleDef.TablesStream.TypeRefTable.Rows;
+                _image!.NumberOfMethodSpecRows = (int) _moduleDef!.TablesStream.MethodSpecTable.Rows;
+            }
         }
 
         private void LoadMemberRefs(IDictionary<string, Module> modules)
