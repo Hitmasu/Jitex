@@ -203,17 +203,15 @@ namespace Jitex.Utils
         /// <param name="methodHandle">Handle of method.</param>
         /// <param name="typeHandle">Handle of type.</param>
         /// <returns>Method from handle and type.</returns>
-        public static MethodBase? GetMethodFromHandle(IntPtr methodHandle, IntPtr typeHandle)
+        public static MethodBase? GetMethodFromHandle(IntPtr methodHandle, RuntimeTypeHandle typeHandle)
         {
             MethodBase? method = GetMethodFromHandle(methodHandle);
 
             if (method == null)
                 return null;
 
-            Type type = TypeHelper.GetTypeFromHandle(typeHandle);
-
             RuntimeMethodHandle handle = GetMethodHandle(method);
-            return MethodBase.GetMethodFromHandle(handle, type.TypeHandle);
+            return MethodBase.GetMethodFromHandle(handle, typeHandle);
         }
 
         public static IntPtr GetNativeAddress(MethodBase method)
@@ -255,7 +253,7 @@ namespace Jitex.Utils
             if (!IsReadyToRun(method))
                 return false;
 
-            NativeReader reader = new NativeReader(method.Module);
+            NativeReader reader = new(method.Module);
             return reader.DisableReadyToRun(method);
         }
 
@@ -487,7 +485,7 @@ namespace Jitex.Utils
                 method = methodInfo.GetGenericMethodDefinition().MakeGenericMethod(methodGenericArguments);
             }
 
-            return GetMethodFromHandle(method.MethodHandle.Value, declaringType.TypeHandle.Value)!;
+            return GetMethodFromHandle(method.MethodHandle.Value, declaringType.TypeHandle)!;
         }
 
         internal static void PrepareMethod(MethodBase method)

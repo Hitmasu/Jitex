@@ -368,9 +368,6 @@ namespace Jitex.Tests.Intercept
         [Fact]
         public async Task ValueTaskNonGeneric()
         {
-            #if NETCOREAPP2
-            return;
-            #endif
             await SimpleCallValueTaskAsync().ConfigureAwait(false);
 
             Assert.True(HasCalled(nameof(SimpleCallValueTaskAsync)), "Call not continued!");
@@ -409,9 +406,6 @@ namespace Jitex.Tests.Intercept
         [InlineData(2000, 7000)]
         public async Task ValueTaskGenericWithParameters(int n1, int n2)
         {
-            #if NETCOREAPP2
-            return;
-            #endif
             int result = await SumValueTaskAsync(n1, n2).ConfigureAwait(false);
 
             Assert.Equal(n1 + n2, result);
@@ -424,6 +418,24 @@ namespace Jitex.Tests.Intercept
 
             CallsIntercepted.TryRemove(nameof(ValueTaskGenericWithParameters), out _);
             MethodsCalled.TryRemove(nameof(ValueTaskGenericWithParameters), out _);
+        }
+
+        [Fact]
+        public void GenericParametersTest()
+        {
+            string typesName = GetTypesGeneric<int, InterceptPerson, Point>(10, new InterceptPerson(default), new Point());
+            string expected = $"{nameof(Int32)}.{nameof(InterceptPerson)}.{nameof(Point)}";
+
+            Assert.Equal(expected, typesName);
+
+            Assert.True(HasCalled(nameof(GetTypesGeneric)), "Call not continued!");
+            Assert.True(HasIntercepted(nameof(GetTypesGeneric)), "Method not intercepted!");
+
+            Assert.True(CountCalls(nameof(GetTypesGeneric)) == 1, "Called more than expected!");
+            Assert.True(CountIntercept(nameof(GetTypesGeneric)) == 1, "Intercepted more than expected!");
+
+            CallsIntercepted.TryRemove(nameof(GetTypesGeneric), out _);
+            MethodsCalled.TryRemove(nameof(GetTypesGeneric), out _);
         }
 
         private static string ReverseText(string text) => new(text.Reverse().ToArray());
@@ -532,9 +544,6 @@ namespace Jitex.Tests.Intercept
         [MethodImpl(MethodImplOptions.NoInlining)]
         public static async ValueTask SimpleCallValueTaskAsync()
         {
-            #if NETCOREAPP2
-            return;
-            #endif
             await Task.Delay(10);
             AddMethodCall(nameof(SimpleCallValueTaskAsync), caller: nameof(ValueTaskNonGeneric));
         }
@@ -551,11 +560,16 @@ namespace Jitex.Tests.Intercept
         [MethodImpl(MethodImplOptions.NoInlining)]
         private static async ValueTask<int> SumValueTaskAsync(int n1, int n2)
         {
-            #if NETCOREAPP2
-            return default;
-            #endif
             AddMethodCall(nameof(SumValueTaskAsync), caller: nameof(ValueTaskGenericWithParameters));
             return await new ValueTask<int>(n1 + n2);
+        }
+        
+        [InterceptCall]
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static string GetTypesGeneric<T1, T2, T3>(T1 p1, T2 p2, T3 p3)
+        {
+            AddMethodCall(nameof(GetTypesGeneric));
+            return $"{p1.GetType().Name}.{p2.GetType().Name}.{p3.GetType().Name}";
         }
 
         private static async Task InterceptorCall(CallContext context)
