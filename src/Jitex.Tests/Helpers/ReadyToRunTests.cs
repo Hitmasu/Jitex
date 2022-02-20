@@ -17,6 +17,10 @@ namespace Jitex.Tests.Helpers
 #if NETCOREAPP2
             return;
 #endif
+            
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                return;
+            
             MethodBase getIlGenerator = typeof(DynamicMethod).GetMethod("GetILGenerator", BindingFlags.Public | BindingFlags.Instance, null, Type.EmptyTypes, null);
 
             bool isReadyToRun = MethodHelper.IsReadyToRun(getIlGenerator);
@@ -29,6 +33,10 @@ namespace Jitex.Tests.Helpers
 #if NETCOREAPP2
             return;
 #endif
+            
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                return;
+            
             MethodBase methodNotReadyToRun = Utils.GetMethod<ReadyToRunTests>(nameof(MethodNotR2R));
 
             bool isReadyToRun = MethodHelper.IsReadyToRun(methodNotReadyToRun);
