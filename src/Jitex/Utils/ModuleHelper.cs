@@ -2,26 +2,29 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 
 namespace Jitex.Utils
 {
-    internal static class AppModules
+    internal static class ModuleHelper
     {
-        private static IDictionary<IntPtr, Module>? _mapScopeToHandle;
+        private static IDictionary<IntPtr, Module>? _mapAddressToModule;
         private static readonly FieldInfo m_pData;
-        private static readonly object LoadLock = new object();
+        private static readonly MethodInfo GetHInstance;
+        private static readonly object LoadLock = new();
 
-        static AppModules()
+        static ModuleHelper()
         {
             m_pData = Type.GetType("System.Reflection.RuntimeModule").GetField("m_pData", BindingFlags.NonPublic | BindingFlags.Instance);
+            GetHInstance = typeof(Marshal).GetMethod("GetHINSTANCE", new[] { typeof(Module) })!;
             LoadMapScopeToHandle();
         }
 
         private static void AddAssembly(Assembly assembly)
         {
             Module module = assembly.Modules.First();
-            IntPtr scope = GetHandleFromModule(module);
-            _mapScopeToHandle!.Add(scope, module);
+            IntPtr address = GetAddressFromModule(module);
+            _mapAddressToModule!.Add(address, module);
         }
 
         private static void CurrentDomainOnAssemblyLoad(object sender, AssemblyLoadEventArgs args)
@@ -30,25 +33,33 @@ namespace Jitex.Utils
             AddAssembly(args.LoadedAssembly);
         }
 
-        public static Module? GetModuleByHandle(IntPtr handle)
+        public static Module? GetModuleByAddress(IntPtr handle)
         {
             LoadMapScopeToHandle();
-            return _mapScopeToHandle!.TryGetValue(handle, out Module module) ? module : null;
+            return _mapAddressToModule!.TryGetValue(handle, out Module module) ? module : null;
         }
 
-        public static IntPtr GetHandleFromModule(Module module)
+        public static IntPtr GetAddressFromModule(Module module)
         {
             return (IntPtr)m_pData.GetValue(module);
+        }
+
+        public static IntPtr GetModuleHandle(Module module)
+        {
+            if (!OSHelper.IsWindows)
+                throw new InvalidOperationException();
+
+            return (IntPtr)GetHInstance.Invoke(null, new object[] { module });
         }
 
         private static void LoadMapScopeToHandle()
         {
             lock (LoadLock)
             {
-                if (_mapScopeToHandle != null)
+                if (_mapAddressToModule != null)
                     return;
 
-                _mapScopeToHandle = new Dictionary<IntPtr, Module>();
+                _mapAddressToModule = new Dictionary<IntPtr, Module>();
 
                 foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies())
                 {
