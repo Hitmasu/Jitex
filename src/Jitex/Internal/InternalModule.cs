@@ -15,7 +15,7 @@ using Pointer = Jitex.Utils.Pointer;
 
 namespace Jitex.Internal
 {
-    public class InternalModule : JitexModule
+    internal class InternalModule : JitexModule
     {
         private static readonly MethodInfo GetTypeFromHandle = typeof(Type).GetMethod(nameof(Type.GetTypeFromHandle))!;
 
@@ -40,7 +40,7 @@ namespace Jitex.Internal
                 return;
 
             if (context.TokenType is TokenKind.LdToken or TokenKind.Constrained)
-                context.ResolveTypeSpec(resolution.Module, context.MetadataToken);
+                context.ResolverMember(resolution.Module, context.MetadataToken);
             else if (resolution is MethodInfo {IsGenericMethod: true})
                 context.ResolverMember(resolution.Module, MetadataTokenBase.MethodSpec);
             else if (context.TokenType is TokenKind.LdToken or TokenKind.Constrained)

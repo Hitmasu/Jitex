@@ -248,12 +248,6 @@ namespace Jitex.JIT.Context
             ResolveMethod(constructor);
         }
 
-        public void ResolveTypeSpec(Module module, int metadataToken)
-        {
-            _resolvedToken!.Module = module;
-            _resolvedToken!.Token = metadataToken;
-        }
-
         /// <summary>
         /// Resolve string by content string.
         /// </summary>
