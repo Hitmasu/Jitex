@@ -3,6 +3,8 @@ using System.Collections.Concurrent;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using dnlib.DotNet;
+using dnlib.PE;
+using dnlib.W32Resources;
 using Jitex.Framework;
 using Jitex.JIT.CorInfo;
 using Jitex.Utils;
@@ -18,7 +20,7 @@ namespace Jitex.PE
 
         private readonly bool _hasRtr;
         private readonly IntPtr _base;
-        private readonly int _size;
+        private uint _size;
         private int _entryIndexSize;
         private int _nElements;
         private int _baseOffset;
@@ -33,8 +35,7 @@ namespace Jitex.PE
         {
             if (!Images.TryGetValue(module, out ImageInfo image))
             {
-                (_base, _size) = OSHelper.GetModuleBaseAddress(module.FullyQualifiedName);
-
+                _base = ModuleHelper.GetModuleHandle(module);
                 image = LoadImage(module);
                 Images.TryAdd(module, image);
                 _hasRtr = image.NumberOfElements > 0;
@@ -53,12 +54,14 @@ namespace Jitex.PE
         private ImageInfo LoadImage(Module module)
         {
             ModuleContext moduleContext = ModuleDef.CreateModuleContext();
-            ModuleDefMD moduleDef = ModuleDefMD.Load(module, moduleContext);
+            using ModuleDefMD moduleDef = ModuleDefMD.Load(module, moduleContext);
 
             bool hasR2R = moduleDef.Metadata.ImageCor20Header.HasNativeHeader && FrameworkSupportR2R;
 
             if (hasR2R)
             {
+                _size = moduleDef.Metadata.PEImage.DataReaderFactory.Length;
+
                 IntPtr startHeaderAddress = _base + (int) moduleDef.Metadata.ImageCor20Header.ManagedNativeHeader.VirtualAddress;
                 uint virtualAddress = GetEntryPointSection(startHeaderAddress);
 
@@ -88,7 +91,7 @@ namespace Jitex.PE
                 return 0;
 
             IntPtr startSection = startHeader + sizeof(READYTORUN_HEADER);
-            ReadOnlySpan<READYTORUN_SECTION> sections = new ReadOnlySpan<READYTORUN_SECTION>(startSection.ToPointer(), (int) header.CoreHeader.NumberOfSections);
+            ReadOnlySpan<READYTORUN_SECTION> sections = new(startSection.ToPointer(), (int) header.CoreHeader.NumberOfSections);
 
             foreach (READYTORUN_SECTION section in sections)
             {
@@ -99,7 +102,7 @@ namespace Jitex.PE
             return 0;
         }
 
-        protected unsafe int DecodeUnsigned(int offset, uint* pValue)
+        private unsafe int DecodeUnsigned(int offset, uint* pValue)
         {
             if (offset >= _size)
                 throw new BadImageFormatException();
@@ -155,7 +158,7 @@ namespace Jitex.PE
             if (!_hasRtr)
                 return false;
 
-            int index = method.GetRID() - 1;
+            int index = MethodHelper.GetRID(method) - 1;
 
             if (index >= _nElements)
                 return false;
@@ -217,7 +220,7 @@ namespace Jitex.PE
             if (OSHelper.IsOSX)
                 return false;
 
-            int index = method.GetRID() - 1;
+            int index = MethodHelper.GetRID(method) - 1;
 
             uint offset = _entryIndexSize switch
             {
