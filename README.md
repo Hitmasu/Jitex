@@ -25,7 +25,7 @@ using Jitex;
 
 JitexManager.AddMethodResolver(context =>
 {
-    if (context.Method.Name == "Sum")
+    if (context.Method.Name.Contains("Sum"))
         context.ResolveMethod<Func<int, int, int>>(Mul); //Replace Sum by Mul
 });
 
@@ -52,35 +52,33 @@ static int Mul(int n1, int n2) => n1 * n2;
 
 ## Intercept call
 
-> ⚠️ - Disabled on .NET 6 to fix some bugs (I'm working on that). Works normally on .NET 5 or below...
-
 ```c#
 using System;
 using Jitex;
 
-JitexManager.AddMethodResolver(context =>
+JitexManager.MethodResolver += context =>
 {
-    if (context.Method.Name == "Sum")
+    if (context.Method.Name.Contains("Sum"))
         context.InterceptCall();
-});
+};
 
 //Every call from Sum, will be pass here.
-JitexManager.AddInterceptor(async context =>
+JitexManager.Interceptor += async context =>
 {
     //Get parameters passed in call
-    int n1 = context.Parameters.GetParameterValue<int>(0);
-    int n2 = context.Parameters.GetParameterValue<int>(1);
+    int n1 = context.GetParameterValue<int>(0);
+    int n2 = context.GetParameterValue<int>(1);
 
     n1 *= 10;
     n2 *= 10;
 
     //Override parameters value
-    context.Parameters.SetParameterValue(0, n1);
-    context.Parameters.SetParameterValue(1, n2);
+    context.SetParameterValue(0, n1);
+    context.SetParameterValue(1, n2);
 
     //Or we can just set return value
-    context.ReturnValue = 100;
-});
+    context.SetReturnValue(100);
+};
 
 int result = Sum(5, 5); //Output is 100
 Console.WriteLine(result);
