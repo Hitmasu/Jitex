@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -17,80 +18,57 @@ namespace Jitex.Utils
 
         public static bool IsPosix => !IsWindows;
 
-        public static (IntPtr address, int size) GetModuleBaseAddress(string modulePath)
+        public static IntPtr GetModuleHandle(Module module)
         {
             IntPtr address;
-            int size;
 
             if (IsWindows)
-                (address, size) = GetModuleWindows(modulePath);
+                address = GetModuleWindows(module);
             else if (IsLinux)
-                (address, size) = GetModuleLinux(modulePath);
+                address = GetModuleLinux(module.FullyQualifiedName);
             else
-                (address, size) = GetModuleOSX(modulePath);
+                address = GetModuleOSX(module.FullyQualifiedName);
 
             if (address == default)
-                throw new BadImageFormatException($"Base address for module {modulePath} not found!");
+                throw new BadImageFormatException($"Base address for module {module.FullyQualifiedName} not found!");
 
-            byte b1 = MemoryHelper.Read<byte>(address);
-            byte b2 = MemoryHelper.Read<byte>(address, 1);
-
-            //Validate if address start with MZ
-            if (b1 != 0x4D || b2 != 0x5A)
-                throw new BadImageFormatException();
-
-            return (address, size);
+            return address;
         }
 
-        private static (IntPtr address, int size) GetModuleLinux(string modulePath)
+        private static IntPtr GetModuleLinux(string modulePath)
         {
-            int size = 0;
-
             lock (LockSelfMapsLinux)
             {
                 using FileStream fs = File.OpenRead("/proc/self/maps");
-                using StreamReader sr = new StreamReader(fs);
+                using StreamReader sr = new(fs);
 
                 do
                 {
                     string line = sr.ReadLine()!;
-
                     if (!line.EndsWith(modulePath))
                         continue;
 
                     int separator = line.IndexOf("-", StringComparison.Ordinal);
 
                     //TODO: Implement Span in future...
-                    long startAddress = long.Parse(line[..separator], NumberStyles.HexNumber);
+                    IntPtr address = new(long.Parse(line[..separator], NumberStyles.HexNumber));
 
-                    foreach (ProcessModule pModule in Process.GetCurrentProcess().Modules)
-                    {
-                        if (pModule.FileName == modulePath)
-                            size = pModule.ModuleMemorySize;
-                    }
+                    if (!ValidateModuleHandle(address))
+                        continue;
 
-                    return (new IntPtr(startAddress), size);
+                    return address;
                 } while (!sr.EndOfStream);
             }
 
             return default;
         }
 
-        private static (IntPtr address, int size) GetModuleWindows(string modulePath)
-        {
-            foreach (ProcessModule pModule in Process.GetCurrentProcess().Modules)
-            {
-                if (pModule.FileName == modulePath)
-                    return (pModule.BaseAddress, pModule.ModuleMemorySize);
-            }
+        private static IntPtr GetModuleWindows(Module module) => ModuleHelper.GetModuleHandle(module);
 
-            return default;
-        }
-
-        private static (IntPtr address, int size) GetModuleOSX(string modulePath)
+        private static IntPtr GetModuleOSX(string modulePath)
         {
             //TODO: Get modules from mach_vm_region and proc_regionfilename.
-            Process proc = new Process
+            Process proc = new()
             {
                 StartInfo = new ProcessStartInfo
                 {
@@ -103,23 +81,36 @@ namespace Jitex.Utils
             };
 
             proc.Start();
-
-            StringBuilder sb = new StringBuilder();
             while (!proc.StandardOutput.EndOfStream)
             {
-                string line = proc.StandardOutput.ReadLine();
-                sb.AppendLine(line);
+                string? line = proc.StandardOutput.ReadLine();
+
+                if (string.IsNullOrEmpty(line))
+                    break;
+
                 if (!line.EndsWith(Path.GetFileName(modulePath)))
                     continue;
 
                 int middleAddress = line.IndexOf("-");
                 int startRangeAddress = line.LastIndexOf(' ', middleAddress) + 1;
-                long startAddress = long.Parse(line[startRangeAddress..middleAddress], NumberStyles.HexNumber);
+                IntPtr address = new(long.Parse(line[startRangeAddress..middleAddress], NumberStyles.HexNumber));
 
-                return (new IntPtr(startAddress), int.MaxValue);
+                if (!ValidateModuleHandle(address))
+                    continue;
+
+                return address;
             }
 
             return default;
+        }
+
+        private static bool ValidateModuleHandle(IntPtr address)
+        {
+            byte b1 = MemoryHelper.Read<byte>(address);
+            byte b2 = MemoryHelper.Read<byte>(address, 1);
+
+            //Validate if address start with MZ
+            return b1 == 0x4D && b2 == 0x5A;
         }
     }
 }

@@ -20,7 +20,7 @@ namespace Jitex.PE
 
         public Module Module { get; internal set; }
         public IntPtr BaseAddress { get; internal set; }
-        public int Size { get; internal set; }
+        public uint Size { get; internal set; }
         public uint NumberOfElements { get; internal set; }
         public byte EntryIndexSize { get; internal set; }
         public int BaseOffset { get; internal set; }
@@ -30,7 +30,7 @@ namespace Jitex.PE
             Module = module;
         }
 
-        internal ImageInfo(Module module, IntPtr baseAddress, int size, int baseOffset, uint numberOfElements, byte entryIndexSize)
+        internal ImageInfo(Module module, IntPtr baseAddress, uint size, int baseOffset, uint numberOfElements, byte entryIndexSize)
         {
             Module = module;
             BaseAddress = baseAddress;

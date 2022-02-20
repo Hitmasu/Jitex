@@ -39,7 +39,7 @@ namespace Jitex.Utils
 
         private static Func<int> CreateSizeOfMethod(Type type)
         {
-            DynamicMethod dm = new DynamicMethod($"SizeOfFrom{type.Name}", typeof(int), Type.EmptyTypes);
+            DynamicMethod dm = new($"SizeOfFrom{type.Name}", typeof(int), Type.EmptyTypes);
             ILGenerator generator = dm.GetILGenerator();
             generator.Emit(OpCodes.Sizeof, type);
             generator.Emit(OpCodes.Ret);

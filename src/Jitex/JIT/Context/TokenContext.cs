@@ -189,7 +189,7 @@ namespace Jitex.JIT.Context
         /// /// <param name="hasSource">Has source from call.</param>
         internal TokenContext(ConstructString constructString, MethodBase? source, bool hasSource) : base(source, hasSource)
         {
-            _module = AppModules.GetModuleByHandle(constructString.HandleModule);
+            _module = ModuleHelper.GetModuleByAddress(constructString.HandleModule);
 
             TokenType = TokenKind.String;
             MetadataToken = constructString.MetadataToken;

@@ -12,7 +12,7 @@ namespace Jitex.Tests.Helpers
     public class ReadyToRunTests
     {
         [Fact]
-        public void De3tectMethodIsReadyToRunTest()
+        public void DetectMethodIsReadyToRunTest()
         {
 #if NETCOREAPP2
             return;
