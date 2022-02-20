@@ -1,62 +1,77 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-	<PropertyGroup>
-		<TargetFramework>netstandard2.0</TargetFramework>
-		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-		<Nullable>enable</Nullable>
-		<Platforms>AnyCPU;x64</Platforms>
-		<Authors>Hitmasu</Authors>
-		<Company />
-		<Description>A library to modify MSIL and native code at runtime.</Description>
-		<PackageProjectUrl>https://github.com/Hitmasu/Jitex</PackageProjectUrl>
-		<RepositoryUrl>https://github.com/Hitmasu/Jitex</RepositoryUrl>
-		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-		<PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
-		<PackageLicenseExpression>MIT</PackageLicenseExpression>
-		<PackageTags>JIT</PackageTags>
-		<LangVersion>9</LangVersion>
-		<AssemblyName>Jitex</AssemblyName>
-		<PackageIcon>nuget.png</PackageIcon>
-		<Version>6.4.0</Version>
-		<RepositoryType>Git</RepositoryType>
-	</PropertyGroup>
+    <PropertyGroup>
+        <TargetFramework>netstandard2.0</TargetFramework>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <Nullable>enable</Nullable>
+        <Platforms>AnyCPU;x64</Platforms>
+        <Authors>Hitmasu</Authors>
+        <Company/>
+        <Description>A library to modify MSIL and native code at runtime.</Description>
+        <PackageProjectUrl>https://github.com/Hitmasu/Jitex</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/Hitmasu/Jitex</RepositoryUrl>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PackageTags>JIT</PackageTags>
+        <LangVersion>9</LangVersion>
+        <AssemblyName>Jitex</AssemblyName>
+        <PackageIcon>nuget.png</PackageIcon>
+        <Version>6.4.0</Version>
+        <RepositoryType>Git</RepositoryType>
+    </PropertyGroup>
 
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-		<PlatformTarget>x64</PlatformTarget>
-	</PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <PlatformTarget>x64</PlatformTarget>
+    </PropertyGroup>
 
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-	  <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-	  <PlatformTarget>x64</PlatformTarget>
-	</PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <PlatformTarget>x64</PlatformTarget>
+    </PropertyGroup>
 
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-		<PlatformTarget>x64</PlatformTarget>
-	</PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <PlatformTarget>x64</PlatformTarget>
+    </PropertyGroup>
 
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-	  <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-	  <PlatformTarget>x64</PlatformTarget>
-	</PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <PlatformTarget>x64</PlatformTarget>
+    </PropertyGroup>
 
-	<ItemGroup>
-		<PackageReference Include="dnlib" Version="3.4.0" />
-		<PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
-		<PackageReference Include="Microsoft.Extensions.Logging" Version="5.0.0" />
-		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="5.0.0" />
-		<PackageReference Include="System.Memory" Version="4.5.4" />
-		<PackageReference Include="Mono.Posix.NETStandard" Version="1.0.0" />
-		<PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="5.0.0" />
-		<PackageReference Include="System.Threading.Tasks.Extensions" Version="4.5.4" />
-	</ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="dnlib" Version="3.4.0"/>
+        <PackageReference Include="Microsoft.CSharp" Version="4.7.0"/>
 
-	<ItemGroup>
-		<None Include="..\..\logos\nuget.png" Pack="true" PackagePath="" />
-	</ItemGroup>
+        <PackageReference Include="System.Memory" Version="4.5.4"/>
+        <PackageReference Include="Mono.Posix.NETStandard" Version="1.0.0"/>
+        <PackageReference Include="System.Threading.Tasks.Extensions" Version="4.5.4"/>
+    </ItemGroup>
 
-	<ItemGroup>
-	  <ProjectReference Include="..\Jitex.Builder\Jitex.Builder.csproj" />
-	</ItemGroup>
+    <Choose>
+        <When Condition="'$(TargetFramework)' == 'NETCOREAPP3_1_OR_GREATER'">
+            <ItemGroup>
+                <PackageReference Include="Microsoft.Extensions.Logging" Version="6.0.0"/>
+                <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="6.0.0"/>
+                <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.0.0"/>
+            </ItemGroup>
+        </When>
+        <Otherwise>
+            <ItemGroup>
+                <PackageReference Include="Microsoft.Extensions.Logging" Version="5.0.0"/>
+                <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="5.0.0"/>
+                <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="5.0.0"/>
+            </ItemGroup>
+        </Otherwise>
+    </Choose>
+
+    <ItemGroup>
+        <None Include="..\..\logos\nuget.png" Pack="true" PackagePath=""/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Jitex.Builder\Jitex.Builder.csproj"/>
+    </ItemGroup>
 </Project>
