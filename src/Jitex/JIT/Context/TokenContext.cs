@@ -2,6 +2,7 @@
 using System.Reflection;
 using Jitex.JIT.CorInfo;
 using Jitex.Utils;
+using MethodInfo = System.Reflection.MethodInfo;
 
 namespace Jitex.JIT.Context
 {
@@ -21,7 +22,7 @@ namespace Jitex.JIT.Context
         public TokenKind TokenType
         {
             get => _resolvedToken?.Type ?? _tokenType;
-            internal set => _tokenType = value;
+            private set => _tokenType = value;
         }
 
         /// <summary>
@@ -32,7 +33,7 @@ namespace Jitex.JIT.Context
             get
             {
                 if (TokenType == TokenKind.String)
-                    throw new InvalidOperationException("String don't have context.");
+                    return IntPtr.Zero;
 
                 return _resolvedToken!.Context;
             }
@@ -50,7 +51,7 @@ namespace Jitex.JIT.Context
             get
             {
                 if (TokenType == TokenKind.String)
-                    throw new InvalidOperationException("String don't have scope.");
+                    return IntPtr.Zero;
 
                 return _resolvedToken!.Scope;
             }
@@ -104,7 +105,7 @@ namespace Jitex.JIT.Context
                         return _resolvedToken!.HClass;
 
                     case TokenKind.String:
-                        throw new InvalidOperationException("String don't have handle.");
+                        return IntPtr.Zero;
 
                     default:
                         throw new NotImplementedException();
@@ -217,14 +218,25 @@ namespace Jitex.JIT.Context
             }
         }
 
+        public void ResolverMember(MemberInfo memberInfo)
+        {
+            _resolvedToken!.Module = memberInfo.Module;
+            _resolvedToken.Token = memberInfo.MetadataToken;
+        }
+
+        public void ResolverMember(Module module, int md)
+        {
+            _resolvedToken!.Module = module;
+            _resolvedToken!.Token = md;
+        }
+
         /// <summary>
         /// Resolve token by method.
         /// </summary>
         /// <param name="method">Method to replace.</param>
         public void ResolveMethod(MethodBase method)
         {
-            _resolvedToken!.Module = method.Module;
-            _resolvedToken.Token = method.MetadataToken;
+            ResolverMember(method);
         }
 
         /// <summary>

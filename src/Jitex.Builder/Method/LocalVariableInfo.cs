@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Diagnostics;
-using System.Reflection;
 
 namespace Jitex.Builder.Method
 {
@@ -10,18 +9,15 @@ namespace Jitex.Builder.Method
     [DebuggerDisplay("{Type.Name}")]
     public class LocalVariableInfo
     {
-        private static readonly MethodInfo GetCorElementType;
-        private static readonly FieldInfo GetRuntimeType;
-
         /// <summary>
         /// Type from local variable.
         /// </summary>
         public Type Type { get; }
 
         /// <summary>
-        /// Type identifier from variable.
+        /// If variable is pinned.
         /// </summary>
-        public CorElementType ElementType => DetectCorElementType(Type);
+        public bool IsPinned { get; set; }
 
         /// <summary>
         /// Create a local variable from type.
@@ -32,28 +28,15 @@ namespace Jitex.Builder.Method
             Type = type;
         }
 
-        static LocalVariableInfo()
-        {
-            GetCorElementType = typeof(RuntimeTypeHandle).GetMethod("GetCorElementType", BindingFlags.Static | BindingFlags.NonPublic);
-            GetRuntimeType = typeof(RuntimeTypeHandle).GetField("m_type", BindingFlags.Instance | BindingFlags.NonPublic);
-        }
-        
         /// <summary>
-        /// Detect type identifier from a type.
+        /// Create a local variable from type.
         /// </summary>
-        /// <param name="type">Type to detect.</param>
-        /// <returns>Identifier from type.</returns>
-        public static CorElementType DetectCorElementType(Type type)
+        /// <param name="type">Type of local variable.</param>
+        /// <param name="isPinned">Variable is pinned.</param>
+        public LocalVariableInfo(Type type, bool isPinned)
         {
-            //GetCorElementType will return ELEMENT_TYPE_CLASS to string.
-            if (type == typeof(string))
-            {
-                return CorElementType.ELEMENT_TYPE_STRING;
-            }
-                
-            object runtime = GetRuntimeType.GetValue(type.TypeHandle);
-            object corElementType = GetCorElementType.Invoke(null, new[] {runtime});
-            return (CorElementType) (byte) corElementType;
+            Type = type;
+            IsPinned = isPinned;
         }
     }
 }

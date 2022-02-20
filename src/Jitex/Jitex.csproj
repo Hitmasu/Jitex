@@ -12,7 +12,6 @@
 		<RepositoryUrl>https://github.com/Hitmasu/Jitex</RepositoryUrl>
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 		<PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
-		<PackageLicenseFile></PackageLicenseFile>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<PackageTags>JIT</PackageTags>
 		<LangVersion>9</LangVersion>
@@ -43,13 +42,13 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="dnlib" Version="3.3.3" />
-		<PackageReference Include="Iced" Version="1.13.0" />
+		<PackageReference Include="dnlib" Version="3.4.0" />
 		<PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
 		<PackageReference Include="Microsoft.Extensions.Logging" Version="5.0.0" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="5.0.0" />
 		<PackageReference Include="System.Memory" Version="4.5.4" />
 		<PackageReference Include="Mono.Posix.NETStandard" Version="1.0.0" />
+		<PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="5.0.0" />
 		<PackageReference Include="System.Threading.Tasks.Extensions" Version="4.5.4" />
 	</ItemGroup>
 
@@ -60,5 +59,4 @@
 	<ItemGroup>
 	  <ProjectReference Include="..\Jitex.Builder\Jitex.Builder.csproj" />
 	</ItemGroup>
-
 </Project>

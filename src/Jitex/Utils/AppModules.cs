@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using Jitex.Utils.Comparer;
 
 namespace Jitex.Utils
 {
@@ -21,7 +20,7 @@ namespace Jitex.Utils
         private static void AddAssembly(Assembly assembly)
         {
             Module module = assembly.Modules.First();
-            IntPtr scope = GetAddressFromModule(module);
+            IntPtr scope = GetHandleFromModule(module);
             _mapScopeToHandle!.Add(scope, module);
         }
 
@@ -37,7 +36,7 @@ namespace Jitex.Utils
             return _mapScopeToHandle!.TryGetValue(handle, out Module module) ? module : null;
         }
 
-        public static IntPtr GetAddressFromModule(Module module)
+        public static IntPtr GetHandleFromModule(Module module)
         {
             return (IntPtr)m_pData.GetValue(module);
         }

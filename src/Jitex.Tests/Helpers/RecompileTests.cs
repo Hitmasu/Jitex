@@ -2,8 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.InteropServices;
-using System.Threading.Tasks;
 using Jitex.JIT.Context;
 using Jitex.Tests.Helpers.Attributes;
 using Jitex.Tests.Helpers.Recompile;
@@ -14,6 +12,7 @@ using static Jitex.Tests.LogOutput;
 
 namespace Jitex.Tests.Helpers
 {
+    [Collection("Manager")]
     public class RecompileTests
     {
         private static IList<MethodBase> MethodsCompiled { get; } = new List<MethodBase>();

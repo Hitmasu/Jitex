@@ -10,6 +10,7 @@ using Xunit;
 
 namespace Jitex.Tests.Helpers
 {
+    [Collection("Manager")]
     public class GenericRecompileTests
     {
         private static IList<MethodBase> MethodsCompiled { get; } = new List<MethodBase>();

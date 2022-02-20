@@ -69,7 +69,7 @@ namespace Jitex
         /// <summary>
         /// Returns if Jitex is enabled. 
         /// </summary>
-        public static bool IsEnabled => _jit is {IsEnabled: true};
+        public static bool IsEnabled => _jit is { IsEnabled: true };
 
         /// <summary>
         /// Enable Jitex
@@ -91,7 +91,7 @@ namespace Jitex
             {
                 if (!ModuleIsLoaded(typeModule))
                 {
-                    JitexModule module = (JitexModule) Activator.CreateInstance(typeModule);
+                    JitexModule module = (JitexModule)Activator.CreateInstance(typeModule);
 
                     module.LoadResolvers();
 
@@ -113,7 +113,7 @@ namespace Jitex
             {
                 if (!ModuleIsLoaded(typeModule))
                 {
-                    JitexModule module = (JitexModule) instance;
+                    JitexModule module = (JitexModule)instance;
 
                     module.LoadResolvers();
 
@@ -327,6 +327,20 @@ namespace Jitex
         /// <summary>
         /// Unload Jitex and modules from application.
         /// </summary>
+
+        public static bool TryGetModule<TModule>(out TModule? instance)
+            where TModule : JitexModule
+        {
+            if (!ModulesLoaded.TryGetValue(typeof(TModule), out JitexModule loadedInstance))
+            {
+                instance = null;
+                return false;
+            }
+
+            instance = (TModule)loadedInstance;
+            return true;
+        }
+
         public static void Remove()
         {
             if (_jit != null)

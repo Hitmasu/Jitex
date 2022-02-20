@@ -72,7 +72,7 @@ namespace Jitex.JIT.CorInfo
                 if (value == null)
                     throw new ArgumentNullException();
 
-                IntPtr scope = AppModules.GetAddressFromModule(value);
+                IntPtr scope = AppModules.GetHandleFromModule(value);
                 Scope = scope;
             }
         }

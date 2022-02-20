@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Reflection;
 using System.Reflection.Emit;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Jitex.Utils;
 using Xunit;
@@ -9,10 +8,11 @@ using Xunit;
 
 namespace Jitex.Tests.Helpers
 {
+    [Collection("Manager")]
     public class ReadyToRunTests
     {
         [Fact]
-        public void DetectMethodIsReadyToRunTest()
+        public void De3tectMethodIsReadyToRunTest()
         {
 #if NETCOREAPP2
             return;
