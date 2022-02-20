@@ -6,11 +6,13 @@
             netcoreapp2.2;
             netcoreapp3.0;
             netcoreapp3.1;
-            net5.0
+            net5.0;
+            net6.0;
         </TargetFrameworks>
         <IsPackable>false</IsPackable>
         <LangVersion>default</LangVersion>
         <Platforms>AnyCPU;x64</Platforms>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -114,10 +116,6 @@
 
     <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|netcoreapp2.1|x64'">
         <DefineConstants>NETCOREAPP2</DefineConstants>
-        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    </PropertyGroup>
-
-    <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|netcoreapp3.0|x64'">
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 

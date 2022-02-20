@@ -12,54 +12,74 @@ namespace Jitex.Builder.IL.Resolver
             _module = module;
         }
 
-        public FieldInfo ResolveField(int token)
+        public FieldInfo ResolveField(int token, out bool isResolved)
         {
-            return _module.ResolveField(token);
+            FieldInfo fieldInfo = _module.ResolveField(token);
+            isResolved = true;
+            return fieldInfo;
         }
 
-        public FieldInfo ResolveField(int token, Type[] genericTypeArguments, Type[] genericMethodArguments)
+        public FieldInfo ResolveField(int token, Type[]? genericTypeArguments, Type[]? genericMethodArguments, out bool isResolved)
         {
-            return _module.ResolveField(token, genericTypeArguments, genericMethodArguments);
+            FieldInfo fieldInfo = _module.ResolveField(token, genericTypeArguments, genericMethodArguments);
+            isResolved = true;
+            return fieldInfo;
         }
 
-        public MemberInfo ResolveMember(int token)
+        public MemberInfo ResolveMember(int token, out bool isResolved)
         {
-            return _module.ResolveMember(token);
+            MemberInfo memberInfo = _module.ResolveMember(token);
+            isResolved = true;
+            return memberInfo;
         }
 
-        public MemberInfo ResolveMember(int token, Type[] genericTypeArguments, Type[] genericMethodArguments)
+        public MemberInfo ResolveMember(int token, Type[]? genericTypeArguments, Type[]? genericMethodArguments, out bool isResolved)
         {
-            return _module.ResolveMember(token, genericTypeArguments, genericMethodArguments);
+            MemberInfo memberInfo = _module.ResolveMember(token, genericTypeArguments, genericMethodArguments);
+            isResolved = true;
+            return memberInfo;
         }
 
-        public MethodBase ResolveMethod(int token)
+        public MethodBase ResolveMethod(int token, out bool isResolved)
         {
-            return _module.ResolveMethod(token);
+            MethodBase methodBase = _module.ResolveMethod(token);
+            isResolved = true;
+            return methodBase;
         }
 
-        public MethodBase ResolveMethod(int token, Type[] genericTypeArguments, Type[] genericMethodArguments)
+        public MethodBase ResolveMethod(int token, Type[]? genericTypeArguments, Type[]? genericMethodArguments, out bool isResolved)
         {
-            return _module.ResolveMethod(token, genericTypeArguments, genericMethodArguments);
+            MethodBase methodBase = _module.ResolveMethod(token, genericTypeArguments, genericMethodArguments);
+            isResolved = true;
+            return methodBase;
         }
 
-        public byte[] ResolveSignature(int token)
+        public byte[] ResolveSignature(int token, out bool isResolved)
         {
-            return _module.ResolveSignature(token);
+            byte[] signature = _module.ResolveSignature(token);
+            isResolved = true;
+            return signature;
         }
 
-        public string ResolveString(int token)
+        public string ResolveString(int token, out bool isResolved)
         {
-            return _module.ResolveString(token);
+            string @string = _module.ResolveString(token);
+            isResolved = true;
+            return @string;
         }
 
-        public Type ResolveType(int token)
+        public Type ResolveType(int token, out bool isResolved)
         {
-            return _module.ResolveType(token);
+            Type type = _module.ResolveType(token);
+            isResolved = true;
+            return type;
         }
 
-        public Type ResolveType(int token, Type[] genericTypeArguments, Type[] genericMethodArguments)
+        public Type ResolveType(int token, Type[]? genericTypeArguments, Type[]? genericMethodArguments, out bool isResolved)
         {
-            return _module.ResolveType(token, genericTypeArguments, genericMethodArguments);
+            Type type = _module.ResolveType(token, genericTypeArguments, genericMethodArguments);
+            isResolved = true;
+            return type;
         }
     }
 }

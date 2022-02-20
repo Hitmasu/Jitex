@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Jitex.Exceptions;
@@ -12,7 +13,6 @@ namespace Jitex.JIT.CorInfo
         private static IntPtr CEEInfoVTable => RuntimeFramework.Framework.CEEInfoVTable;
 
         private static readonly ConstructStringLiteralDelegate _constructStringLiteral;
-
         private static readonly ResolveTokenDelegate _resolveToken;
 
         public static IntPtr ResolveTokenIndex { get; }

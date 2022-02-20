@@ -1,388 +1,330 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.InteropServices;
+using System.Runtime.CompilerServices;
+using System.Threading;
 using System.Threading.Tasks;
 using Jitex.Utils;
 using Jitex.Utils.Extension;
+using Pointer = Jitex.Utils.Pointer;
 
 namespace Jitex.Intercept
 {
     /// <summary>
-    /// Context of call.
+    /// Context from call
     /// </summary>
-    /// <remarks>
-    /// That should contains all information necessary to continue (or not) with call.
-    /// </remarks>
-    public class CallContext : IDisposable
+    public class CallContext
     {
-        private readonly Type? _returnType;
-        private Parameter? _returnValue;
-        private Parameter? _instanceValue;
+        private readonly VariableInfo? _instance;
+        private readonly VariableInfo[] _parameters;
+        private readonly Type _returnType;
+        private readonly VariableInfo? _returnValue;
 
-        private readonly bool _hasCanon;
-
-        /// <summary>
-        /// Handle for generic method or generic type.
-        /// </summary>
-        private readonly Parameter? _handle;
+        private AutoResetEvent? _autoResetEvent;
+        private SemaphoreSlim? _semaphoreSlim;
 
         /// <summary>
-        /// Return case method has instance parameter.
-        /// </summary>
-        public bool HasInstance => !Method.IsConstructor && !Method.IsStatic;
-
-        /// <summary>
-        /// Return case method has return (no void).
-        /// </summary>
-        public bool HasReturn => _returnType != null && _returnType != typeof(void);
-
-        /// <summary>
-        /// Method source call.
+        /// Method from call
         /// </summary>
         public MethodBase Method { get; }
 
         /// <summary>
-        /// Delegate to original call.
-        /// </summary>
-        /// <remarks>
-        /// This delegate is a pointer to our unmodified native code of original method.
-        /// Original native code has be detoured and cant run "normal" again, so we should continue call in another address.
-        /// </remarks>
-        private Delegate Call { get; }
-
-        /// <summary>
-        /// Instance passed in call (non-static methods).
-        /// </summary>
-        public object? Instance
-        {
-            get => HasInstance ? _instanceValue!.Value : _instanceValue;
-
-            set
-            {
-                if (!HasInstance) throw new ArgumentException($"Method {Method.Name} don't have instance.");
-
-                _instanceValue!.Dispose();
-
-                if (value == null)
-                    _instanceValue = new Parameter(IntPtr.Zero, Method.DeclaringType!);
-                else
-                    _instanceValue = new Parameter(value, Method.DeclaringType!);
-            }
-        }
-
-        /// <summary>
-        /// Parameters passed in call.
-        /// </summary>
-        public Parameters Parameters { get; }
-
-        /// <summary>
-        /// If original call should proceed.
+        /// If should continue with original call. 
         /// </summary>
         public bool ProceedCall { get; set; } = true;
 
-        public bool IsAwaitable { get; }
-
         /// <summary>
-        /// Return value of call.
-        /// </summary>
-        public object? ReturnValue
-        {
-            get => _returnValue?.Value;
-
-            set
-            {
-                _returnValue?.Dispose();
-
-                if (value != null)
-                    _returnValue = new Parameter(ref value, _returnType!);
-                else
-                    _returnValue = null;
-
-                ProceedCall = false;
-            }
-        }
-
-        public IntPtr ReturnAddress
-        {
-            get
-            {
-                if (_returnValue == null)
-                    return IntPtr.Zero;
-
-                return _returnValue.AddressValue;
-            }
-        }
-
-        /// <summary>
-        /// Raw parameters from call.
+        /// If context is waiting for end of call
         /// </summary>
         /// <remarks>
-        /// That include all arguments passed: Instance, Parameters and Generic Arguments.
+        /// Is used to hold original call after call ContinueAsync. 
         /// </remarks>
-        public IEnumerable<Parameter> RawParameters
+        internal bool IsWaitingForEnd { get; private set; }
+
+        /// <summary>
+        /// Create a new context from call (Should not be called directly). 
+        /// </summary>
+        /// <param name="methodHandle">Handle from method called.</param>
+        /// <param name="methodGenericArguments"></param>
+        /// <param name="instance">Instance passed on call.</param>
+        /// <param name="returnValue">Pointer to variable of return method.</param>
+        /// <param name="parameters">Pointer for each parameter from call.</param>
+        /// <param name="typeGenericArguments"></param>
+        public CallContext(long methodHandle, Type[]? typeGenericArguments, Type[]? methodGenericArguments, Pointer? instance, Pointer? returnValue, params Pointer[] parameters)
         {
-            get
+            //TODO: Move to out from constructor
+            Method = MethodHelper.GetMethodFromHandle(new IntPtr(methodHandle))!;
+
+            if (Method is MethodInfo methodInfo)
             {
-                List<Parameter> rawParameters = new List<Parameter>();
-
-                if (!Method.IsStatic)
-                    rawParameters.Add(_instanceValue!);
-
-                if (_hasCanon)
-                    rawParameters.Add(_handle!);
-
-                if (Parameters.Any())
-                    rawParameters.AddRange(Parameters);
-
-                return rawParameters;
-            }
-        }
-
-        private object[] ParametersCall => RawParameters.Select(w => w.RealValue).ToArray()!;
-
-        internal CallContext(MethodBase method, Delegate call, bool hasCanon, in object[] parameters)
-        {
-            Method = method;
-            Call = call;
-            IsAwaitable = method.IsAwaitable();
-
-            if (method is MethodInfo methodInfo)
                 _returnType = methodInfo.ReturnType;
+                _returnValue = new VariableInfo(returnValue!, _returnType);
 
-            int startIndex = 0;
-
-            if (HasInstance)
-            {
-                IntPtr instanceAddress = (IntPtr)parameters[startIndex++];
-                _instanceValue = new Parameter(instanceAddress, Method.DeclaringType!);
-            }
-
-            if (hasCanon)
-            {
-                _hasCanon = true;
-
-                IntPtr handle = (IntPtr)parameters[startIndex++];
-                _handle = new Parameter(handle, typeof(IntPtr), false);
-            }
-
-            Parameter[] parametersInfo = new Parameter[parameters.Length - startIndex];
-
-            Type[] parametersMethod = Method.GetParameters().Select(w => w.ParameterType).ToArray();
-
-            for (int i = startIndex; i < parameters.Length; i++)
-            {
-                object parameter = parameters[i];
-                Type parameterType = parametersMethod[i - startIndex];
-
-                parametersInfo[i - startIndex] = new Parameter((IntPtr)parameter, parameterType);
-            }
-
-            Parameters = new Parameters(parametersInfo);
-        }
-
-        /// <summary>
-        /// Continue original call.
-        /// </summary>
-        internal void ContinueFlow()
-        {
-            if (!HasReturn)
-            {
-                Call.DynamicInvoke(ParametersCall);
+                Method = MethodHelper.TryInitializeGenericMethod(Method, typeGenericArguments, methodGenericArguments);
             }
             else
             {
-                object returnValue = Call.DynamicInvoke(ParametersCall);
-
-                if (returnValue is IntPtr returnAddress)
-                {
-                    if (_returnType!.IsStruct())
-                    {
-                        if (_returnType!.SizeOf() <= IntPtr.Size)
-                        {
-                            IntPtr reference = MarshalHelper.GetReferenceFromTypedReference(__makeref(returnValue));
-                            IntPtr valueAddress;
-
-                            unsafe
-                            {
-                                valueAddress = *(IntPtr*)reference;
-                                valueAddress += IntPtr.Size;
-                            }
-
-                            returnAddress = valueAddress;
-                        }
-                        else
-                        {
-                            returnAddress += IntPtr.Size;
-                        }
-                    }
-
-                    _returnValue = new Parameter(returnAddress, _returnType!, isReturnAddress: true);
-                }
-                else
-                {
-                    ReturnValue = returnValue;
-                }
+                _returnType = typeof(void);
             }
+
+            _parameters = new VariableInfo[parameters.Length];
+
+            if (instance != null)
+                _instance = new VariableInfo(instance, Method.DeclaringType!);
+
+            Type[] types = Method.GetParameters().Select(w => w.ParameterType).ToArray();
+
+            for (int i = 0; i < parameters.Length; i++)
+                _parameters[i] = new VariableInfo(parameters[i], types[i]);
         }
 
         /// <summary>
-        /// Continue original call.
+        /// Continue with original call.
         /// </summary>
-        internal async Task ContinueFlowAsync()
+        public async Task ContinueAsync()
         {
-            if (!IsAwaitable)
-            {
-                ContinueFlow();
-                return;
-            }
+            _semaphoreSlim = new SemaphoreSlim(0);
+            IsWaitingForEnd = true;
 
-            object returnValue = (await ContinueAsync().ConfigureAwait(false))!;
-
-            if (returnValue is IntPtr returnAddress)
-            {
-                _returnValue = new Parameter(returnAddress, _returnType!, isReturnAddress: true);
-            }
-            else
-            {
-                ReturnValue = returnValue;
-            }
+            ContinueWithCode();
+            await _semaphoreSlim.WaitAsync().ConfigureAwait(false);
         }
 
-        public object? Continue()
+        /// <summary>
+        /// Continue with original call and get return value of type <typeparamref name="T"/> (if has return).
+        /// </summary>
+        /// <typeparam name="T">Type from return value.</typeparam>
+        /// <returns>Return value from call.</returns>
+        public async Task<T?> ContinueAsync<T>()
         {
+            await ContinueAsync();
+
             if (_returnType == typeof(void))
-            {
-                Call.DynamicInvoke(ParametersCall);
-                ProceedCall = false;
-                return null;
-            }
-
-            object returnValue = Call.DynamicInvoke(ParametersCall);
-            ProceedCall = false;
-            ReturnValue = CreateReturnValue(ref returnValue);
-            return ReturnValue;
-        }
-
-        public async Task<object?> ContinueAsync()
-        {
-            if (!IsAwaitable)
-                return Continue();
-
-            object returnValue = Continue()!;
-            ProceedCall = false;
-
-            Task task = default!;
-
-            if (returnValue is Task value)
-            {
-                task = value;
-            }
-            else if (returnValue is ValueTask valueTask)
-            {
-                task = valueTask.AsTask();
-            }
-            else if (_returnType!.IsValueTask())
-            {
-                Type valueTaskType = typeof(ValueTask<>).MakeGenericType(_returnType!.GetGenericArguments().First());
-                MethodInfo asTask = valueTaskType!.GetMethod("AsTask", BindingFlags.Public | BindingFlags.Instance)!;
-                task = (Task)asTask.Invoke(returnValue, null);
-            }
-
-            await task.ConfigureAwait(false);
-
-            if (!_returnType!.IsGenericType)
-                return null;
-
-            Type taskGeneric = typeof(Task<>).MakeGenericType(_returnType.GetGenericArguments().First());
-            PropertyInfo getResult = taskGeneric.GetProperty("Result")!;
-            return getResult.GetValue(task);
-        }
-
-        /// <summary>
-        /// Continue original call and retrieve result.
-        /// </summary>
-        /// <typeparam name="TResult">Type expected from result.</typeparam>
-        /// <returns>Result from original call (Returns default on void or constructor).</returns>
-        public TResult? Continue<TResult>()
-        {
-            object? returnValue = Continue();
-
-            if (returnValue == null)
                 return default;
 
-            return (TResult?)returnValue;
+            T? returnValue = GetReturnValue<T>();
+
+            return returnValue ?? default;
         }
 
         /// <summary>
-        /// Continue original call and retrieve result.
+        /// Get instance used on call.
         /// </summary>
-        /// <typeparam name="TResult">Type expected from result.</typeparam>
-        /// <returns>Result from original call (Returns default on void or constructor).</returns>
-        public async ValueTask<TResult?> ContinueAsync<TResult>()
+        /// <returns>Instance used on call.</returns>
+        public object GetInstance()
         {
-            object? returnValue = await ContinueAsync();
-
-            if (returnValue == null)
-                return default;
-
-            return (TResult?)returnValue;
-        }
-
-
-        private object? CreateReturnValue(ref object returnValue)
-        {
-            if (Method is MethodInfo)
-            {
-                if (_returnType == typeof(void))
-                    return default;
-
-                if (_returnType!.IsStruct())
-                {
-                    if (returnValue is IntPtr address)
-                        return MarshalHelper.GetObjectFromAddress(address, _returnType!);
-
-                    return returnValue;
-                }
-
-                IntPtr ptrReturn = (IntPtr)returnValue; //Address of instance/Value is returned.
-                IntPtr refReturn;
-
-                if (_returnType!.IsAwaitable() || Marshal.ReadIntPtr(ptrReturn) == _returnType!.TypeHandle.Value)
-                {
-                    unsafe
-                    {
-                        refReturn = (IntPtr)(&ptrReturn); //It's necessary create a reference to address of instance/value.
-                    }
-                }
-                else
-                {
-                    refReturn = ptrReturn;
-                }
-
-                returnValue = MarshalHelper.GetObjectFromAddress(refReturn, _returnType!);
-
-                return returnValue;
-            }
-
-            return default;
+            ValidateInstance();
+            return _instance!.GetValue()!;
         }
 
         /// <summary>
-        /// Disable method to be intercepted again.
+        /// Get instance of type <typeparamref name="T"/> used on call.
         /// </summary>
-        public void DisableIntercept()
+        /// <typeparam name="T">Type from instance.</typeparam>
+        /// <returns>instance used on call.</returns>
+        public ref T GetInstance<T>()
         {
-            JitexManager.DisableIntercept(Method);
+            ValidateInstance();
+            ValidateType<T>(Method.DeclaringType!);
+
+            return ref _instance!.GetValueRef<T>()!;
         }
 
-        public void Dispose()
+        /// <summary>
+        /// Get address from parameter.
+        /// </summary>
+        /// <param name="index">Position from parameter.</param>
+        /// <returns>Address from parameter.</returns>
+        public IntPtr GetParameterAddress(int index)
         {
-            _returnValue?.Dispose();
-            _instanceValue?.Dispose();
-            _handle?.Dispose();
-            Parameters?.Dispose();
+            VariableInfo variableInfo = GetParameter(index);
+
+            return variableInfo.GetAddress();
         }
+
+        /// <summary>
+        /// Get value from parameter.
+        /// </summary>
+        /// <param name="index">Position from parameter.</param>
+        /// <returns>Value from parameter.</returns>
+        public object? GetParameterValue(int index)
+        {
+            VariableInfo variableInfo = GetParameter(index);
+            return variableInfo.GetValue();
+        }
+
+        /// <summary>
+        /// Get reference to a parameter value of type <typeparamref name="T"/>.
+        /// </summary>
+        /// <param name="index">Position from parameter.</param>
+        /// <typeparam name="T">Type from parameter.</typeparam>
+        /// <returns>A reference to a value of type <typeparamref name="T"/></returns>
+        public ref T? GetParameterValue<T>(int index)
+        {
+            VariableInfo variableInfo = GetParameter(index);
+
+            ValidateType<T>(variableInfo.Type);
+
+            return ref variableInfo.GetValueRef<T>();
+        }
+
+        /// <summary>
+        /// Get return value from call.
+        /// </summary>
+        /// <returns>Return value.</returns>
+        public object? GetReturnValue() => _returnValue?.GetValue();
+
+        /// <summary>
+        /// Get reference to return value of type <typeparamref name="T"/> from method.
+        /// </summary>
+        /// <typeparam name="T">Type from return.</typeparam>
+        /// <returns>A reference to a value of type <typeparamref name="T"/></returns>
+        public ref T? GetReturnValue<T>()
+        {
+            ValidateType<T>(_returnType!);
+
+            if (_returnValue == null)
+                return ref Unsafe.NullRef<T>()!;
+
+            return ref _returnValue.GetValueRef<T>();
+        }
+
+
+        /// <summary>
+        /// Get address from variable of return value.
+        /// </summary>
+        /// <returns></returns>
+        public IntPtr GetReturnValueAddress() => _returnValue?.GetAddress() ?? default;
+
+        /// <summary>
+        /// Set a reference to a value of type <typeparamref name="T"/> in a parameter.
+        /// </summary>
+        /// <param name="index">Position from parameter.</param>
+        /// <param name="value">A reference of type <typeparamref name="T"/> to set.</param>
+        /// <typeparam name="T">Type from parameter.</typeparam>
+        public void SetParameterValue<T>(int index, ref T value)
+        {
+            VariableInfo variableInfo = GetParameter(index);
+
+            ValidateType<T>(variableInfo.Type);
+
+            variableInfo.SetValue(ref value);
+        }
+
+        /// <summary>
+        /// Set a value of type <typeparamref name="T"/> in a parameter.
+        /// </summary>
+        /// <param name="index">Position from parameter.</param>
+        /// <param name="value">A reference of type <typeparamref name="T"/> to set.</param>
+        /// <typeparam name="T">Type from parameter.</typeparam>
+        public void SetParameterValue<T>(int index, T value)
+        {
+            VariableInfo variableInfo = GetParameter(index);
+
+            ValidateType<T>(variableInfo.Type);
+
+            variableInfo.SetValue(value);
+        }
+
+        /// <summary>
+        /// Set a reference to a value of type <typeparamref name="T"/> on return from call.
+        /// </summary>
+        /// <param name="value">A reference of type <typeparamref name="T"/> to set.</param>
+        /// <typeparam name="T">Type from return.</typeparam>
+        public void SetReturnValue<T>(ref T value)
+        {
+            ValidateReturnType<T>();
+            ValidateType<T>(_returnType!);
+
+            _returnValue!.SetValue(ref value);
+            ProceedCall = false;
+        }
+
+        /// <summary>
+        /// Set value of type <typeparamref name="T"/> on return from call.
+        /// </summary>
+        /// <param name="value">A value of type <typeparamref name="T"/> to set.</param>
+        /// <typeparam name="T">Type from return.</typeparam>
+        public void SetReturnValue<T>(T value)
+        {
+            ValidateReturnType<T>();
+            ValidateType<T>(_returnType!);
+
+            _returnValue!.SetValue(value);
+            ProceedCall = false;
+        }
+
+        internal void ContinueWithCode()
+        {
+            if (_autoResetEvent == null)
+                _autoResetEvent = new AutoResetEvent(true);
+
+            _autoResetEvent.Set();
+        }
+
+        internal void ReleaseSignal()
+        {
+            if (_semaphoreSlim == null)
+                throw new InvalidOperationException("Interceptor is not waiting.");
+
+            _semaphoreSlim.Release();
+        }
+
+        internal void WaitToContinue()
+        {
+            if (_autoResetEvent == null)
+                _autoResetEvent = new AutoResetEvent(false);
+
+            _autoResetEvent.WaitOne();
+        }
+
+        private VariableInfo GetParameter(int index)
+        {
+            ValidateParameterIndex(index);
+            return _parameters[index];
+        }
+
+        #region Validations
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void ValidateParameterIndex(int index)
+        {
+            if (index > _parameters.Length - 1 || index < 0)
+                throw new ArgumentOutOfRangeException(nameof(index), "Index was out of range. Must be non-negative and less than the size of the collection.");
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void ValidateInstance()
+        {
+            if (Method.IsStatic)
+                throw new InvalidOperationException("Method static don't have instance.");
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void ValidateReturnType<T>()
+        {
+            if (_returnType == null)
+                throw new InvalidOperationException($"Method {Method} doesn't have return.");
+
+            if (_returnType == typeof(void))
+                throw new InvalidOperationException($"Method {Method} is declared as void.");
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void ValidateType<T>(Type expectedType)
+        {
+            Type typeArgument = typeof(T);
+
+            if (expectedType.IsByRef)
+                expectedType = expectedType.GetElementType()!;
+
+            if (expectedType == TypeHelper.CanonType && typeArgument.IsCanon())
+                return;
+
+            if (typeArgument != expectedType)
+                throw new ArgumentException($"Invalid type passed by argument. Expected: {expectedType!.FullName}, Passed: {typeArgument.FullName}");
+        }
+
+        #endregion
     }
 }

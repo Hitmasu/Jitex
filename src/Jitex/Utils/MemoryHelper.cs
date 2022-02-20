@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -88,7 +87,7 @@ namespace Jitex.Utils
                 lock (LockSelfMemLinux)
                 {
                     //Prevent segmentation fault.
-                    using FileStream fs = File.Open($"/proc/self/mem", FileMode.Open, FileAccess.ReadWrite);
+                    using FileStream fs = File.Open("/proc/self/mem", FileMode.Open, FileAccess.ReadWrite);
                     fs.Seek(address.ToInt64(), SeekOrigin.Begin);
                     fs.Write(byteValue, 0, byteValue.Length);
                 }
@@ -100,22 +99,22 @@ namespace Jitex.Utils
             }
         }
 
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Write<T>(IntPtr address, int offset, T value) => Write(address + offset, value);
 
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static unsafe void Write<T>(IntPtr address, T value) => Unsafe.Write(address.ToPointer(), value);
 
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static T Read<T>(IntPtr address, int offset) => Read<T>(address + offset);
 
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static unsafe T Read<T>(IntPtr address) => Unsafe.Read<T>(address.ToPointer());
 
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static T ReadUnaligned<T>(IntPtr address, int offset) => ReadUnaligned<T>(address + offset);
 
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static unsafe T ReadUnaligned<T>(IntPtr address) => Unsafe.ReadUnaligned<T>(address.ToPointer());
     }
 }

@@ -7,7 +7,7 @@ A library to modify MSIL/Native code at runtime.
 It's a library built in .NET Standard 2.0, works on all version >=.NET Core 2.0.
 
 
-|             | .NET Core (2.0 ~ 3.1) | .NET 5             | .NET Framework (4.6.1 ~ 4.8)           | Mono              |
+|             | .NET Core (2.1 ~ 3.1) | .NET 5~6           | .NET Framework (4.6.1 ~ 4.8)           | Mono              |
 | ----------- | --------------------- | ------------------ | -------------------------------------- | ----------------- |
 | **Windows** | :heavy_check_mark:    | :heavy_check_mark: | :building_construction: In development | :x: Not supported |
 | **Linux**   | :heavy_check_mark:    | :heavy_check_mark: | :x: Not supported                      | :x: Not supported |
@@ -25,7 +25,7 @@ using Jitex;
 
 JitexManager.AddMethodResolver(context =>
 {
-    if (context.Method.Name == "Sum")
+    if (context.Method.Name.Contains("Sum"))
         context.ResolveMethod<Func<int, int, int>>(Mul); //Replace Sum by Mul
 });
 
@@ -56,29 +56,29 @@ static int Mul(int n1, int n2) => n1 * n2;
 using System;
 using Jitex;
 
-JitexManager.AddMethodResolver(context =>
+JitexManager.MethodResolver += context =>
 {
-    if (context.Method.Name == "Sum")
+    if (context.Method.Name.Contains("Sum"))
         context.InterceptCall();
-});
+};
 
 //Every call from Sum, will be pass here.
-JitexManager.AddInterceptor(async context =>
+JitexManager.Interceptor += async context =>
 {
     //Get parameters passed in call
-    int n1 = context.Parameters.GetParameterValue<int>(0);
-    int n2 = context.Parameters.GetParameterValue<int>(1);
+    int n1 = context.GetParameterValue<int>(0);
+    int n2 = context.GetParameterValue<int>(1);
 
     n1 *= 10;
     n2 *= 10;
 
     //Override parameters value
-    context.Parameters.SetParameterValue(0, n1);
-    context.Parameters.SetParameterValue(1, n2);
+    context.SetParameterValue(0, n1);
+    context.SetParameterValue(1, n2);
 
     //Or we can just set return value
-    context.ReturnValue = 100;
-});
+    context.SetReturnValue(100);
+};
 
 int result = Sum(5, 5); //Output is 100
 Console.WriteLine(result);

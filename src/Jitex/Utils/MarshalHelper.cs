@@ -6,11 +6,7 @@ using Jitex.Utils.Extension;
 
 namespace Jitex.Utils
 {
-    /// <summary>
-    /// 
-    /// </summary>
-    //That class should be public, because is used by InterceptBuilder to get parameters references.
-    public static class MarshalHelper
+    internal static class MarshalHelper
     {
         private static readonly IntPtr ObjectTypeHandle;
 
@@ -18,17 +14,6 @@ namespace Jitex.Utils
         {
             ObjectTypeHandle = typeof(object).TypeHandle.Value;
         }
-
-        /// <summary>
-        /// Get reference address from a TypedReference.
-        /// </summary>
-        /// <remarks>
-        /// That is usefull in async methods (where we can't declare TypedReference).
-        /// </remarks>
-        /// <param name="typeRef">Reference to get address.</param>
-        /// <returns>Reference address from TypedReference.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe IntPtr GetReferenceFromTypedReference(TypedReference typeRef) => *(IntPtr*) &typeRef;
 
         /// <summary>
         /// Get reference address from object.
@@ -39,15 +24,13 @@ namespace Jitex.Utils
         internal static unsafe IntPtr GetReferenceFromObject(ref object obj)
         {
             TypedReference typeRef = __makeref(obj);
-            return *(IntPtr*) &typeRef;
+            return *(IntPtr*)&typeRef;
         }
 
         internal static object GetObjectFromAddress(IntPtr address, Type type)
         {
             if (type.IsStruct())
-            {
                 return GetStructFromAddress(address, type);
-            }
 
             return GetObjectFromReference(address);
         }
@@ -86,7 +69,7 @@ namespace Jitex.Utils
 
             unsafe
             {
-                unitializedObjRef = *(IntPtr*) unitializedObjRef;
+                unitializedObjRef = *(IntPtr*)unitializedObjRef;
                 unitializedObjRef += IntPtr.Size;
                 source = new Span<byte>(address.ToPointer(), size);
                 dest = new Span<byte>(unitializedObjRef.ToPointer(), size);

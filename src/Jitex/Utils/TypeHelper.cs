@@ -1,10 +1,10 @@
 ﻿using Jitex.Utils.Extension;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
-using RuntimeTypeHandle = System.RuntimeTypeHandle;
 
 namespace Jitex.Utils
 {
@@ -13,14 +13,13 @@ namespace Jitex.Utils
     /// </summary>
     internal static class TypeHelper
     {
-        private static readonly Type CanonType;
-        private static readonly MethodInfo GetTypeFromHandleUnsafe;
+        public static Type CanonType { get; }
+
         private static readonly IDictionary<Type, int> CacheSizeOf = new Dictionary<Type, int>();
 
         static TypeHelper()
         {
             CanonType = Type.GetType("System.__Canon");
-            GetTypeFromHandleUnsafe = typeof(Type).GetMethod("GetTypeFromHandleUnsafe", BindingFlags.Static | BindingFlags.NonPublic);
         }
 
         public static int SizeOf(Type type)
@@ -40,20 +39,17 @@ namespace Jitex.Utils
 
         private static Func<int> CreateSizeOfMethod(Type type)
         {
-            DynamicMethod dm = new DynamicMethod($"SizeOfFrom{type.Name}", typeof(int), Type.EmptyTypes);
+            DynamicMethod dm = new($"SizeOfFrom{type.Name}", typeof(int), Type.EmptyTypes);
             ILGenerator generator = dm.GetILGenerator();
             generator.Emit(OpCodes.Sizeof, type);
             generator.Emit(OpCodes.Ret);
 
-            return (Func<int>)dm.CreateDelegate(typeof(Func<int>));
+            return (Func<int>) dm.CreateDelegate(typeof(Func<int>));
         }
 
         internal static bool HasCanon(Type? type, bool ignoreCanonType = false)
         {
-            if (type == null)
-                return false;
-
-            if (!type.IsGenericType)
+            if (type is not {IsGenericType: true})
                 return false;
 
             Type[] types = type.GetGenericArguments();
@@ -75,15 +71,7 @@ namespace Jitex.Utils
             return hasCanon;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsGeneric(Type? type) => type is { IsGenericType: true };
-
-        public static Type GetTypeFromHandle(IntPtr handle)
-        {
-            return (Type)GetTypeFromHandleUnsafe.Invoke(null, new object[] { handle });
-        }
-
-        public static Type GetBaseTypeGeneric(Type type)
+        internal static Type GetBaseTypeGeneric(Type type)
         {
             if (!type.IsGenericType)
                 return type;

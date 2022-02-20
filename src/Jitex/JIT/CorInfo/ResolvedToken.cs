@@ -58,15 +58,15 @@ namespace Jitex.JIT.CorInfo
 
         public Module? Module
         {
-            get => AppModules.GetModuleByHandle(Scope);
+            get => ModuleHelper.GetModuleByAddress(Scope);
 
             set
             {
                 if(value == null)
                     throw new ArgumentNullException();
 
-                IntPtr scope = AppModules.GetAddressFromModule(value);
-                Scope = scope;
+                IntPtr moduleAddress = ModuleHelper.GetAddressFromModule(value);
+                Scope = moduleAddress;
             }
         }
 

@@ -91,28 +91,6 @@ namespace Jitex.Tests.Intercept
         [InlineData("Michael", 26)]
         [InlineData("Brenda", 32)]
         [InlineData("Felipe", 48)]
-        public void ModifyInstanceTest(string name, int age)
-        {
-            InterceptPerson person = new(name, age);
-
-            int result = person.GetAgeAfter10Years();
-            int expected = person.Age - 10;
-
-            Assert.Equal(expected, result);
-            Assert.Equal(name, person.Name);
-            Assert.Equal(age, person.Age);
-
-            Assert.True(HasIntercepted(nameof(InterceptPerson.GetAgeAfter10Years)), "Method not intercepted!");
-            Assert.True(CountIntercept(nameof(InterceptPerson.GetAgeAfter10Years)) == 1, "Intercepted more than expected!");
-
-            CallsIntercepted.TryRemove(nameof(ModifyInstanceTest), out _);
-            MethodsCalled.TryRemove(nameof(ModifyInstanceTest), out _);
-        }
-
-        [Theory]
-        [InlineData("Michael", 26)]
-        [InlineData("Brenda", 32)]
-        [InlineData("Felipe", 48)]
         public void ModifyObjectParameterTest(string name, int age)
         {
             InterceptPerson person = new(name, age);
@@ -440,6 +418,24 @@ namespace Jitex.Tests.Intercept
             MethodsCalled.TryRemove(nameof(ValueTaskGenericWithParameters), out _);
         }
 
+        [Fact]
+        public void GenericParametersTest()
+        {
+            string typesName = GetTypesGeneric<int, InterceptPerson, Point>(10, new InterceptPerson(default), new Point());
+            string expected = $"{nameof(Int32)}.{nameof(InterceptPerson)}.{nameof(Point)}";
+
+            Assert.Equal(expected, typesName);
+
+            Assert.True(HasCalled(nameof(GetTypesGeneric)), "Call not continued!");
+            Assert.True(HasIntercepted(nameof(GetTypesGeneric)), "Method not intercepted!");
+
+            Assert.True(CountCalls(nameof(GetTypesGeneric)) == 1, "Called more than expected!");
+            Assert.True(CountIntercept(nameof(GetTypesGeneric)) == 1, "Intercepted more than expected!");
+
+            CallsIntercepted.TryRemove(nameof(GetTypesGeneric), out _);
+            MethodsCalled.TryRemove(nameof(GetTypesGeneric), out _);
+        }
+
         private static string ReverseText(string text) => new(text.Reverse().ToArray());
 
         [InterceptCall]
@@ -548,7 +544,15 @@ namespace Jitex.Tests.Intercept
             return await new ValueTask<int>(n1 + n2);
         }
 
-        private static async ValueTask InterceptorCall(CallContext context)
+        [InterceptCall]
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private string GetTypesGeneric<T1, T2, T3>(T1 p1, T2 p2, T3 p3)
+        {
+            AddMethodCall(nameof(GetTypesGeneric));
+            return $"{p1.GetType().Name}.{p2.GetType().Name}.{p3.GetType().Name}";
+        }
+
+        private static async Task InterceptorCall(CallContext context)
         {
             AddMethodCall(context.Method.Name, true);
 
@@ -559,34 +563,24 @@ namespace Jitex.Tests.Intercept
 
             if (testSource.Name == nameof(ModifyPrimitiveReturnTest))
             {
-                context.ReturnValue = 11;
+                context.SetReturnValue(11);
             }
             else if (testSource.Name == nameof(ModifyPrimitiveParametersTest))
             {
-                int n1 = context.Parameters.GetParameterValue<int>(0);
-                int n2 = context.Parameters.GetParameterValue<int>(1);
+                int n1 = context.GetParameterValue<int>(0);
+                int n2 = context.GetParameterValue<int>(1);
 
-                context.Parameters.SetParameterValue(0, n1 + n2);
-                context.Parameters.SetParameterValue(1, n1 * n2);
-            }
-            else if (testSource.Name == nameof(ModifyInstanceTest) && context.Method.Name == nameof(InterceptPerson.GetAgeAfter10Years))
-            {
-                InterceptPerson interceptPerson = (InterceptPerson) context.Instance;
-                InterceptPerson newPerson = interceptPerson with
-                {
-                    Age = interceptPerson.Age - 20
-                };
-
-                context.Instance = newPerson;
+                context.SetParameterValue(0, n1 + n2);
+                context.SetParameterValue(1, n1 * n2);
             }
             else if (testSource.Name == nameof(ModifyObjectParameterTest) && context.Method.Name == nameof(SumAge))
             {
-                InterceptPerson interceptPerson = context.Parameters!.GetParameterValue<InterceptPerson>(0);
+                InterceptPerson interceptPerson = context.GetParameterValue<InterceptPerson>(0)!;
                 interceptPerson.Age += 255;
             }
             else if (testSource.Name == nameof(ModifyValueTypeParametersTest) && context.Method.Name == nameof(CreatePoint))
             {
-                Point point = context.Parameters!.GetParameterValue<Point>(0);
+                Point point = context.GetParameterValue<Point>(0)!;
 
                 int x = point.X;
                 int y = point.Y;
@@ -594,55 +588,66 @@ namespace Jitex.Tests.Intercept
                 point.X += y;
                 point.Y += x;
 
-                context.Parameters.SetParameterValue(0, point);
+                context.SetParameterValue(0, point);
             }
             else if (testSource.Name == nameof(ModifyClassReturnTest) && context.Method.Name == nameof(MakeNewPerson))
             {
-                InterceptPerson person = context.Parameters.GetParameterValue<InterceptPerson>(0);
+                InterceptPerson person = context.GetParameterValue<InterceptPerson>(0)!;
 
                 string newName = ReverseText(person.Name);
                 int newAge = person.Age * person.Age;
 
-                context.ReturnValue = new InterceptPerson(newName, newAge);
+                InterceptPerson returnValue = new InterceptPerson(newName, newAge);
+                context.SetReturnValue(returnValue);
             }
             else if (testSource.Name == nameof(ModifyRefPrimitiveParametersTest) && context.Method.Name == nameof(SimpleSumRef))
             {
-                int n1 = context.Parameters.GetParameterValue<int>(0);
-                int n2 = context.Parameters.GetParameterValue<int>(1);
+                ModifyParameters();
 
-                int newN1 = n1 * n2;
-                int newN2 = n2 + n1;
+                void ModifyParameters()
+                {
+                    ref int n1 = ref context.GetParameterValue<int>(0);
+                    ref int n2 = ref context.GetParameterValue<int>(1);
 
-                context.Parameters.OverrideParameterValue(0, newN1);
-                context.Parameters.OverrideParameterValue(1, newN2);
+                    int newN1 = n1 * n2;
+                    int newN2 = n2 + n1;
+
+                    n1 = newN1;
+                    n2 = newN2;
+                }
             }
             else if (testSource.Name == nameof(ModifyOutParametersTest) && context.Method.Name == nameof(SimpleSumOut))
             {
-                int n1 = context.Parameters.GetParameterValue<int>(0);
-                int n2 = context.Parameters.GetParameterValue<int>(1);
+                ModifyParameters();
 
-                int newN1 = n1 * n2;
-                int newN2 = n2 + n1;
-                int result = newN1 + newN2;
+                void ModifyParameters()
+                {
+                    ref int n1 = ref context.GetParameterValue<int>(0);
+                    ref int n2 = ref context.GetParameterValue<int>(1);
+                    ref int result = ref context.GetParameterValue<int>(2);
 
-                context.Parameters.OverrideParameterValue(2, result);
-                context.ProceedCall = false;
+                    int newN1 = n1 * n2;
+                    int newN2 = n1 + n2;
+                    result = newN1 + newN2;
+
+                    context.ProceedCall = false;
+                }
             }
             else if (testSource.Name == nameof(ModifyRefValueTypeReturn) && context.Method.Name == nameof(CreatePoint))
             {
-                int x = context.Parameters.GetParameterValue<int>(0);
-                int y = context.Parameters.GetParameterValue<int>(1);
+                int x = context.GetParameterValue<int>(0);
+                int y = context.GetParameterValue<int>(1);
 
                 Point point = new(x + y, x - y);
-                context.ReturnValue = point;
+                context.SetReturnValue(point);
             }
             else if (testSource.Name == nameof(ModifyRefClassReturn) && context.Method.Name == nameof(CreatePerson))
             {
-                string name = context.Parameters.GetParameterValue<string>(0);
-                int age = context.Parameters.GetParameterValue<int>(1);
+                string name = context.GetParameterValue<string>(0);
+                int age = context.GetParameterValue<int>(1);
 
                 InterceptPerson person = new(name + " " + name, age + age);
-                context.ReturnValue = person;
+                context.SetReturnValue(person);
             }
         }
 
