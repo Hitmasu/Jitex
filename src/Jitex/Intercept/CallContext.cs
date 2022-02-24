@@ -34,6 +34,16 @@ namespace Jitex.Intercept
         public bool ProceedCall { get; set; } = true;
 
         /// <summary>
+        /// If method has return value
+        /// </summary>
+        public bool HasReturn => _returnType != typeof(void);
+
+        /// <summary>
+        /// Number of parameters
+        /// </summary>
+        public int ParametersCount => _parameters.Length;
+
+        /// <summary>
         /// If context is waiting for end of call
         /// </summary>
         /// <remarks>
@@ -99,7 +109,7 @@ namespace Jitex.Intercept
         {
             await ContinueAsync();
 
-            if (_returnType == typeof(void))
+            if (!HasReturn)
                 return default;
 
             T? returnValue = GetReturnValue<T>();
@@ -206,7 +216,8 @@ namespace Jitex.Intercept
         {
             VariableInfo variableInfo = GetParameter(index);
 
-            ValidateType<T>(variableInfo.Type);
+            if (value != null)
+                ValidateType(value.GetType(), variableInfo.Type);
 
             variableInfo.SetValue(ref value);
         }
@@ -221,7 +232,8 @@ namespace Jitex.Intercept
         {
             VariableInfo variableInfo = GetParameter(index);
 
-            ValidateType<T>(variableInfo.Type);
+            if (value != null)
+                ValidateType(value.GetType(), variableInfo.Type);
 
             variableInfo.SetValue(value);
         }
@@ -234,7 +246,9 @@ namespace Jitex.Intercept
         public void SetReturnValue<T>(ref T value)
         {
             ValidateReturnType<T>();
-            ValidateType<T>(_returnType!);
+
+            if (value != null)
+                ValidateType(value.GetType(), _returnType);
 
             _returnValue!.SetValue(ref value);
             ProceedCall = false;
@@ -248,7 +262,9 @@ namespace Jitex.Intercept
         public void SetReturnValue<T>(T value)
         {
             ValidateReturnType<T>();
-            ValidateType<T>(_returnType!);
+
+            if (value != null)
+                ValidateType(value.GetType(), _returnType);
 
             _returnValue!.SetValue(value);
             ProceedCall = false;
@@ -303,17 +319,21 @@ namespace Jitex.Intercept
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void ValidateReturnType<T>()
         {
-            if (_returnType == null)
+            if (!HasReturn)
                 throw new InvalidOperationException($"Method {Method} doesn't have return.");
-
-            if (_returnType == typeof(void))
-                throw new InvalidOperationException($"Method {Method} is declared as void.");
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void ValidateType<T>(Type expectedType)
         {
             Type typeArgument = typeof(T);
+
+            ValidateType(typeArgument, expectedType);
+        }
+
+        private void ValidateType(Type type, Type expectedType)
+        {
+            Type typeArgument = type;
 
             if (expectedType.IsByRef)
                 expectedType = expectedType.GetElementType()!;

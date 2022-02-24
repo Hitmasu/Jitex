@@ -1,17 +1,11 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Drawing;
-using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using Jitex.JIT.Context;
 using Jitex.JIT.CorInfo;
-using Jitex.PE;
 using Jitex.Utils;
 using MethodInfo = System.Reflection.MethodInfo;
-using Pointer = Jitex.Utils.Pointer;
 
 namespace Jitex.Internal
 {
@@ -41,7 +35,7 @@ namespace Jitex.Internal
 
             if (context.TokenType is TokenKind.LdToken or TokenKind.Constrained)
                 context.ResolverMember(resolution.Module, context.MetadataToken);
-            else if (resolution is MethodInfo {IsGenericMethod: true})
+            else if (resolution is MethodInfo { IsGenericMethod: true })
                 context.ResolverMember(resolution.Module, MetadataTokenBase.MethodSpec);
             else if (context.TokenType is TokenKind.LdToken or TokenKind.Constrained)
                 context.ResolverMember(resolution.Module, context.MetadataToken);
