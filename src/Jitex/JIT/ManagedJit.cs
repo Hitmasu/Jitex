@@ -354,7 +354,10 @@ namespace Jitex.JIT
                 CorJitResult result = _framework.CompileMethod(thisPtr, comp, info, flags, out nativeEntry, out nativeSizeOfCode);
 
                 if (result != CorJitResult.CORJIT_OK)
+                {
                     Log?.LogCritical($"Result from original compileMethod: {result}");
+                    return result;
+                }
 
                 MethodCompiled methodCompiled = new(methodFound, methodContext, methodInfo, result, nativeEntry, nativeSizeOfCode);
                 RuntimeMethodCache.AddMethod(methodCompiled);
@@ -407,7 +410,6 @@ namespace Jitex.JIT
                 nativeEntry = default;
                 nativeSizeOfCode = default;
                 throw new Exception("Failed compile method.", ex);
-                return 0;
             }
             finally
             {
