@@ -103,16 +103,17 @@ namespace Jitex.Intercept
         /// <summary>
         /// Continue with original call and get return value of type <typeparamref name="T"/> (if has return).
         /// </summary>
+        /// <param name="innerResult">If should consume task when return is a Task or ValueTask.</param>
         /// <typeparam name="T">Type from return value.</typeparam>
         /// <returns>Return value from call.</returns>
-        public async Task<T?> ContinueAsync<T>()
+        public async Task<T?> ContinueAsync<T>(bool innerResult = true)
         {
-            await ContinueAsync();
+            await ContinueAsync().ConfigureAwait(false);
 
             if (!HasReturn)
                 return default;
 
-            T? returnValue = GetReturnValue<T>();
+            T? returnValue = await GetReturnValueAsync<T>(innerResult).ConfigureAwait(false);
 
             return returnValue ?? default;
         }
@@ -183,6 +184,36 @@ namespace Jitex.Intercept
         /// </summary>
         /// <returns>Return value.</returns>
         public object? GetReturnValue() => _returnValue?.GetValue();
+
+        
+        /// <summary>
+        /// Get return value as <typeparamref name="T"/>.
+        /// </summary>
+        /// <param name="innerResult">If should consume task when return is a Task or ValueTask.</param>
+        /// <typeparam name="T">Type from return.</typeparam>
+        /// <returns>Return value from method as <typeparamref name="T"/></returns>
+        public async Task<T?> GetReturnValueAsync<T>(bool innerResult = true)
+        {
+            if (_returnValue == null)
+                return default;
+
+            if (innerResult && _returnType.IsAwaitable())
+            {
+                if (_returnType == typeof(Task) || _returnType == typeof(ValueTask))
+                    return GetReturnValue<T>();
+
+                dynamic task;
+
+                if (_returnType.GetGenericTypeDefinition() == typeof(Task<>))
+                    task = GetReturnValue<Task<T>>()!;
+                else
+                    task = GetReturnValue<ValueTask<T>>()!;
+
+                return await task;
+            }
+
+            return GetReturnValue<T>();
+        }
 
         /// <summary>
         /// Get reference to return value of type <typeparamref name="T"/> from method.
