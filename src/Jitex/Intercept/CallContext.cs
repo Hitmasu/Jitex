@@ -20,6 +20,8 @@ namespace Jitex.Intercept
         private readonly Type _returnType;
         private readonly VariableInfo? _returnValue;
 
+        private bool _alreadyCalled = false;
+
         private AutoResetEvent? _autoResetEvent;
         private SemaphoreSlim? _semaphoreSlim;
 
@@ -36,7 +38,7 @@ namespace Jitex.Intercept
         /// <summary>
         /// If method has return value
         /// </summary>
-        public bool HasReturn => _returnType != typeof(void);
+        public bool HasReturn { get; }
 
         /// <summary>
         /// Number of parameters
@@ -62,6 +64,8 @@ namespace Jitex.Intercept
         /// <param name="typeGenericArguments"></param>
         public CallContext(long methodHandle, Type[]? typeGenericArguments, Type[]? methodGenericArguments, Pointer? instance, Pointer? returnValue, params Pointer[] parameters)
         {
+            Type[] types;
+
             //TODO: Move to out from constructor
             Method = MethodHelper.GetMethodFromHandle(new IntPtr(methodHandle))!;
 
@@ -71,18 +75,29 @@ namespace Jitex.Intercept
                 _returnValue = new VariableInfo(returnValue!, _returnType);
 
                 Method = MethodHelper.TryInitializeGenericMethod(Method, typeGenericArguments, methodGenericArguments);
+                HasReturn = _returnType != typeof(void);
+                types = Method.GetParameters().Select(w => w.ParameterType).ToArray();
+            }
+            else if (!Method.IsStatic) //Non-static constructor
+            {
+                _returnType = Method.DeclaringType;
+
+                if (instance != null)
+                    _returnValue = new VariableInfo(instance, Method.DeclaringType!);
+
+                HasReturn = true;
+                types = Method.GetParameters().Select(w => w.ParameterType).ToArray();
             }
             else
             {
-                _returnType = typeof(void);
+                types = Array.Empty<Type>();
             }
-
-            _parameters = new VariableInfo[parameters.Length];
 
             if (instance != null)
                 _instance = new VariableInfo(instance, Method.DeclaringType!);
 
-            Type[] types = Method.GetParameters().Select(w => w.ParameterType).ToArray();
+            _parameters = new VariableInfo[parameters.Length];
+
 
             for (int i = 0; i < parameters.Length; i++)
                 _parameters[i] = new VariableInfo(parameters[i], types[i]);
@@ -93,27 +108,32 @@ namespace Jitex.Intercept
         /// </summary>
         public async Task ContinueAsync()
         {
+            if (_alreadyCalled)
+                return;
+
             _semaphoreSlim = new SemaphoreSlim(0);
             IsWaitingForEnd = true;
 
             ContinueWithCode();
             await _semaphoreSlim.WaitAsync().ConfigureAwait(false);
+            _alreadyCalled = true;
         }
 
         /// <summary>
         /// Continue with original call and get return value of type <typeparamref name="T"/> (if has return).
         /// </summary>
         /// <param name="innerResult">If should consume task when return is a Task or ValueTask.</param>
+        /// <param name="validateType">If should validate type <typeparamref name="T"/> with return type.</param>
         /// <typeparam name="T">Type from return value.</typeparam>
         /// <returns>Return value from call.</returns>
-        public async Task<T?> ContinueAsync<T>(bool innerResult = true)
+        public async Task<T?> ContinueAsync<T>(bool innerResult = true, bool validateType = true)
         {
             await ContinueAsync().ConfigureAwait(false);
 
             if (!HasReturn)
                 return default;
 
-            T? returnValue = await GetReturnValueAsync<T>(innerResult).ConfigureAwait(false);
+            T? returnValue = await GetReturnValueAsync<T>(innerResult, validateType).ConfigureAwait(false);
 
             return returnValue ?? default;
         }
@@ -131,12 +151,15 @@ namespace Jitex.Intercept
         /// <summary>
         /// Get instance of type <typeparamref name="T"/> used on call.
         /// </summary>
+        /// <param name="validateType">If should validate type <typeparamref name="T"/> with return type.</param>
         /// <typeparam name="T">Type from instance.</typeparam>
         /// <returns>instance used on call.</returns>
-        public ref T GetInstance<T>()
+        public ref T GetInstance<T>(bool validateType = true)
         {
             ValidateInstance();
-            ValidateType<T>(Method.DeclaringType!);
+
+            if (validateType)
+                ValidateType<T>(Method.DeclaringType!);
 
             return ref _instance!.GetValueRef<T>()!;
         }
@@ -168,13 +191,15 @@ namespace Jitex.Intercept
         /// Get reference to a parameter value of type <typeparamref name="T"/>.
         /// </summary>
         /// <param name="index">Position from parameter.</param>
+        /// <param name="validateType">If should validate type <typeparamref name="T"/> with parameter type.</param>
         /// <typeparam name="T">Type from parameter.</typeparam>
         /// <returns>A reference to a value of type <typeparamref name="T"/></returns>
-        public ref T? GetParameterValue<T>(int index)
+        public ref T? GetParameterValue<T>(int index, bool validateType = true)
         {
             VariableInfo variableInfo = GetParameter(index);
 
-            ValidateType<T>(variableInfo.Type);
+            if (validateType)
+                ValidateType<T>(variableInfo.Type);
 
             return ref variableInfo.GetValueRef<T>();
         }
@@ -185,14 +210,15 @@ namespace Jitex.Intercept
         /// <returns>Return value.</returns>
         public object? GetReturnValue() => _returnValue?.GetValue();
 
-        
+
         /// <summary>
         /// Get return value as <typeparamref name="T"/>.
         /// </summary>
         /// <param name="innerResult">If should consume task when return is a Task or ValueTask.</param>
+        /// <param name="validateType">If should validate type <typeparamref name="T"/> with return type.</param>
         /// <typeparam name="T">Type from return.</typeparam>
         /// <returns>Return value from method as <typeparamref name="T"/></returns>
-        public async Task<T?> GetReturnValueAsync<T>(bool innerResult = true)
+        public async Task<T?> GetReturnValueAsync<T>(bool innerResult = true, bool validateType = true)
         {
             if (_returnValue == null)
                 return default;
@@ -200,29 +226,31 @@ namespace Jitex.Intercept
             if (innerResult && _returnType.IsAwaitable())
             {
                 if (_returnType == typeof(Task) || _returnType == typeof(ValueTask))
-                    return GetReturnValue<T>();
+                    return GetReturnValue<T>(validateType);
 
                 dynamic task;
 
                 if (_returnType.GetGenericTypeDefinition() == typeof(Task<>))
-                    task = GetReturnValue<Task<T>>()!;
+                    task = GetReturnValue<Task<T>>(validateType)!;
                 else
-                    task = GetReturnValue<ValueTask<T>>()!;
+                    task = GetReturnValue<ValueTask<T>>(validateType)!;
 
                 return await task;
             }
 
-            return GetReturnValue<T>();
+            return GetReturnValue<T>(validateType);
         }
 
         /// <summary>
         /// Get reference to return value of type <typeparamref name="T"/> from method.
         /// </summary>
+        /// <param name="validateType">If should validate type <typeparamref name="T"/> with return type.</param>
         /// <typeparam name="T">Type from return.</typeparam>
         /// <returns>A reference to a value of type <typeparamref name="T"/></returns>
-        public ref T? GetReturnValue<T>()
+        public ref T? GetReturnValue<T>(bool validateType = true)
         {
-            ValidateType<T>(_returnType!);
+            if (validateType)
+                ValidateType<T>(_returnType!);
 
             if (_returnValue == null)
                 return ref Unsafe.NullRef<T>()!;
@@ -242,12 +270,13 @@ namespace Jitex.Intercept
         /// </summary>
         /// <param name="index">Position from parameter.</param>
         /// <param name="value">A reference of type <typeparamref name="T"/> to set.</param>
+        /// <param name="validateType">If should validate type <typeparamref name="T"/> with parameter type.</param>
         /// <typeparam name="T">Type from parameter.</typeparam>
-        public void SetParameterValue<T>(int index, ref T value)
+        public void SetParameterValue<T>(int index, ref T value, bool validateType = true)
         {
             VariableInfo variableInfo = GetParameter(index);
 
-            if (value != null)
+            if (validateType && value != null)
                 ValidateType(value.GetType(), variableInfo.Type);
 
             variableInfo.SetValue(ref value);
@@ -258,12 +287,13 @@ namespace Jitex.Intercept
         /// </summary>
         /// <param name="index">Position from parameter.</param>
         /// <param name="value">A reference of type <typeparamref name="T"/> to set.</param>
+        /// <param name="validateType">If should validate type <typeparamref name="T"/> with parameter type.</param>
         /// <typeparam name="T">Type from parameter.</typeparam>
-        public void SetParameterValue<T>(int index, T value)
+        public void SetParameterValue<T>(int index, T value, bool validateType = true)
         {
             VariableInfo variableInfo = GetParameter(index);
 
-            if (value != null)
+            if (validateType && value != null)
                 ValidateType(value.GetType(), variableInfo.Type);
 
             variableInfo.SetValue(value);
@@ -273,13 +303,17 @@ namespace Jitex.Intercept
         /// Set a reference to a value of type <typeparamref name="T"/> on return from call.
         /// </summary>
         /// <param name="value">A reference of type <typeparamref name="T"/> to set.</param>
+        /// <param name="validateType"></param>
         /// <typeparam name="T">Type from return.</typeparam>
-        public void SetReturnValue<T>(ref T value)
+        public void SetReturnValue<T>(ref T value, bool validateType = true)
         {
-            ValidateReturnType<T>();
+            if (validateType)
+            {
+                ValidateReturnType<T>();
 
-            if (value != null)
-                ValidateType(value.GetType(), _returnType);
+                if (value != null)
+                    ValidateType(value.GetType(), _returnType);
+            }
 
             _returnValue!.SetValue(ref value);
             ProceedCall = false;
@@ -289,13 +323,17 @@ namespace Jitex.Intercept
         /// Set value of type <typeparamref name="T"/> on return from call.
         /// </summary>
         /// <param name="value">A value of type <typeparamref name="T"/> to set.</param>
+        /// <param name="validateType">If should validate type <typeparamref name="T"/> with return type.</param>
         /// <typeparam name="T">Type from return.</typeparam>
-        public void SetReturnValue<T>(T value)
+        public void SetReturnValue<T>(T value, bool validateType = true)
         {
-            ValidateReturnType<T>();
+            if (validateType)
+            {
+                ValidateReturnType<T>();
 
-            if (value != null)
-                ValidateType(value.GetType(), _returnType);
+                if (value != null)
+                    ValidateType(value.GetType(), _returnType);
+            }
 
             _returnValue!.SetValue(value);
             ProceedCall = false;
@@ -345,6 +383,9 @@ namespace Jitex.Intercept
         {
             if (Method.IsStatic)
                 throw new InvalidOperationException("Method static don't have instance.");
+
+            if (Method.IsConstructor)
+                throw new InvalidOperationException("Constructors don't have instance.");
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

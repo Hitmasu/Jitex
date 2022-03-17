@@ -59,7 +59,7 @@ namespace Jitex.Builder.IL
 
             _il = method.GetILBytes();
 
-            if (method is not DynamicMethod)
+            if (method is not DynamicMethod && method is not ConstructorInfo)
             {
                 _genericTypeArguments = method.DeclaringType!.GenericTypeArguments;
                 _genericMethodArguments = method.GetGenericArguments();

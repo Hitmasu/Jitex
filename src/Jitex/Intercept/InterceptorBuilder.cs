@@ -6,6 +6,7 @@ using System.Reflection;
 using Jitex.Builder.IL;
 using Jitex.Internal;
 using Jitex.Utils;
+using Microsoft.Extensions.Logging;
 using LocalVariableInfo = Jitex.Builder.Method.LocalVariableInfo;
 using MethodBody = Jitex.Builder.Method.MethodBody;
 using Pointer = Jitex.Utils.Pointer;
@@ -101,11 +102,22 @@ namespace Jitex.Intercept
 
             WriteGenericArguments(instructions);
 
-            MethodInfo? methodInfo = _method as MethodInfo;
-            Type returnType = methodInfo!.ReturnType;
+            Type returnType;
+
+            if (_method is MethodInfo mi)
+            {
+                if (MethodHelper.HasCanon(mi))
+                    returnType = mi.GetGenericMethodDefinition().ReturnType;
+                else
+                    returnType = mi.ReturnType;
+            }
+            else
+            {
+                returnType = typeof(void);
+            }
 
             int ldargIndex = WriteInstanceParameter(instructions);
-            int? returnVariableIndex = WriteReturnType(localVariables, instructions);
+            int? returnVariableIndex = WriteReturnVariable(localVariables, instructions, returnType);
 
             WriteParameters(instructions, ldargIndex);
 
@@ -133,7 +145,7 @@ namespace Jitex.Intercept
             instructions.Add(Callvirt, releaseTaskMetadataToken);
             gotoInstruction.Value = (endpointGoto.Offset - gotoInstruction.Offset - gotoInstruction.Size);
 
-            WriteGetReturnValue(instructions, callContextVariableIndex, callManagerVariableIndex);
+            WriteGetReturnValue(instructions, callContextVariableIndex, callManagerVariableIndex, returnType);
 
             instructions.Add(Ret);
 
@@ -147,43 +159,11 @@ namespace Jitex.Intercept
             return body;
         }
 
-        private void WriteGetReturnValue(Instructions instructions, int callContextVariableIndex, int callManagerVariableIndex)
-        {
-            if (_method is not MethodInfo methodInfo)
-                return;
-
-            Type returnType;
-
-            if (MethodHelper.HasCanon(methodInfo))
-                returnType = methodInfo.GetGenericMethodDefinition().ReturnType;
-            else
-                returnType = methodInfo.ReturnType;
-
-            if (returnType == typeof(void))
-                return;
-
-            MethodInfo getResult;
-
-            if (returnType.IsByRef)
-            {
-                instructions.Add(Ldloc_S, callContextVariableIndex);
-                getResult = GetReturnValue.MakeGenericMethod(returnType.GetElementType());
-            }
-            else if (returnType.IsPointer)
-            {
-                instructions.Add(Ldloc_S, callContextVariableIndex);
-                getResult = GetReturnValuePointer;
-            }
-            else
-            {
-                instructions.Add(Ldloc_S, callManagerVariableIndex);
-                getResult = GetReturnValueNoRef.MakeGenericMethod(returnType);
-            }
-
-            _image!.AddOrGetMemberRef(getResult, out int getResultMetadataToken);
-            instructions.Add(Callvirt, getResultMetadataToken);
-        }
-
+        /// <summary>
+        /// Write instructions to load parameters from method.
+        /// </summary>
+        /// <param name="instructions"></param>
+        /// <param name="ldargIndex"></param>
         private void WriteParameters(Instructions instructions, int ldargIndex)
         {
             _image!.AddOrGetTypeRef(typeof(Pointer), out int pointerTypeMetadataToken);
@@ -218,6 +198,11 @@ namespace Jitex.Intercept
             }
         }
 
+        /// <summary>
+        /// Write instructions to load instance.
+        /// </summary>
+        /// <param name="instructions"></param>
+        /// <returns></returns>
         private int WriteInstanceParameter(Instructions instructions)
         {
             if (_method.IsStatic)
@@ -234,16 +219,15 @@ namespace Jitex.Intercept
             return 1;
         }
 
-        private int? WriteReturnType(IList<LocalVariableInfo> variables, Instructions instructions)
+        /// <summary>
+        /// Create a return variable and write instructions to load him. 
+        /// </summary>
+        /// <param name="variables"></param>
+        /// <param name="instructions"></param>
+        /// <param name="returnType"></param>
+        /// <returns></returns>
+        private int? WriteReturnVariable(IList<LocalVariableInfo> variables, Instructions instructions, Type returnType)
         {
-            if (_method is not MethodInfo methodInfo)
-            {
-                instructions.Add(Ldnull);
-                return null;
-            }
-
-            Type returnType = methodInfo.ReturnType;
-
             if (returnType == typeof(void))
             {
                 instructions.Add(Ldnull);
@@ -252,7 +236,7 @@ namespace Jitex.Intercept
 
             _image!.AddOrGetMemberRef(PointerBox, out int pointerBoxMetadataToken);
 
-            variables.Add(new LocalVariableInfo(methodInfo.ReturnType));
+            variables.Add(new LocalVariableInfo(returnType));
             int returnVariableIndex = variables.Count - 1;
 
             instructions.Add(Ldloca_S, returnVariableIndex);
@@ -270,6 +254,53 @@ namespace Jitex.Intercept
             return returnVariableIndex;
         }
 
+        /// <summary>
+        /// Write instructions to get return value.
+        /// </summary>
+        /// <param name="instructions"></param>
+        /// <param name="callContextVariableIndex"></param>
+        /// <param name="callManagerVariableIndex"></param>
+        /// <param name="returnType"></param>
+        private void WriteGetReturnValue(Instructions instructions, int callContextVariableIndex, int callManagerVariableIndex, Type returnType)
+        {
+            if (returnType == typeof(void))
+                return;
+
+            MethodInfo getResult;
+
+            if (returnType.IsByRef)
+            {
+                instructions.Add(Ldloc_S, callContextVariableIndex);
+                instructions.Add(Ldc_I4_1);
+                getResult = GetReturnValue.MakeGenericMethod(returnType.GetElementType());
+            }
+            else if (returnType.IsPointer)
+            {
+                instructions.Add(Ldloc_S, callContextVariableIndex);
+                getResult = GetReturnValuePointer;
+            }
+            else
+            {
+                instructions.Add(Ldloc_S, callManagerVariableIndex);
+                getResult = GetReturnValueNoRef.MakeGenericMethod(returnType);
+            }
+
+            _image!.AddOrGetMemberRef(getResult, out int getResultMetadataToken);
+            instructions.Add(Callvirt, getResultMetadataToken);
+        }
+
+        /// <summary>
+        /// Write instructions to load generic arguments
+        /// </summary>
+        /// <remarks>
+        /// <code>
+        /// class Type<T1,T2>{}
+        /// void Method<TM1,TM2>(){}
+        /// Type[] genericTypeMethods = {typeof(T1),typeof(T2)};
+        /// Type[] genericTypeMethods = {typeof(TM1),typeof(TM2)};
+        /// </code>
+        /// </remarks>
+        /// <param name="instructions"></param>
         private void WriteGenericArguments(Instructions instructions)
         {
             if (TypeHelper.HasCanon(_method.DeclaringType))
@@ -296,6 +327,11 @@ namespace Jitex.Intercept
             }
         }
 
+        /// <summary>
+        /// Write instructions to load generic argument.
+        /// </summary>
+        /// <param name="instructions"></param>
+        /// <param name="types"></param>
         private void WriteTypesOnArray(Instructions instructions, IReadOnlyCollection<Type> types)
         {
             ValidateImageLoaded();
