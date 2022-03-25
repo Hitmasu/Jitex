@@ -307,6 +307,8 @@ namespace Jitex.Intercept
         /// <typeparam name="T">Type from return.</typeparam>
         public void SetReturnValue<T>(ref T value, bool validateType = true)
         {
+            ValidateReturnValue();
+            
             if (validateType)
             {
                 ValidateReturnType<T>();
@@ -327,6 +329,8 @@ namespace Jitex.Intercept
         /// <typeparam name="T">Type from return.</typeparam>
         public void SetReturnValue<T>(T value, bool validateType = true)
         {
+            ValidateReturnValue();
+
             if (validateType)
             {
                 ValidateReturnType<T>();
@@ -383,9 +387,13 @@ namespace Jitex.Intercept
         {
             if (Method.IsStatic)
                 throw new InvalidOperationException("Method static don't have instance.");
+        }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void ValidateReturnValue()
+        {
             if (Method.IsConstructor)
-                throw new InvalidOperationException("Constructors don't have instance.");
+                throw new InvalidOperationException("Can't set return value on constructors.");
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
