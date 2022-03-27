@@ -1,41 +1,41 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-	<PropertyGroup>
-		<TargetFramework>netstandard2.0</TargetFramework>
-		<LangVersion>default</LangVersion>
-		<Platforms>x64</Platforms>
-		<Authors>Hitmasu</Authors>
-		<Company />
-		<Description>Method Builder to Jitex.</Description>
-		<PackageProjectUrl>https://github.com/Hitmasu/Jitex</PackageProjectUrl>
-		<RepositoryUrl>https://github.com/Hitmasu/Jitex</RepositoryUrl>
-		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-		<PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
-		<PackageLicenseFile></PackageLicenseFile>
-		<PackageLicenseExpression>MIT</PackageLicenseExpression>
-		<PackageTags>JIT Jitex</PackageTags>
-		<Version>1.2.0</Version>
-		<AssemblyName>Jitex.Builder</AssemblyName>
-		<Nullable>enable</Nullable>
-		<PackageIcon>nuget.png</PackageIcon>
-	</PropertyGroup>
+    <PropertyGroup>
+        <TargetFramework>netstandard2.0</TargetFramework>
+        <LangVersion>default</LangVersion>
+        <Platforms>x64</Platforms>
+        <Authors>Hitmasu</Authors>
+        <Company/>
+        <Description>Method Builder to Jitex.</Description>
+        <PackageProjectUrl>https://github.com/Hitmasu/Jitex</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/Hitmasu/Jitex</RepositoryUrl>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+        <PackageLicenseFile></PackageLicenseFile>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PackageTags>JIT Jitex</PackageTags>
+        <Version>1.2.1</Version>
+        <AssemblyName>Jitex.Builder</AssemblyName>
+        <Nullable>enable</Nullable>
+        <PackageIcon>nuget.png</PackageIcon>
+    </PropertyGroup>
 
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-	  <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-	</PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    </PropertyGroup>
 
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-	  <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-	</PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    </PropertyGroup>
 
-	<ItemGroup>
-		<PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
-		<PackageReference Include="System.Reflection.Emit" Version="4.7.0" />
-		<PackageReference Include="System.Reflection.Emit.Lightweight" Version="4.7.0" />
-		<PackageReference Include="System.Threading.Tasks.Extensions" Version="4.5.4" />
-	</ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="Microsoft.CSharp" Version="4.7.0"/>
+        <PackageReference Include="System.Reflection.Emit" Version="4.7.0"/>
+        <PackageReference Include="System.Reflection.Emit.Lightweight" Version="4.7.0"/>
+        <PackageReference Include="System.Threading.Tasks.Extensions" Version="4.5.4"/>
+    </ItemGroup>
 
-	<ItemGroup>
-		<None Include="..\..\logos\nuget.png" Pack="true" PackagePath="" />
-	</ItemGroup>
+    <ItemGroup>
+        <None Include="..\..\logos\nuget.png" Pack="true" PackagePath=""/>
+    </ItemGroup>
 </Project>
