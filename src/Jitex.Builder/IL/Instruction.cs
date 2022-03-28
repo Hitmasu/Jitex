@@ -16,10 +16,9 @@ namespace Jitex.Builder.IL
     /// <remarks>
     /// An instruction contains informations from an IL instruction.
     /// </remarks>
-    [DebuggerDisplay("{OpCode} - {Value}")]
     public partial class Instruction
     {
-        private Type? _type;
+        private readonly Type? _type;
         private bool _shouldUpdateBytes = true;
         private dynamic? _value;
         private byte[]? _bytes;
@@ -44,7 +43,7 @@ namespace Jitex.Builder.IL
         /// <summary>
         /// Size instruction (opcode length + value length)
         /// </summary>
-        public int Size => GetSize();
+        public int Size => (OpCode.Size == 1 ? 1 : 2) + OperandSize();
 
         /// <summary>
         /// Operation Code IL.
@@ -106,18 +105,44 @@ namespace Jitex.Builder.IL
                 _type = value.GetType();
         }
 
-        public int GetSize()
+        private int OperandSize()
         {
-            int size = OpCode.Size == 1 ? 1 : 2;
+            switch (OpCode.OperandType)
+            {
+                case OperandType.InlineI8:
+                    return sizeof(long);
 
-            if (MetadataToken.HasValue)
-                size += 4;
-            else if (Value is byte)
-                size += 1;
-            else if (_type != null)
-                size += SizeOfHelper.SizeOf(_type!);
+                case OperandType.InlineR:
+                    return sizeof(double);
 
-            return size;
+                case OperandType.InlineBrTarget:
+                case OperandType.InlineTok:
+                case OperandType.InlineSig:
+                case OperandType.InlineI:
+                case OperandType.InlineType:
+                case OperandType.InlineString:
+                case OperandType.InlineField:
+                case OperandType.InlineMethod:
+                case OperandType.InlineSwitch:
+                    return sizeof(int);
+
+                case OperandType.ShortInlineR:
+                    return sizeof(float);
+
+                case OperandType.InlineVar:
+                    return sizeof(short);
+
+                case OperandType.ShortInlineVar:
+                case OperandType.ShortInlineBrTarget:
+                case OperandType.ShortInlineI:
+                    return sizeof(byte);
+
+                case OperandType.InlineNone:
+                    return 0;
+
+                default:
+                    throw new NotImplementedException($"OperandType {OpCode.OperandType} not implemented.");
+            }
         }
 
         public byte[] ToBytes()
@@ -128,16 +153,28 @@ namespace Jitex.Builder.IL
             List<byte> bytes = new(10);
 
             if (OpCode.Size == 1)
-                bytes.Add((byte)OpCode.Value);
+                bytes.Add((byte) OpCode.Value);
             else
                 bytes.AddRange(BitConverter.GetBytes(OpCode.Value).Reverse());
 
             if (MetadataToken.HasValue)
+            {
                 bytes.AddRange(BitConverter.GetBytes(MetadataToken.Value));
-            else if (Value is byte b)
-                bytes.Add(b);
-            else if (_value != null)
-                bytes.AddRange(BitConverter.GetBytes(_value));
+            }
+            else
+            {
+                int size = OperandSize();
+
+                if (size > 0)
+                {
+                    if (_value == null)
+                        throw new ArgumentNullException($"Value to be written is null. Opcode: {OpCode.Name}");
+
+                    byte[] b = BitConverter.GetBytes(_value);
+                    bytes.AddRange(b.Take(size));
+                }
+            }
+
 
             _bytes = bytes.ToArray();
             _shouldUpdateBytes = false;
@@ -170,7 +207,7 @@ namespace Jitex.Builder.IL
 
             foreach (FieldInfo field in fields)
             {
-                OpCode opCode = (OpCode)field.GetValue(null);
+                OpCode opCode = (OpCode) field.GetValue(null);
                 OpCodes.Add(opCode.Value, opCode);
             }
         }
@@ -186,6 +223,18 @@ namespace Jitex.Builder.IL
                 return opcode;
 
             throw new KeyNotFoundException($"OpCode {identifier} not found");
+        }
+
+        public override string ToString()
+        {
+            string? value = "";
+
+            if (Value is Exception ex)
+                value = ex.Message;
+            else
+                value = Value?.ToString();
+
+            return $"{OpCode.Name} {value}";
         }
     }
 }

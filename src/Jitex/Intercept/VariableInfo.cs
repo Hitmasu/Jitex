@@ -56,7 +56,7 @@ namespace Jitex.Intercept
             {
                 unsafe
                 {
-                    _value = value!; //To prevent GC collect passed value
+                    _value = value!; //To prevent GC collect variable
                     void*** refPtr = (void***) _pointer.Ptr;
                     *refPtr = (void**) Unsafe.AsPointer(ref _value);
                     refValue = ref GetValueRef<T>();

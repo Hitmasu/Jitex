@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Reflection;
 using System.Reflection.Emit;
+using Jitex.Builder.Exceptions;
 using Jitex.Builder.IL.Resolver;
 using Jitex.Builder.Utils.Extensions;
 
@@ -305,29 +306,23 @@ namespace Jitex.Builder.IL
                 if (_resolver == null)
                     return (null, token);
 
+                Exception exception;
+
                 try
                 {
                     Type type = _resolver.ResolveType(token, _genericTypeArguments, _genericMethodArguments);
                     return (type, token);
                 }
+                catch (ArgumentException ex)
+                {
+                    exception = new TokenNotFoundException(token, ex);
+                }
                 catch (Exception ex)
                 {
-                    return (ex, token);
+                    exception = ex;
                 }
-            }
 
-            /// <summary>
-            ///     Read <see cref="string" /> reference from module.
-            /// </summary>
-            /// <returns><see cref="string" /> referenced.</returns>
-            private (string? String, int Token) ReadString()
-            {
-                int token = ReadInt32();
-
-                if (_resolver == null)
-                    return (null, token);
-
-                return (_resolver.ResolveString(token), token);
+                return (exception, token);
             }
 
             /// <summary>
@@ -341,10 +336,12 @@ namespace Jitex.Builder.IL
                 if (_resolver == null)
                     return (null, token);
 
-                MethodBase method;
+                Exception exception;
 
                 try
                 {
+                    MethodBase method;
+
                     if (_isGeneric)
                         method = _resolver.ResolveMethod(token, _genericTypeArguments, _genericMethodArguments);
                     else
@@ -352,10 +349,16 @@ namespace Jitex.Builder.IL
 
                     return (method, token);
                 }
+                catch (ArgumentException ex)
+                {
+                    exception = new TokenNotFoundException(token, ex);
+                }
                 catch (Exception ex)
                 {
-                    return (ex, token);
+                    exception = ex;
                 }
+
+                return (exception, token);
             }
 
             /// <summary>
@@ -369,10 +372,12 @@ namespace Jitex.Builder.IL
                 if (_resolver == null)
                     return (null, token);
 
-                FieldInfo field;
+                Exception exception;
 
                 try
                 {
+                    FieldInfo field;
+                    
                     if (_isGeneric)
                         field = _resolver.ResolveField(token, _genericTypeArguments, _genericMethodArguments);
                     else
@@ -380,10 +385,16 @@ namespace Jitex.Builder.IL
 
                     return (field, token);
                 }
+                catch (ArgumentException ex)
+                {
+                    exception = new TokenNotFoundException(token, ex);
+                }
                 catch (Exception ex)
                 {
-                    return (ex, token);
+                    exception = ex;
                 }
+
+                return (exception, token);
             }
 
             /// <summary>
@@ -397,10 +408,11 @@ namespace Jitex.Builder.IL
                 if (_resolver == null)
                     return (null, token);
 
-                MemberInfo member;
+                Exception exception;
 
                 try
                 {
+                    MemberInfo member;
                     if (_isGeneric)
                         member = _resolver.ResolveMember(token, _genericTypeArguments, _genericMethodArguments);
                     else
@@ -408,10 +420,30 @@ namespace Jitex.Builder.IL
 
                     return (member, token);
                 }
+                catch (ArgumentException ex)
+                {
+                    exception = new TokenNotFoundException(token, ex);
+                }
                 catch (Exception ex)
                 {
-                    return (ex, token);
+                    exception = ex;
                 }
+
+                return (exception, token);
+            }
+            
+            /// <summary>
+            ///     Read <see cref="string" /> reference from module.
+            /// </summary>
+            /// <returns><see cref="string" /> referenced.</returns>
+            private (string? String, int Token) ReadString()
+            {
+                int token = ReadInt32();
+
+                if (_resolver == null)
+                    return (null, token);
+
+                return (_resolver.ResolveString(token), token);
             }
 
             /// <summary>

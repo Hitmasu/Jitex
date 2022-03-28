@@ -85,10 +85,10 @@ namespace Jitex.Intercept
             IList<LocalVariableInfo> localVariables = _body.LocalVariables;
 
             localVariables.Add(new LocalVariableInfo(typeof(CallContext)));
-            int callContextVariableIndex = localVariables.Count - 1;
+            byte callContextVariableIndex = (byte) (localVariables.Count - 1);
 
             localVariables.Add(new LocalVariableInfo(typeof(CallManager)));
-            int callManagerVariableIndex = localVariables.Count - 1;
+            byte callManagerVariableIndex = (byte) (localVariables.Count - 1);
 
             _image!.AddOrGetMemberRef(CallContextCtor, out int callContextCtorMetadataToken);
             _image!.AddOrGetMemberRef(CallManagerCtor, out int callManagerCtorMetadataToken);
@@ -116,8 +116,8 @@ namespace Jitex.Intercept
                 returnType = typeof(void);
             }
 
-            int ldargIndex = WriteInstanceParameter(instructions);
-            int? returnVariableIndex = WriteReturnVariable(localVariables, instructions, returnType);
+            byte ldargIndex = WriteInstanceParameter(instructions);
+            byte? returnVariableIndex = WriteReturnVariable(localVariables, instructions, returnType);
 
             WriteParameters(instructions, ldargIndex);
 
@@ -164,17 +164,17 @@ namespace Jitex.Intercept
         /// </summary>
         /// <param name="instructions"></param>
         /// <param name="ldargIndex"></param>
-        private void WriteParameters(Instructions instructions, int ldargIndex)
+        private void WriteParameters(Instructions instructions, byte ldargIndex)
         {
             _image!.AddOrGetTypeRef(typeof(Pointer), out int pointerTypeMetadataToken);
             _image!.AddOrGetMemberRef(PointerBox, out int pointerBoxMetadataToken);
 
             Type[] parameters = _method.GetParameters().Select(w => w.ParameterType).ToArray();
 
-            instructions.Add(Ldc_I4_S, parameters.Length);
+            instructions.Add(Ldc_I4_S, (byte) parameters.Length);
             instructions.Add(Newarr, pointerTypeMetadataToken);
 
-            for (int i = 0; i < parameters.Length; i++)
+            for (byte i = 0; i < parameters.Length; i++)
             {
                 Type parameter = parameters[i];
 
@@ -203,7 +203,7 @@ namespace Jitex.Intercept
         /// </summary>
         /// <param name="instructions"></param>
         /// <returns></returns>
-        private int WriteInstanceParameter(Instructions instructions)
+        private byte WriteInstanceParameter(Instructions instructions)
         {
             if (_method.IsStatic)
             {
@@ -213,7 +213,7 @@ namespace Jitex.Intercept
 
             _image!.AddOrGetMemberRef(PointerBox, out int pointerBoxMetadataToken);
 
-            instructions.Add(Ldarga_S, 0);
+            instructions.Add(Ldarga_S, (byte) 0);
             instructions.Add(Conv_U);
             instructions.Add(Call, pointerBoxMetadataToken);
             return 1;
@@ -226,7 +226,7 @@ namespace Jitex.Intercept
         /// <param name="instructions"></param>
         /// <param name="returnType"></param>
         /// <returns></returns>
-        private int? WriteReturnVariable(IList<LocalVariableInfo> variables, Instructions instructions, Type returnType)
+        private byte? WriteReturnVariable(IList<LocalVariableInfo> variables, Instructions instructions, Type returnType)
         {
             if (returnType == typeof(void))
             {
@@ -237,7 +237,7 @@ namespace Jitex.Intercept
             _image!.AddOrGetMemberRef(PointerBox, out int pointerBoxMetadataToken);
 
             variables.Add(new LocalVariableInfo(returnType));
-            int returnVariableIndex = variables.Count - 1;
+            byte returnVariableIndex = (byte) (variables.Count - 1);
 
             instructions.Add(Ldloca_S, returnVariableIndex);
 
@@ -261,7 +261,7 @@ namespace Jitex.Intercept
         /// <param name="callContextVariableIndex"></param>
         /// <param name="callManagerVariableIndex"></param>
         /// <param name="returnType"></param>
-        private void WriteGetReturnValue(Instructions instructions, int callContextVariableIndex, int callManagerVariableIndex, Type returnType)
+        private void WriteGetReturnValue(Instructions instructions, byte callContextVariableIndex, byte callManagerVariableIndex, Type returnType)
         {
             if (returnType == typeof(void))
                 return;
@@ -339,10 +339,10 @@ namespace Jitex.Intercept
             _image!.AddOrGetTypeRef(typeof(Type), out int typeMetadataToken);
             _image!.AddOrGetMemberRef(GetTypeFromHandle, out int getTypeFromHandleMetadataToken);
 
-            instructions.Add(Ldc_I4_S, types.Count);
+            instructions.Add(Ldc_I4_S, (byte) types.Count);
             instructions.Add(Newarr, typeMetadataToken);
 
-            for (int i = 0; i < types.Count; i++)
+            for (byte i = 0; i < types.Count; i++)
             {
                 int ldToken = MetadataTokenBase.TypeSpec + i;
 
