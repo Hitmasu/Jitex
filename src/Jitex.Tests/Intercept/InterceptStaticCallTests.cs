@@ -438,6 +438,21 @@ namespace Jitex.Tests.Intercept
             MethodsCalled.TryRemove(nameof(GetTypesGeneric), out _);
         }
 
+        [Fact]
+        public void StaticConstructorTest()
+        {
+            int number = StaticConstructor.Number;
+
+            Assert.Equal(0, number);
+
+            Assert.True(HasIntercepted(nameof(StaticConstructor) + ".cctor"), "Method not intercepted!");
+            Assert.True(CountIntercept(nameof(StaticConstructor) + ".cctor") == 1, "Intercepted more than expected!");
+
+            CallsIntercepted.TryRemove(nameof(StaticConstructor) + ".cctor", out _);
+            MethodsCalled.TryRemove(nameof(StaticConstructor) + ".cctor", out _);
+        }
+
+
         private static string ReverseText(string text) => new(text.Reverse().ToArray());
 
         [InterceptCall]
@@ -563,7 +578,7 @@ namespace Jitex.Tests.Intercept
             AddMethodCall(nameof(SumValueTaskAsync), caller: nameof(ValueTaskGenericWithParameters));
             return await new ValueTask<int>(n1 + n2);
         }
-        
+
         [InterceptCall]
         [MethodImpl(MethodImplOptions.NoInlining)]
         private static string GetTypesGeneric<T1, T2, T3>(T1 p1, T2 p2, T3 p3)
@@ -574,7 +589,20 @@ namespace Jitex.Tests.Intercept
 
         private static async Task InterceptorCall(CallContext context)
         {
-            AddMethodCall(context.Method.Name, true);
+            bool isCtor = false;
+            string methodName;
+
+            if (context.Method.Name == ".cctor" && context.Method.DeclaringType == typeof(StaticConstructor))
+            {
+                methodName = $"{context.Method.DeclaringType.Name}.cctor";
+                isCtor = true;
+            }
+            else
+            {
+                methodName = context.Method.Name;
+            }
+
+            AddMethodCall(methodName, true);
 
             MethodBase testSource = GetSourceTest();
 
@@ -669,11 +697,17 @@ namespace Jitex.Tests.Intercept
                 InterceptPerson person = new(name + " " + name, age + age);
                 context.SetReturnValue(person);
             }
+            else if (testSource.Name == nameof(StaticConstructorTest) && isCtor)
+            {
+                context.ProceedCall = false;
+            }
         }
 
         private static void MethodResolver(MethodContext context)
         {
-            if (context.Method.GetCustomAttribute<InterceptCallAttribute>() != null || context.Method.Name == nameof(InterceptPerson.GetAgeAfter10Years))
+            if (context.Method.GetCustomAttribute<InterceptCallAttribute>() != null
+                || context.Method.Name == nameof(InterceptPerson.GetAgeAfter10Years)
+                || context.Method.Name == ".cctor" && context.Method.DeclaringType == typeof(StaticConstructor))
                 context.InterceptCall();
         }
 

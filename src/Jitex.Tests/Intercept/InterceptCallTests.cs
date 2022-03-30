@@ -436,6 +436,37 @@ namespace Jitex.Tests.Intercept
             MethodsCalled.TryRemove(nameof(GetTypesGeneric), out _);
         }
 
+        [Fact]
+        public void ConstructorInstanceTest()
+        {
+            InstanceConstructor instance = new();
+            Assert.Equal(instance.Number, int.MaxValue);
+
+            Assert.True(HasIntercepted(nameof(InstanceConstructor) + ".ctor"), "Method not intercepted!");
+            Assert.True(CountIntercept(nameof(InstanceConstructor) + ".ctor") == 1, "Intercepted more than expected!");
+
+            CallsIntercepted.TryRemove(nameof(InstanceConstructor) + ".ctor", out _);
+            MethodsCalled.TryRemove(nameof(InstanceConstructor) + ".ctor", out _);
+        }
+
+        [Fact]
+        public void ConstructorInstanceWithParametersTest()
+        {
+            const int number = -4;
+            const int age = 50;
+
+            InstanceConstructor instance = new(number, new Person {Age = age});
+
+            Assert.Equal(number * 2, instance.Number);
+            Assert.Equal(age * 2, instance.Person.Age);
+
+            Assert.True(HasIntercepted(nameof(InstanceConstructor) + ".ctor"), "Method not intercepted!");
+            Assert.True(CountIntercept(nameof(InstanceConstructor) + ".ctor") == 1, "Intercepted more than expected!");
+
+            CallsIntercepted.TryRemove(nameof(InstanceConstructor) + ".ctor", out _);
+            MethodsCalled.TryRemove(nameof(InstanceConstructor) + ".ctor", out _);
+        }
+
         private static string ReverseText(string text) => new(text.Reverse().ToArray());
 
         [InterceptCall]
@@ -554,7 +585,14 @@ namespace Jitex.Tests.Intercept
 
         private static async Task InterceptorCall(CallContext context)
         {
-            AddMethodCall(context.Method.Name, true);
+            string methodName;
+
+            if (context.Method.IsConstructor)
+                methodName = $"{context.Method.DeclaringType.Name}.ctor";
+            else
+                methodName = context.Method.Name;
+
+            AddMethodCall(methodName, true);
 
             MethodBase testSource = GetSourceTest();
 
@@ -649,11 +687,28 @@ namespace Jitex.Tests.Intercept
                 InterceptPerson person = new(name + " " + name, age + age);
                 context.SetReturnValue(person);
             }
+            else if (testSource.Name == nameof(ConstructorInstanceTest) && context.Method.GetParameters().Length == 0)
+            {
+                InstanceConstructor instance = await context.ContinueAsync<InstanceConstructor>();
+                instance!.Number = int.MaxValue;
+            }
+            else if (testSource.Name == nameof(ConstructorInstanceWithParametersTest) && context.Method.GetParameters().Length > 0)
+            {
+                int number = context.GetParameterValue<int>(0);
+                context.SetParameterValue(0, number * 2);
+
+                Person person = context.GetParameterValue<Person>(1);
+                person.Age *= 2;
+
+                context.SetParameterValue(1, person);
+            }
         }
 
         private static void MethodResolver(MethodContext context)
         {
-            if (context.Method.GetCustomAttribute<InterceptCallAttribute>() != null || context.Method.Name == nameof(InterceptPerson.GetAgeAfter10Years))
+            if (context.Method.GetCustomAttribute<InterceptCallAttribute>() != null
+                || context.Method.Name == nameof(InterceptPerson.GetAgeAfter10Years)
+                || (context.Method.IsConstructor && context.Method.DeclaringType == typeof(InstanceConstructor)))
                 context.InterceptCall();
         }
 
