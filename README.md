@@ -343,6 +343,8 @@ app.UseModule(typeof(ModuleJitex);
 
 ## Proof of Concept
 
+[Nitter](https://github.com/Hitmasu/Nitter) - A easy mocker for .NET
+
 [AutoMapper Patcher](https://github.com/Hitmasu/AutoMapper.Patcher) - A simple remover AutoMapper at runtime.
 
 [InAsm](https://github.com/Hitmasu/InAsm) - Run assembly directly from a method.
