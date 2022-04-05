@@ -5,6 +5,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace Jitex.Utils
@@ -21,9 +22,12 @@ namespace Jitex.Utils
         static ModuleHelper()
         {
             m_pData = Type.GetType("System.Reflection.RuntimeModule").GetField("m_pData", BindingFlags.NonPublic | BindingFlags.Instance);
-            GetHInstance = typeof(Marshal).GetMethod("GetHINSTANCE", new[] {typeof(Module)})!;
+            GetHInstance = typeof(Marshal).GetMethod("GetHINSTANCE", new[] { typeof(Module) })!;
             LoadMapScopeToHandle();
         }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        internal static void Initialize() { }
 
         private static void AddAssembly(Assembly assembly)
         {
@@ -46,7 +50,7 @@ namespace Jitex.Utils
 
         public static IntPtr GetAddressFromModule(Module module)
         {
-            return (IntPtr) m_pData.GetValue(module);
+            return (IntPtr)m_pData.GetValue(module);
         }
 
         private static void LoadMapScopeToHandle()
@@ -117,7 +121,7 @@ namespace Jitex.Utils
             if (!OSHelper.IsWindows)
                 throw new InvalidOperationException();
 
-            return (IntPtr) GetHInstance.Invoke(null, new object[] {module});
+            return (IntPtr)GetHInstance.Invoke(null, new object[] { module });
         }
 
         private static IntPtr GetModuleOSX(string modulePath)
