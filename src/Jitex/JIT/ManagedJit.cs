@@ -111,6 +111,7 @@ namespace Jitex.JIT
         /// </summary>
         private ManagedJit()
         {
+            ModuleHelper.Initialize();
             _framework = RuntimeFramework.Framework;
 
             _compileMethod = CompileMethod;
