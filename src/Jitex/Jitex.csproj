@@ -4,7 +4,7 @@
         <TargetFramework>netstandard2.0</TargetFramework>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <Nullable>enable</Nullable>
-        <Platforms>AnyCPU;x64</Platforms>
+        <Platforms>x64</Platforms>
         <Authors>Hitmasu</Authors>
         <Company />
         <Description>A library to modify MSIL and native code at runtime.</Description>
