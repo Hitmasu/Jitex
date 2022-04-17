@@ -3,7 +3,6 @@ using System.Collections.Concurrent;
 using System.Reflection;
 using System.Reflection.Emit;
 using Jitex.JIT.Context;
-using Jitex.JIT.CorInfo;
 using Jitex.Utils;
 using MethodInfo = System.Reflection.MethodInfo;
 
@@ -12,7 +11,6 @@ namespace Jitex.Internal
     internal class InternalModule : JitexModule
     {
         private static readonly MethodInfo GetTypeFromHandle = typeof(Type).GetMethod(nameof(Type.GetTypeFromHandle))!;
-
 
         public static InternalModule Instance { get; } = new();
 
@@ -33,12 +31,10 @@ namespace Jitex.Internal
             if (!_methodResolutions.TryGetValue((context.Module, context.MetadataToken), out MemberInfo resolution))
                 return;
 
-            if (context.TokenType is TokenKind.LdToken or TokenKind.Constrained)
+            if (context.MetadataToken >> 24 is 0x1B or 0x2B)
                 context.ResolverMember(resolution.Module, context.MetadataToken);
-            else if (resolution is MethodInfo { IsGenericMethod: true })
+            else if (resolution is MethodInfo {IsGenericMethod: true})
                 context.ResolverMember(resolution.Module, MetadataTokenBase.MethodSpec);
-            else if (context.TokenType is TokenKind.LdToken or TokenKind.Constrained)
-                context.ResolverMember(resolution.Module, context.MetadataToken);
             else
                 context.ResolverMember(resolution);
         }
