@@ -1,12 +1,9 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.Reflection;
 using System.Reflection.Emit;
 using Jitex.JIT.Context;
-using Jitex.JIT.CorInfo;
 using Jitex.Utils;
-using Jitex.Utils.Comparer;
 using MethodInfo = System.Reflection.MethodInfo;
 
 namespace Jitex.Internal
