@@ -13,7 +13,7 @@
         <PackageLicenseFile></PackageLicenseFile>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageTags>JIT Jitex</PackageTags>
-        <Version>1.2.1</Version>
+        <Version>1.2.2</Version>
         <AssemblyName>Jitex.Builder</AssemblyName>
         <Nullable>enable</Nullable>
         <PackageIcon>nuget.png</PackageIcon>
