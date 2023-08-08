@@ -8,11 +8,14 @@ using System.Text;
 
 namespace Jitex.Utils
 {
-    internal static class OSHelper
+    public static class OSHelper
     {
         public static bool IsLinux => RuntimeInformation.IsOSPlatform(OSPlatform.Linux);
         public static bool IsWindows => RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
         public static bool IsOSX => RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
+
+        
+        public static bool IsHardenedRuntime => IsOSX && RuntimeInformation.ProcessArchitecture == Architecture.Arm64;
 
         public static bool IsPosix => !IsWindows;
     }

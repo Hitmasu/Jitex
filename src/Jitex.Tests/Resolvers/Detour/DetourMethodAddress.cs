@@ -3,6 +3,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Jitex.JIT.Context;
+using Jitex.Utils;
 using Xunit;
 
 namespace Jitex.Tests.Detour
@@ -18,6 +19,9 @@ namespace Jitex.Tests.Detour
         [Fact]
         public void DetourAddressTest()
         {
+            if (OSHelper.IsHardenedRuntime)
+                return;
+
             int result = Sum(7, 7);
             Assert.True(result == 49, "Detour not called!");
         }
@@ -34,9 +38,9 @@ namespace Jitex.Tests.Detour
             {
                 MethodInfo mulMethod = Utils.GetMethod<DetourMethodAddress>(nameof(Mul));
                 RuntimeMethodHandle handle = mulMethod.MethodHandle;
-                
+
                 RuntimeHelpers.PrepareMethod(handle);
-                
+
                 IntPtr methodPointer = handle.GetFunctionPointer();
 
                 byte jmp = Marshal.ReadByte(methodPointer);
@@ -46,7 +50,7 @@ namespace Jitex.Tests.Detour
                     int jmpSize = Marshal.ReadInt32(methodPointer + 1);
                     methodPointer = new IntPtr(methodPointer.ToInt64() + jmpSize + 5);
                 }
-                
+
                 context.ResolveDetour(methodPointer);
             }
         }

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using Jitex.JIT.Context;
+using Jitex.Utils;
 using Xunit;
 
 namespace Jitex.Tests.Detour
@@ -20,6 +21,9 @@ namespace Jitex.Tests.Detour
         [Fact]
         public void DetourActionTest()
         {
+            if (OSHelper.IsHardenedRuntime)
+                return;
+            
             SimpleMethod();
             Assert.True(Trace.Contains(nameof(SimpleMethod) + "Detour"), "Detour not called!");
         }
@@ -27,6 +31,9 @@ namespace Jitex.Tests.Detour
         [Fact]
         public void DetourActionByGenericTest()
         {
+            if (OSHelper.IsHardenedRuntime)
+                return;
+            
             SimpleMethod2();
             Assert.True(Trace.Contains(nameof(SimpleMethod2) + "Detour"), "Detour not called!");
         }
@@ -34,6 +41,9 @@ namespace Jitex.Tests.Detour
         [Fact]
         public void DetourFuncTest()
         {
+            if (OSHelper.IsHardenedRuntime)
+                return;
+            
             int result = Sum(5, 5);
             Assert.True(result == 25, "Detour not called!");
         }

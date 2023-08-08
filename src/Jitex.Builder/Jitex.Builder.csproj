@@ -3,7 +3,6 @@
     <PropertyGroup>
         <TargetFramework>netstandard2.0</TargetFramework>
         <LangVersion>default</LangVersion>
-        <Platforms>x64</Platforms>
         <Authors>Hitmasu</Authors>
         <Company/>
         <Description>Method Builder to Jitex.</Description>
@@ -18,14 +17,6 @@
         <AssemblyName>Jitex.Builder</AssemblyName>
         <Nullable>enable</Nullable>
         <PackageIcon>nuget.png</PackageIcon>
-    </PropertyGroup>
-
-    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    </PropertyGroup>
-
-    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 
     <ItemGroup>

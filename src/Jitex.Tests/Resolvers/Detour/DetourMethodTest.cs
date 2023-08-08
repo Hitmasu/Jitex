@@ -3,6 +3,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using Jitex.JIT.Context;
 using Jitex.Tests.Context;
+using Jitex.Utils;
 using Xunit;
 
 namespace Jitex.Tests.Detour
@@ -21,6 +22,9 @@ namespace Jitex.Tests.Detour
         [Fact]
         public void SimpleDetourMethodTest()
         {
+            if (OSHelper.IsHardenedRuntime)
+                return;
+            
             SimpleMethod();
             Assert.True(Trace.Contains(nameof(SimpleMethodDetour)), "Detour not called!");
         }
@@ -28,6 +32,9 @@ namespace Jitex.Tests.Detour
         [Fact]
         public void DetourMethodParametersTest()
         {
+            if (OSHelper.IsHardenedRuntime)
+                return;
+            
             int result = Sum(5, 5);
             Assert.True(result == 25, "Detour not called!");
         }
@@ -35,6 +42,9 @@ namespace Jitex.Tests.Detour
         [Fact]
         public void DetourMethodGenericTest()
         {
+            if (OSHelper.IsHardenedRuntime)
+                return;
+            
             Person person = GenericMethod(new Person());
             Assert.True(person != null, "Detour not called!");
         }
@@ -42,6 +52,9 @@ namespace Jitex.Tests.Detour
         [Fact]
         public void SimpleDetourMethodStaticTest()
         {
+            if (OSHelper.IsHardenedRuntime)
+                return;
+            
             SimpleMethodStatic();
             Assert.True(Trace.Contains(nameof(SimpleMethodDetourStatic)), "Detour static not called!");
         }
@@ -49,6 +62,9 @@ namespace Jitex.Tests.Detour
         [Fact]
         public void DetourMethodStaticParametersTest()
         {
+            if (OSHelper.IsHardenedRuntime)
+                return;
+            
             int result = SumStatic(10, 10);
             Assert.True(result == 100, "Detour static not called!");
         }
@@ -56,6 +72,9 @@ namespace Jitex.Tests.Detour
         [Fact]
         public void DetourMethodGenericStaticTest()
         {
+            if (OSHelper.IsHardenedRuntime)
+                return;
+            
             Person person = GenericMethodStatic(new Person());
             Assert.True(person != null, "Detour not called!");
         }

@@ -27,7 +27,8 @@ namespace Jitex
         /// <summary>
         /// All modules load on Jitex.
         /// </summary>
-        private static IDictionary<Type, JitexModule> ModulesLoaded { get; } = new Dictionary<Type, JitexModule>(TypeEqualityComparer.Instance);
+        private static IDictionary<Type, JitexModule> ModulesLoaded { get; } =
+            new Dictionary<Type, JitexModule>(TypeEqualityComparer.Instance);
 
         /// <summary>
         /// Event to raise when method was compiled.
@@ -221,30 +222,10 @@ namespace Jitex
         }
 
         /// <summary>
-        /// Enable intercept call on method (Only if intercept was disabled).
-        /// </summary>
-        /// <param name="method">Method to enable intercept call.</param>
-        public static void EnableIntercept(System.Reflection.MethodBase method)
-        {
-            lock (CallInterceptorLock)
-                InterceptManager.EnableIntercept(method);
-        }
-
-        /// <summary>
-        /// Disable intercept call on method.
-        /// </summary>
-        /// <param name="method">Method to disable intercept call.</param>
-        public static void DisableIntercept(System.Reflection.MethodBase method)
-        {
-            lock (CallInterceptorLock)
-                InterceptManager.RemoveIntercept(method);
-        }
-
-        /// <summary>
         /// Add a method resolver.
         /// </summary>
         /// <param name="methodResolver">Method resolver to add.</param>
-        public static void AddMethodResolver(JitexHandler.MethodResolverHandler methodResolver)
+        public static void AddMethodResolver(MethodResolverHandler methodResolver)
         {
             lock (MethodResolverLock)
             {
@@ -315,19 +296,20 @@ namespace Jitex
         /// </summary>
         /// <param name="methodResolver">Method resolver.</param>
         /// <returns>True to already loaded. False to not loaded.</returns>
-        public static bool HasMethodResolver(JitexHandler.MethodResolverHandler methodResolver) => Jit.HasMethodResolver(methodResolver);
+        public static bool HasMethodResolver(JitexHandler.MethodResolverHandler methodResolver) =>
+            Jit.HasMethodResolver(methodResolver);
 
         /// <summary>
         /// Returns If a token resolver is already loaded.
         /// </summary>
         /// <param name="tokenResolver">Token resolver.</param>
         /// <returns>True to already loaded. False to not loaded.</returns>
-        public static bool HasTokenResolver(JitexHandler.TokenResolverHandler tokenResolver) => Jit.HasTokenResolver(tokenResolver);
+        public static bool HasTokenResolver(JitexHandler.TokenResolverHandler tokenResolver) =>
+            Jit.HasTokenResolver(tokenResolver);
 
         /// <summary>
         /// Unload Jitex and modules from application.
         /// </summary>
-
         public static bool TryGetModule<TModule>(out TModule? instance)
             where TModule : JitexModule
         {

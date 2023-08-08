@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
 using Jitex.Utils;
+using Mono.Unix.Native;
 
 namespace Jitex.Hook
 {

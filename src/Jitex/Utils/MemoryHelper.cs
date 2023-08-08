@@ -4,7 +4,6 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Jitex.Utils.NativeAPI.Windows;
 using Mono.Unix.Native;
-using Jitex.Utils.NativeAPI.POSIX;
 
 namespace Jitex.Utils
 {
@@ -12,35 +11,78 @@ namespace Jitex.Utils
     {
         private static readonly object LockSelfMemLinux = new object();
 
-        private static readonly byte[] TrampolineInstruction =
-        {
-            // mov rax, 0000000000000000h ;Pointer to delegate
-            0x48, 0xB8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            // jmp rax
-            0xFF, 0xE0
-        };
-
-        public static int Size => TrampolineInstruction.Length;
+        public static int Size => GetTrampoline().Code.Length;
 
         public static byte[] GetTrampoline(IntPtr methodAddress)
         {
-            byte[] trampoline = TrampolineInstruction;
-            byte[] address = BitConverter.GetBytes(methodAddress.ToInt64());
-            address.CopyTo(trampoline, 2);
+            var (trampoline, index) = GetTrampoline();
+            var address = BitConverter.GetBytes(methodAddress.ToInt64());
+            address.CopyTo(trampoline, index);
             return trampoline;
+        }
+
+        private static (byte[] Code, int StartIndex) GetTrampoline()
+        {
+            byte[] trampoline;
+            int startIndex;
+
+            if (RuntimeInformation.OSArchitecture == Architecture.Arm64)
+            {
+                trampoline = new byte[]
+                {
+                    //ldr x16, .8
+                    0x50, 0x00, 0x00, 0x58,
+
+                    //br x16
+                    0x00, 0x02, 0x1F, 0xD6,
+
+                    //x64 address
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+                };
+
+                startIndex = 8;
+            }
+            else
+            {
+                trampoline = new byte[]
+                {
+                    // mov rax, 0000000000000000h ;Pointer to delegate
+                    0x48, 0xB8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                    // jmp rax
+                    0xFF, 0xE0
+                };
+
+                startIndex = 2;
+            }
+
+            return (trampoline, startIndex);
         }
 
         public static IntPtr AllocateTrampoline(IntPtr address)
         {
-            byte[] trampoline = GetTrampoline(address);
+            var trampoline = GetTrampoline(address);
+
             IntPtr jmpNative;
 
             if (OSHelper.IsPosix)
-                jmpNative = Mman.mmap(trampoline.Length, MmapProts.PROT_EXEC | MmapProts.PROT_WRITE, MmapFlags.MAP_ANON | MmapFlags.MAP_SHARED);
+            {
+                //For Apple Silicon, we cannot set a memory region a WˆX.
+                //As we need coverage Linux and OSX, we set as RˆW and RˆX after.
+                //See: https://developer.apple.com/documentation/apple-silicon/porting-just-in-time-compilers-to-apple-silicon
+                jmpNative = Syscall.mmap(IntPtr.Zero, (ulong)trampoline.Length,
+                    MmapProts.PROT_READ | MmapProts.PROT_WRITE, MmapFlags.MAP_PRIVATE | MmapFlags.MAP_ANON, -1, 0);
+            }
             else
-                jmpNative = Kernel32.VirtualAlloc(trampoline.Length, Kernel32.AllocationType.Commit, Kernel32.MemoryProtection.EXECUTE_READ_WRITE);
+            {
+                jmpNative = Kernel32.VirtualAlloc(trampoline.Length, Kernel32.AllocationType.Commit,
+                    Kernel32.MemoryProtection.EXECUTE_READ_WRITE);
+            }
 
             Marshal.Copy(trampoline, 0, jmpNative, trampoline.Length);
+
+            if (OSHelper.IsPosix)
+                Syscall.mprotect(jmpNative, (ulong)trampoline.Length, MmapProts.PROT_READ | MmapProts.PROT_EXEC);
+
             return jmpNative;
         }
 
@@ -51,12 +93,13 @@ namespace Jitex.Utils
         public static void FreeTrampoline(IntPtr address)
         {
             if (OSHelper.IsPosix)
-                Mman.munmap(address, TrampolineInstruction.Length);
+                Syscall.munmap(address, (ulong)Size);
             else
-                Kernel32.VirtualFree(address, TrampolineInstruction.Length);
+                Kernel32.VirtualFree(address, Size);
         }
 
-        public static void UnprotectWrite<T>(IntPtr address, int offset, T value) where T : unmanaged => UnprotectWrite(address + offset, value);
+        public static void UnprotectWrite<T>(IntPtr address, int offset, T value) where T : unmanaged =>
+            UnprotectWrite(address + offset, value);
 
         /// <summary>
         /// Remove protection from address and write value.
@@ -70,7 +113,8 @@ namespace Jitex.Utils
 
             if (OSHelper.IsWindows)
             {
-                Kernel32.MemoryProtection oldFlags = Kernel32.VirtualProtect(address, size, Kernel32.MemoryProtection.READ_WRITE);
+                Kernel32.MemoryProtection oldFlags =
+                    Kernel32.VirtualProtect(address, size, Kernel32.MemoryProtection.READ_WRITE);
                 Write(address, value);
                 Kernel32.VirtualProtect(address, size, oldFlags);
             }
@@ -94,8 +138,23 @@ namespace Jitex.Utils
             }
             else
             {
-                Mman.mprotect(address, (ulong) size, MmapProts.PROT_WRITE);
-                Write(address, value);
+                //For apple silicon
+                if (OSHelper.IsHardenedRuntime)
+                {
+                    var pageSize = Syscall.sysconf(SysconfName._SC_PAGESIZE);
+                    var mask = ~(pageSize - 1);
+                    var alignedAddr = (IntPtr)(address.ToInt64() & mask);
+
+                    var alignedSize = (ulong)(address.ToInt64() - alignedAddr.ToInt64()) + (ulong)size;
+                    Syscall.mprotect(alignedAddr, alignedSize, MmapProts.PROT_WRITE);
+                    Write(address, value);
+                    Syscall.mprotect(alignedAddr, alignedSize, MmapProts.PROT_READ);
+                }
+                else
+                {
+                    Syscall.mprotect(address, (ulong)size, MmapProts.PROT_WRITE);
+                    Write(address, value);
+                }
             }
         }
 
