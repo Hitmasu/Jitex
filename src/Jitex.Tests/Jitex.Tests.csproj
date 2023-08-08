@@ -14,35 +14,23 @@
         <Platforms>AnyCPU</Platforms>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
-
-    <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|netcoreapp2.1|AnyCPU'">
-        <DefineConstants>NETCOREAPP2</DefineConstants>
-        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    </PropertyGroup>
-
-    <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|netcoreapp2.1|AnyCPU'">
-        <DefineConstants>NETCOREAPP2</DefineConstants>
-        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    </PropertyGroup>
-
-    <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|netcoreapp2.2|AnyCPU'">
-        <DefineConstants>NETCOREAPP2</DefineConstants>
-        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    </PropertyGroup>
     
-    <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|netcoreapp2.2|AnyCPU'">
+    <PropertyGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.1' ">
         <DefineConstants>NETCOREAPP2</DefineConstants>
-        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    </PropertyGroup>
+
+    <PropertyGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.2' ">
+        <DefineConstants>NETCOREAPP2</DefineConstants>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Iced" Version="1.13.0" />
-        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.9.1" />
-        <PackageReference Include="Serilog.Extensions.Hosting" Version="4.1.2" />
-        <PackageReference Include="Serilog.Sinks.File" Version="5.0.0" />
-        <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="5.0.0" />
-        <PackageReference Include="xunit" Version="2.4.1" />
-        <PackageReference Include="Xunit.Extensions.Ordering" Version="1.4.5" />
+        <PackageReference Include="Iced" Version="1.13.0"/>
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.9.1"/>
+        <PackageReference Include="Serilog.Extensions.Hosting" Version="4.1.2"/>
+        <PackageReference Include="Serilog.Sinks.File" Version="5.0.0"/>
+        <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="5.0.0"/>
+        <PackageReference Include="xunit" Version="2.4.1"/>
+        <PackageReference Include="Xunit.Extensions.Ordering" Version="1.4.5"/>
         <PackageReference Include="xunit.runner.visualstudio" Version="2.4.3">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -50,8 +38,8 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\Jitex.Builder\Jitex.Builder.csproj" />
-        <ProjectReference Include="..\Jitex.Tests.Context\Jitex.Tests.Context.csproj" />
-        <ProjectReference Include="..\Jitex\Jitex.csproj" />
+        <ProjectReference Include="..\Jitex.Builder\Jitex.Builder.csproj"/>
+        <ProjectReference Include="..\Jitex.Tests.Context\Jitex.Tests.Context.csproj"/>
+        <ProjectReference Include="..\Jitex\Jitex.csproj"/>
     </ItemGroup>
 </Project>
