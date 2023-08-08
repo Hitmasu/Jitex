@@ -4,7 +4,7 @@
         <TargetFramework>netstandard2.0</TargetFramework>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <Nullable>enable</Nullable>
-        <Platforms>x64</Platforms>
+        <Platforms>AnyCPU</Platforms>
         <Authors>Hitmasu</Authors>
         <Company />
         <Description>A library to modify MSIL and native code at runtime.</Description>
@@ -14,39 +14,27 @@
         <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageTags>JIT</PackageTags>
-        <LangVersion>9</LangVersion>
+        <LangVersion>latest</LangVersion>
         <AssemblyName>Jitex</AssemblyName>
         <PackageIcon>nuget.png</PackageIcon>
-        <Version>6.5.2</Version>
+        <Version>6.6.0</Version>
         <RepositoryType>Git</RepositoryType>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-        <PlatformTarget>x64</PlatformTarget>
-    </PropertyGroup>
-
-    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-        <PlatformTarget>x64</PlatformTarget>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-        <PlatformTarget>x64</PlatformTarget>
-    </PropertyGroup>
-
-    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-        <PlatformTarget>x64</PlatformTarget>
     </PropertyGroup>
 
     <ItemGroup>
         <PackageReference Include="dnlib" Version="3.4.0" />
         <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
+        <PackageReference Include="Mono.Posix" Version="7.1.0-final.1.21458.1" />
 
         <PackageReference Include="System.Memory" Version="4.5.4" />
-        <PackageReference Include="Mono.Posix.NETStandard" Version="1.0.0" />
         <PackageReference Include="System.Threading.Tasks.Extensions" Version="4.5.4" />
     </ItemGroup>
 

@@ -10,10 +10,10 @@ namespace Jitex.Utils
     {
         public static void PrepareDelegate(Delegate del, params object[] parameters)
         {
-            IntPtr delPtr = Marshal.GetFunctionPointerForDelegate(del);
+            var delPtr = Marshal.GetFunctionPointerForDelegate(del);
 
-            IntPtr trampolinePtr = AllocateTrampoline(delPtr);
-            Delegate trampoline = Marshal.GetDelegateForFunctionPointer(trampolinePtr, del.GetType());
+            var trampolinePtr = AllocateTrampoline(delPtr);
+            var trampoline = Marshal.GetDelegateForFunctionPointer(trampolinePtr, del.GetType());
             trampoline.DynamicInvoke(parameters);
             FreeTrampoline(trampolinePtr);
         }

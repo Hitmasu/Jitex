@@ -73,8 +73,6 @@ namespace Jitex.JIT.Context
 
         internal DetourContext? DetourContext { get; private set; }
 
-        internal InterceptContext? InterceptContext { get; private set; }
-
         /// <summary>
         /// Resolution mode.
         /// </summary>
@@ -91,6 +89,9 @@ namespace Jitex.JIT.Context
         /// <param name="nativeCode">ASM to inject.</param>
         public void ResolveNative(IEnumerable<byte> nativeCode)
         {
+            if (OSHelper.IsHardenedRuntime)
+                throw new InvalidOperationException("Detour is not supported on Apple Silicon.");
+
             NativeCode = nativeCode.ToArray();
             IsResolved = true;
             Mode = ResolveMode.Native;
@@ -163,9 +164,7 @@ namespace Jitex.JIT.Context
         public DetourContext ResolveDetour(IntPtr address)
         {
             DetourContext = new DetourContext(address);
-            IsResolved = true;
-            Mode = ResolveMode.Detour;
-            return DetourContext;
+            return ResolveDetour(DetourContext);
         }
 
         /// <summary>
@@ -176,9 +175,17 @@ namespace Jitex.JIT.Context
         public DetourContext ResolveDetour(MethodBase method)
         {
             DetourContext = new DetourContext(method);
+            return ResolveDetour(DetourContext);
+        }
+
+        private DetourContext ResolveDetour(DetourContext context)
+        {
+            if (OSHelper.IsHardenedRuntime)
+                throw new InvalidOperationException("Detour is not supported on Apple Silicon.");
+
             IsResolved = true;
             Mode = ResolveMode.Detour;
-            return DetourContext;
+            return context;
         }
 
         /// <summary>
@@ -187,14 +194,12 @@ namespace Jitex.JIT.Context
         /// <param name="entryMethod">New entry method.</param>
         public void ResolveEntry(MethodBase entryMethod)
         {
-            NativeCode nativeCode;
-
             NativeReader reader = new NativeReader(entryMethod.Module);
+            IntPtr address;
 
             if (reader.IsReadyToRun(entryMethod))
             {
-                IntPtr address = MethodHelper.GetNativeAddress(entryMethod);
-                nativeCode = new NativeCode(address, 0);
+                address = MethodHelper.GetNativeAddress(entryMethod);
             }
             else
             {
@@ -202,18 +207,19 @@ namespace Jitex.JIT.Context
 
                 try
                 {
-                    nativeCode = RuntimeMethodCache.GetNativeCodeAsync(entryMethod, source.Token).GetAwaiter().GetResult();
+                    var nativeCode = RuntimeMethodCache.GetNativeCodeAsync(entryMethod, source.Token)
+                        .GetAwaiter()
+                        .GetResult();
+
+                    address = nativeCode.Address;
                 }
                 catch (OperationCanceledException)
                 {
-                    IntPtr address = MethodHelper.GetNativeAddress(entryMethod);
-                    nativeCode = new NativeCode(address, 0);
+                    address = MethodHelper.GetNativeAddress(entryMethod);
                 }
             }
 
-            EntryContext = nativeCode;
-            IsResolved = true;
-            Mode = ResolveMode.Entry;
+            ResolveEntry(address);
         }
 
         /// <summary>

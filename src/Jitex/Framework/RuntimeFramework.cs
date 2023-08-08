@@ -6,7 +6,7 @@ using Jitex.JIT.CorInfo;
 
 namespace Jitex.Framework
 {
-    internal abstract class RuntimeFramework
+    public abstract class RuntimeFramework
     {
         private static RuntimeFramework? _framework;
 
@@ -139,6 +139,5 @@ namespace Jitex.Framework
         public static bool operator >=(RuntimeFramework left, Version right) => left.FrameworkVersion >= right;
         public static bool operator <(RuntimeFramework left, Version right) => left.FrameworkVersion < right;
         public static bool operator <=(RuntimeFramework left, Version right) => left.FrameworkVersion <= right;
-
     }
 }

@@ -21,13 +21,16 @@ namespace Jitex.Utils
 
         static ModuleHelper()
         {
-            m_pData = Type.GetType("System.Reflection.RuntimeModule").GetField("m_pData", BindingFlags.NonPublic | BindingFlags.Instance);
+            m_pData = Type.GetType("System.Reflection.RuntimeModule")
+                .GetField("m_pData", BindingFlags.NonPublic | BindingFlags.Instance);
             GetHInstance = typeof(Marshal).GetMethod("GetHINSTANCE", new[] { typeof(Module) })!;
             LoadMapScopeToHandle();
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
-        internal static void Initialize() { }
+        internal static void Initialize()
+        {
+        }
 
         private static void AddAssembly(Assembly assembly)
         {
@@ -77,10 +80,9 @@ namespace Jitex.Utils
 
             if (OSHelper.IsWindows)
                 address = GetModuleWindows(module);
-            else if (OSHelper.IsLinux)
+            else 
+            // if (OSHelper.IsLinux)
                 address = GetModuleLinux(module.FullyQualifiedName);
-            else
-                address = GetModuleOSX(module.FullyQualifiedName);
 
             if (address == default)
                 throw new BadImageFormatException($"Base address for module {module.FullyQualifiedName} not found!");
@@ -124,7 +126,7 @@ namespace Jitex.Utils
             return (IntPtr)GetHInstance.Invoke(null, new object[] { module });
         }
 
-        private static IntPtr GetModuleOSX(string modulePath)
+        public static IntPtr GetModuleOSX(string modulePath)
         {
             //TODO: Get modules from mach_vm_region and proc_regionfilename.
             Process proc = new()

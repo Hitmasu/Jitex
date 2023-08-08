@@ -26,41 +26,10 @@ namespace Jitex.Intercept
     {
         private static InterceptManager? _instance;
 
-        private readonly ConcurrentBag<InterceptContext> _interceptedMethods = new();
-
         private InterceptHandler.InterceptorHandler? _interceptors;
 
         private InterceptManager()
         {
-        }
-
-        public void AddIntercept(InterceptContext interceptContext)
-        {
-            _interceptedMethods.Add(interceptContext);
-            EnableIntercept(interceptContext.MethodIntercepted);
-        }
-
-        public void EnableIntercept(MethodBase method)
-        {
-            InterceptContext? interceptContext = GetInterceptContext(method);
-
-            if (interceptContext == null) throw new InterceptNotFound(method);
-
-            interceptContext.Enable();
-        }
-
-        public void RemoveIntercept(MethodBase method)
-        {
-            InterceptContext? interceptContext = GetInterceptContext(method);
-
-            if (interceptContext == null) throw new InterceptNotFound(method);
-
-            interceptContext.Disable();
-        }
-
-        public InterceptContext? GetInterceptContext(MethodBase method)
-        {
-            return _interceptedMethods.FirstOrDefault(w => MethodEqualityComparer.Instance.Equals(w.MethodIntercepted, method));
         }
 
         public void AddInterceptorCall(InterceptHandler.InterceptorHandler inteceptor) => _interceptors += inteceptor;
