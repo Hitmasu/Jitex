@@ -23,7 +23,8 @@ namespace Jitex.JIT.CorInfo
         public delegate void ResolveTokenDelegate(IntPtr thisHandle, IntPtr pResolvedToken);
 
         [UnmanagedFunctionPointer(default)]
-        public delegate InfoAccessType ConstructStringLiteralDelegate(IntPtr thisHandle, IntPtr hModule, int metadataToken, IntPtr ptrString);
+        public delegate InfoAccessType ConstructStringLiteralDelegate(IntPtr thisHandle, IntPtr hModule,
+            int metadataToken, IntPtr ptrString);
 
         static CEEInfo()
         {
@@ -37,7 +38,8 @@ namespace Jitex.JIT.CorInfo
             IntPtr constructStringLiteralPtr = Marshal.ReadIntPtr(ConstructStringLiteralIndex);
 
             _resolveToken = Marshal.GetDelegateForFunctionPointer<ResolveTokenDelegate>(resolveTokenPtr);
-            _constructStringLiteral = Marshal.GetDelegateForFunctionPointer<ConstructStringLiteralDelegate>(constructStringLiteralPtr);
+            _constructStringLiteral =
+                Marshal.GetDelegateForFunctionPointer<ConstructStringLiteralDelegate>(constructStringLiteralPtr);
 
             //PrepareMethod in .NET Core 2.0, will raise StackOverFlowException
             ResolveToken(default, default);
@@ -54,7 +56,8 @@ namespace Jitex.JIT.CorInfo
             _resolveToken(thisHandle, pResolvedToken);
         }
 
-        public static InfoAccessType ConstructStringLiteral(IntPtr thisHandle, IntPtr hModule, int metadataToken, IntPtr ptrString)
+        public static InfoAccessType ConstructStringLiteral(IntPtr thisHandle, IntPtr hModule, int metadataToken,
+            IntPtr ptrString)
         {
             return _constructStringLiteral(thisHandle, hModule, metadataToken, ptrString);
         }

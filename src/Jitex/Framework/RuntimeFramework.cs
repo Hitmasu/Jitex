@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -21,7 +22,8 @@ namespace Jitex.Framework
         /// <param name="nativeSizeOfCode">(OUT) - Size of NativeEntry.</param>
         /// <returns></returns>
         [UnmanagedFunctionPointer(CallingConvention.StdCall, SetLastError = true)]
-        public delegate CorJitResult CompileMethodDelegate(IntPtr thisPtr, IntPtr comp, IntPtr info, uint flags, out IntPtr nativeEntry, out int nativeSizeOfCode);
+        public delegate CorJitResult CompileMethodDelegate(IntPtr thisPtr, IntPtr comp, IntPtr info, uint flags,
+            out IntPtr nativeEntry, out int nativeSizeOfCode);
 
         /// <summary>
         /// Returns if runtime is .NET Core or .NET Framework
@@ -122,6 +124,7 @@ namespace Jitex.Framework
 
                 if (!IsCore)
                     version = version[1..];
+
                 int[] versionsNumbers = version.Split('.').Select(int.Parse).ToArray();
                 FrameworkVersion = new Version(versionsNumbers[0], versionsNumbers[1], versionsNumbers[2]);
             }

@@ -13,6 +13,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using Jitex.Framework;
+using Jitex.Framework.Offsets;
 using Jitex.JIT.Context;
 using Jitex.Runtime;
 using Microsoft.Extensions.Logging;
@@ -260,7 +261,8 @@ namespace Jitex.JIT
 
                 if (methodFound == null)
                 {
-                    Log?.LogTrace($"Method for handle: {methodInfo.MethodHandle} not found. Calling original CompileMethod...");
+                    Log?.LogTrace(
+                        $"Method for handle: {methodInfo.MethodHandle} not found. Calling original CompileMethod...");
                     return _framework.CompileMethod(thisPtr, comp, info, flags, out nativeEntry, out nativeSizeOfCode);
                 }
 
@@ -309,6 +311,7 @@ namespace Jitex.JIT
                         {
                             Log?.LogInformation(
                                 $"Calling resolver [{resolver.Method.DeclaringType?.FullName}.{resolver.Method.Name}]");
+
                             resolver(methodContext);
                         }
                         catch (Exception ex)
@@ -470,8 +473,7 @@ namespace Jitex.JIT
 
                 ResolvedToken resolvedToken = new ResolvedToken(pResolvedToken);
                 token = resolvedToken.Token; //Just to show on exception.
-
-                IntPtr sourceAddress = Marshal.ReadIntPtr(thisHandle, IntPtr.Size * 2);
+                IntPtr sourceAddress = Marshal.ReadIntPtr(thisHandle, IntPtr.Size * ResolvedTokenOffset.SourceOffset);
                 MethodBase? source = MethodHelper.GetMethodFromHandle(sourceAddress);
                 bool hasSource = source != null;
 
