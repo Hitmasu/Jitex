@@ -311,7 +311,7 @@ namespace Jitex.JIT
                         {
                             Log?.LogInformation(
                                 $"Calling resolver [{resolver.Method.DeclaringType?.FullName}.{resolver.Method.Name}]");
-
+                                
                             resolver(methodContext);
                         }
                         catch (Exception ex)
