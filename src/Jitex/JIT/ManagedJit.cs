@@ -311,7 +311,7 @@ namespace Jitex.JIT
                         {
                             Log?.LogInformation(
                                 $"Calling resolver [{resolver.Method.DeclaringType?.FullName}.{resolver.Method.Name}]");
-                                
+
                             resolver(methodContext);
                         }
                         catch (Exception ex)
@@ -397,9 +397,8 @@ namespace Jitex.JIT
                 {
                     if (methodContext.Mode == MethodContext.ResolveMode.Native)
                     {
-                        // _framework.DisableMapJit();
                         Log?.LogDebug("Overwriting generated native code...");
-                        Marshal.Copy(methodContext.NativeCode!, 0, nativeEntry, methodContext.NativeCode!.Length);
+                        MemoryHelper.UnprotectCopy(methodContext.NativeCode!, nativeEntry);
                         Log?.LogDebug("Native code overwrited.");
                     }
                     else if (methodContext?.Mode == MethodContext.ResolveMode.Detour)

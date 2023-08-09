@@ -158,6 +158,46 @@ namespace Jitex.Utils
             }
         }
 
+        public static void UnprotectCopy(byte[] source, IntPtr address, int addressLength = 0)
+        {
+            if (OSHelper.IsWindows)
+            {
+                var oldFlags = Kernel32.VirtualProtect(address, source.Length, Kernel32.MemoryProtection.READ_WRITE);
+                Marshal.Copy(source, 0, address, source.Length);
+                Kernel32.VirtualProtect(address, source.Length, oldFlags);
+            }
+            else if (OSHelper.IsLinux)
+            {
+                lock (LockSelfMemLinux)
+                {
+                    //Prevent segmentation fault.
+                    using FileStream fs = File.Open("/proc/self/mem", FileMode.Open, FileAccess.ReadWrite);
+                    fs.Seek(address.ToInt64(), SeekOrigin.Begin);
+                    fs.Write(source, 0, source.Length);
+                }
+            }
+            else
+            {
+                //For apple silicon
+                if (OSHelper.IsHardenedRuntime)
+                {
+                    var pageSize = Syscall.sysconf(SysconfName._SC_PAGESIZE);
+                    var mask = ~(pageSize - 1);
+                    var alignedAddr = (IntPtr)(address.ToInt64() & mask);
+
+                    var alignedSize = (ulong)(address.ToInt64() - alignedAddr.ToInt64()) + (ulong)source.Length;
+                    Syscall.mprotect(alignedAddr, alignedSize, MmapProts.PROT_WRITE);
+                    Marshal.Copy(source, 0, address, source.Length);
+                    Syscall.mprotect(alignedAddr, alignedSize, MmapProts.PROT_READ);
+                }
+                else
+                {
+                    Syscall.mprotect(address, (ulong)source.Length, MmapProts.PROT_WRITE);
+                    Marshal.Copy(source, 0, address, source.Length);
+                }
+            }
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Write<T>(IntPtr address, int offset, T value) => Write(address + offset, value);
 
