@@ -15,12 +15,12 @@
         <Platforms>AnyCPU</Platforms>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
-    
-    <PropertyGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.1' ">
+
+    <PropertyGroup Condition="'$(TargetFramework)'=='netcoreapp2.1'">
         <DefineConstants>NETCOREAPP2</DefineConstants>
     </PropertyGroup>
 
-    <PropertyGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.2' ">
+    <PropertyGroup Condition="'$(TargetFramework)'=='netcoreapp2.2'">
         <DefineConstants>NETCOREAPP2</DefineConstants>
     </PropertyGroup>
 
