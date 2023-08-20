@@ -16,14 +16,6 @@
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 
-    <PropertyGroup Condition="'$(TargetFramework)'=='netcoreapp2.1'">
-        <DefineConstants>NETCOREAPP2</DefineConstants>
-    </PropertyGroup>
-
-    <PropertyGroup Condition="'$(TargetFramework)'=='netcoreapp2.2'">
-        <DefineConstants>NETCOREAPP2</DefineConstants>
-    </PropertyGroup>
-
     <ItemGroup>
         <PackageReference Include="Iced" Version="1.13.0"/>
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.9.1"/>
