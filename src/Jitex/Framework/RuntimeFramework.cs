@@ -23,7 +23,7 @@ namespace Jitex.Framework
         /// <returns></returns>
         [UnmanagedFunctionPointer(CallingConvention.StdCall, SetLastError = true)]
         public delegate CorJitResult CompileMethodDelegate(IntPtr thisPtr, IntPtr comp, IntPtr info, uint flags,
-            out IntPtr nativeEntry, out int nativeSizeOfCode);
+            IntPtr nativeEntry, out int nativeSizeOfCode);
 
         /// <summary>
         /// Returns if runtime is .NET Core or .NET Framework

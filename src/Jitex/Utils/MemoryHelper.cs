@@ -1,7 +1,10 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Threading;
 using Jitex.Utils.NativeAPI.Windows;
 using Mono.Unix.Native;
 
@@ -26,7 +29,7 @@ namespace Jitex.Utils
             byte[] trampoline;
             int startIndex;
 
-            if (RuntimeInformation.OSArchitecture == Architecture.Arm64)
+            if (OSHelper.IsArm64)
             {
                 trampoline = new byte[]
                 {
@@ -109,12 +112,11 @@ namespace Jitex.Utils
         /// <param name="value">Value to write.</param>
         public static void UnprotectWrite<T>(IntPtr address, T value) where T : unmanaged
         {
-            int size = Unsafe.SizeOf<T>();
+            var size = Unsafe.SizeOf<T>();
 
             if (OSHelper.IsWindows)
             {
-                Kernel32.MemoryProtection oldFlags =
-                    Kernel32.VirtualProtect(address, size, Kernel32.MemoryProtection.READ_WRITE);
+                var oldFlags = Kernel32.VirtualProtect(address, size, Kernel32.MemoryProtection.READ_WRITE);
                 Write(address, value);
                 Kernel32.VirtualProtect(address, size, oldFlags);
             }
@@ -124,14 +126,14 @@ namespace Jitex.Utils
 
                 unsafe
                 {
-                    void* ptr = Unsafe.AsPointer(ref value);
+                    var ptr = Unsafe.AsPointer(ref value);
                     byteValue = new Span<byte>(ptr, size).ToArray();
                 }
 
                 lock (LockSelfMemLinux)
                 {
                     //Prevent segmentation fault.
-                    using FileStream fs = File.Open("/proc/self/mem", FileMode.Open, FileAccess.ReadWrite);
+                    using FileStream fs = File.OpenWrite("/proc/self/mem");
                     fs.Seek(address.ToInt64(), SeekOrigin.Begin);
                     fs.Write(byteValue, 0, byteValue.Length);
                 }
@@ -141,11 +143,7 @@ namespace Jitex.Utils
                 //For apple silicon
                 if (OSHelper.IsHardenedRuntime)
                 {
-                    var pageSize = Syscall.sysconf(SysconfName._SC_PAGESIZE);
-                    var mask = ~(pageSize - 1);
-                    var alignedAddr = (IntPtr)(address.ToInt64() & mask);
-
-                    var alignedSize = (ulong)(address.ToInt64() - alignedAddr.ToInt64()) + (ulong)size;
+                    var (alignedAddr, alignedSize) = GetAlignedAddress(address, size);
                     Syscall.mprotect(alignedAddr, alignedSize, MmapProts.PROT_WRITE);
                     Write(address, value);
                     Syscall.mprotect(alignedAddr, alignedSize, MmapProts.PROT_READ);
@@ -158,45 +156,21 @@ namespace Jitex.Utils
             }
         }
 
-        public static void UnprotectCopy(byte[] source, IntPtr address, int addressLength = 0)
+        public static IntPtr GetAlignedAddress(IntPtr address)
         {
-            if (OSHelper.IsWindows)
-            {
-                var oldFlags = Kernel32.VirtualProtect(address, source.Length, Kernel32.MemoryProtection.READ_WRITE);
-                Marshal.Copy(source, 0, address, source.Length);
-                Kernel32.VirtualProtect(address, source.Length, oldFlags);
-            }
-            else if (OSHelper.IsLinux)
-            {
-                lock (LockSelfMemLinux)
-                {
-                    //Prevent segmentation fault.
-                    using FileStream fs = File.Open("/proc/self/mem", FileMode.Open, FileAccess.ReadWrite);
-                    fs.Seek(address.ToInt64(), SeekOrigin.Begin);
-                    fs.Write(source, 0, source.Length);
-                }
-            }
-            else
-            {
-                //For apple silicon
-                if (OSHelper.IsHardenedRuntime)
-                {
-                    var pageSize = Syscall.sysconf(SysconfName._SC_PAGESIZE);
-                    var mask = ~(pageSize - 1);
-                    var alignedAddr = (IntPtr)(address.ToInt64() & mask);
-
-                    var alignedSize = (ulong)(address.ToInt64() - alignedAddr.ToInt64()) + (ulong)source.Length;
-                    Syscall.mprotect(alignedAddr, alignedSize, MmapProts.PROT_WRITE);
-                    Marshal.Copy(source, 0, address, source.Length);
-                    Syscall.mprotect(alignedAddr, alignedSize, MmapProts.PROT_READ);
-                }
-                else
-                {
-                    Syscall.mprotect(address, (ulong)source.Length, MmapProts.PROT_WRITE);
-                    Marshal.Copy(source, 0, address, source.Length);
-                }
-            }
+            var pageSize = Syscall.sysconf(SysconfName._SC_PAGESIZE);
+            var mask = ~(pageSize - 1);
+            return (IntPtr)(address.ToInt64() & mask);
         }
+
+        public static (IntPtr address, ulong size) GetAlignedAddress(IntPtr address, int size)
+        {
+            var alignedAddr = GetAlignedAddress(address);
+            var alignedSize = (ulong)(address.ToInt64() - alignedAddr.ToInt64()) + (ulong)size;
+
+            return (alignedAddr, alignedSize);
+        }
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Write<T>(IntPtr address, int offset, T value) => Write(address + offset, value);

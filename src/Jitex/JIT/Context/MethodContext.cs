@@ -89,9 +89,6 @@ namespace Jitex.JIT.Context
         /// <param name="nativeCode">ASM to inject.</param>
         public void ResolveNative(IEnumerable<byte> nativeCode)
         {
-            if (OSHelper.IsHardenedRuntime)
-                throw new InvalidOperationException("Detour is not supported on Apple Silicon.");
-
             NativeCode = nativeCode.ToArray();
             IsResolved = true;
             Mode = ResolveMode.Native;
@@ -180,9 +177,6 @@ namespace Jitex.JIT.Context
 
         private DetourContext ResolveDetour(DetourContext context)
         {
-            if (OSHelper.IsHardenedRuntime)
-                throw new InvalidOperationException("Detour is not supported on Apple Silicon.");
-
             IsResolved = true;
             Mode = ResolveMode.Detour;
             return context;

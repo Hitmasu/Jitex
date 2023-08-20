@@ -3,15 +3,12 @@ using Jitex.JIT.CorInfo;
 using Jitex.Utils;
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
-using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Threading.Tasks;
 using Jitex.Framework;
 using Jitex.Framework.Offsets;
 using Jitex.JIT.Context;
@@ -22,8 +19,9 @@ using MethodInfo = Jitex.JIT.CorInfo.MethodInfo;
 using static Jitex.JIT.JitexHandler;
 using static Jitex.Utils.JitexLogger;
 using Jitex.JIT.Handlers;
+using Jitex.Utils.NativeAPI.Windows;
 using Mono.Unix.Native;
-using Exception = System.Exception;
+using static Jitex.Utils.MemoryHelper;
 
 namespace Jitex.JIT
 {
@@ -173,7 +171,6 @@ namespace Jitex.JIT
                                                                                   .Any(del => del.Method ==
                                                                                       tokenResolver.Method);
 
-        #region Future Feature (Enable/Disable)
 
         /// <summary>
         /// Enable Jitex hooks
@@ -219,8 +216,6 @@ namespace Jitex.JIT
             IsEnabled = false;
         }
 
-        #endregion
-
         /// <summary>
         ///     Wrap delegate to compileMethod from ICorJitCompiler.
         /// </summary>
@@ -230,7 +225,7 @@ namespace Jitex.JIT
         /// <param name="flags">(IN) - Pointer to CorJitFlag.</param>
         /// <param name="nativeEntry">(OUT) - Pointer to NativeEntry.</param>
         /// <param name="nativeSizeOfCode">(OUT) - Size of NativeEntry.</param>
-        private CorJitResult CompileMethod(IntPtr thisPtr, IntPtr comp, IntPtr info, uint flags, out IntPtr nativeEntry,
+        private CorJitResult CompileMethod(IntPtr thisPtr, IntPtr comp, IntPtr info, uint flags, IntPtr nativeEntry,
             out int nativeSizeOfCode)
         {
             using IDisposable compileMethodScope = Log?.BeginScope("CompileMethod")!;
@@ -254,7 +249,7 @@ namespace Jitex.JIT
 
                 //Dont put anything inside "if" to be compiled! Otherwise, will raise a StackOverflow
                 if (_compileTls.EnterCount > 1)
-                    return _framework.CompileMethod(thisPtr, comp, info, flags, out nativeEntry, out nativeSizeOfCode);
+                    return _framework.CompileMethod(thisPtr, comp, info, flags, nativeEntry, out nativeSizeOfCode);
 
                 MethodInfo methodInfo = new MethodInfo(info);
                 MethodBase? methodFound = MethodHelper.GetMethodFromHandle(methodInfo.MethodHandle);
@@ -263,7 +258,7 @@ namespace Jitex.JIT
                 {
                     Log?.LogTrace(
                         $"Method for handle: {methodInfo.MethodHandle} not found. Calling original CompileMethod...");
-                    return _framework.CompileMethod(thisPtr, comp, info, flags, out nativeEntry, out nativeSizeOfCode);
+                    return _framework.CompileMethod(thisPtr, comp, info, flags, nativeEntry, out nativeSizeOfCode);
                 }
 
                 if (DynamicHelpers.IsDynamicScope(methodInfo.Scope))
@@ -333,47 +328,29 @@ namespace Jitex.JIT
 
                     _tokenTls = new TokenTls();
 
-                    if (methodContext.IsResolved && (methodContext.Mode.HasFlag(MethodContext.ResolveMode.IL) ||
-                                                     methodContext.Mode.HasFlag(MethodContext.ResolveMode.Native)))
+                    if (methodContext.IsResolved && methodContext.Mode.HasFlag(MethodContext.ResolveMode.IL))
                     {
-                        int ilLength;
+                        MethodBody methodBody = methodContext.Body;
 
-                        if (methodContext.Mode == MethodContext.ResolveMode.IL)
+                        if (methodBody.HasLocalVariable)
                         {
-                            MethodBody methodBody = methodContext.Body;
+                            byte[] signatureVariables = methodBody.GetSignatureVariables();
+                            sigAddress = MarshalHelper.CreateArrayCopy(signatureVariables);
 
-                            ilLength = methodBody.IL.Length;
-
-                            ilAddress = MarshalHelper.CreateArrayCopy(methodBody.IL);
-
-                            if (methodBody.HasLocalVariable)
-                            {
-                                byte[] signatureVariables = methodBody.GetSignatureVariables();
-                                sigAddress = MarshalHelper.CreateArrayCopy(signatureVariables);
-
-                                methodInfo.Locals.Signature = sigAddress + 1;
-                                methodInfo.Locals.Args = sigAddress + 3;
-                                methodInfo.Locals.NumArgs = (ushort)methodBody.LocalVariables.Count;
-                            }
-
-                            methodInfo.MaxStack = methodBody.MaxStackSize;
-                            methodInfo.EHCount = methodContext.Body.EHCount;
-                        }
-                        else
-                        {
-                            (ilAddress, ilLength) = PrepareIL(methodContext);
-
-                            if (methodInfo.MaxStack < 8)
-                                methodInfo.MaxStack = 8;
+                            methodInfo.Locals.Signature = sigAddress + 1;
+                            methodInfo.Locals.Args = sigAddress + 3;
+                            methodInfo.Locals.NumArgs = (ushort)methodBody.LocalVariables.Count;
                         }
 
-                        methodInfo.ILCode = ilAddress;
-                        methodInfo.ILCodeSize = (uint)ilLength;
+                        methodInfo.MaxStack = methodBody.MaxStackSize;
+                        methodInfo.EHCount = methodContext.Body.EHCount;
+                        methodInfo.ILCode = MarshalHelper.CreateArrayCopy(methodBody.IL);
+                        methodInfo.ILCodeSize = (uint)methodBody.IL.Length;
                     }
                 }
 
-                CorJitResult result =
-                    _framework.CompileMethod(thisPtr, comp, info, flags, out nativeEntry, out nativeSizeOfCode);
+                var result =
+                    _framework.CompileMethod(thisPtr, comp, info, flags, nativeEntry, out nativeSizeOfCode);
 
                 if (result != CorJitResult.CORJIT_OK)
                 {
@@ -381,7 +358,9 @@ namespace Jitex.JIT
                     return result;
                 }
 
-                MethodCompiled methodCompiled = new(methodFound, methodContext, methodInfo, result, nativeEntry,
+                var realNativeEntry = Read<IntPtr>(nativeEntry);
+
+                MethodCompiled methodCompiled = new(methodFound, methodContext, methodInfo, result, realNativeEntry,
                     nativeSizeOfCode);
 
                 RuntimeMethodCache.AddMethod(methodCompiled);
@@ -393,37 +372,37 @@ namespace Jitex.JIT
                 if (sigAddress != IntPtr.Zero)
                     Marshal.FreeHGlobal(sigAddress);
 
-                if (methodContext is { IsResolved: true })
+                if (methodContext is not { IsResolved: true })
+                    return result;
+
+                if (methodContext.Mode == MethodContext.ResolveMode.Native)
                 {
-                    if (methodContext.Mode == MethodContext.ResolveMode.Native)
-                    {
-                        Log?.LogDebug("Overwriting generated native code...");
-                        MemoryHelper.UnprotectCopy(methodContext.NativeCode!, nativeEntry);
-                        Log?.LogDebug("Native code overwrited.");
-                    }
-                    else if (methodContext?.Mode == MethodContext.ResolveMode.Detour)
-                    {
-                        Log?.LogDebug("Detouring method...");
-                        DetourContext detourContext = methodContext.DetourContext!;
-                        detourContext.MethodAddress = nativeEntry;
-                        detourContext.Enable();
-                        Log?.LogDebug("Method detoured.");
-                    }
-                    else if (methodContext.Mode == MethodContext.ResolveMode.Entry)
-                    {
-                        NativeCode entryContext = methodContext.EntryContext!;
-                        nativeEntry = entryContext.Address;
+                    Log?.LogDebug("Overwriting generated native code...");
 
-                        Log?.LogDebug($"Overwriting original EntryPoint...");
+                    WriteNative(methodContext.NativeCode!, ref nativeSizeOfCode, nativeEntry);
 
-                        if (entryContext.Size > 0)
-                            nativeSizeOfCode = entryContext.Size;
+                    Log?.LogDebug("Native code overwrited.");
+                }
+                else if (methodContext.Mode == MethodContext.ResolveMode.Detour)
+                {
+                    Log?.LogDebug("Detouring method...");
+                    DetourContext detourContext = methodContext.DetourContext!;
+                    detourContext.MethodAddress = nativeEntry;
+                    detourContext.Enable();
+                    Log?.LogDebug("Method detoured.");
+                }
+                else if (methodContext.Mode == MethodContext.ResolveMode.Entry)
+                {
+                    Log?.LogDebug($"Overwriting original EntryPoint...");
 
-                        methodCompiled.NativeCode.Address = nativeEntry;
-                        methodCompiled.NativeCode.Size = nativeSizeOfCode;
+                    var entryContext = methodContext.EntryContext!;
 
-                        Log?.LogDebug("EntryPoint overwrited.");
-                    }
+                    WriteEntry(entryContext, ref nativeSizeOfCode, nativeEntry);
+
+                    methodCompiled.NativeCode.Address = nativeEntry;
+                    methodCompiled.NativeCode.Size = nativeSizeOfCode;
+
+                    Log?.LogDebug("EntryPoint overwrited.");
                 }
 
                 return result;
@@ -431,13 +410,47 @@ namespace Jitex.JIT
             catch (Exception ex)
             {
                 Log?.LogCritical(ex, "Failed to compile method.");
-                nativeEntry = default;
                 nativeSizeOfCode = default;
                 throw new Exception("Failed compile method.", ex);
             }
             finally
             {
                 _compileTls.EnterCount--;
+            }
+        }
+
+        private static void WriteEntry(NativeCode nativeCode, ref int nativeSize, IntPtr nativeEntry)
+        {
+            Write(nativeEntry, nativeCode.Address);
+
+            if (nativeCode.Size > 0)
+                nativeSize = nativeCode.Size;
+        }
+
+        private static void WriteNative(byte[] nativeCode, ref int nativeSize, IntPtr nativeEntry)
+        {
+            var size = nativeCode.Length;
+            var address = Marshal.AllocHGlobal(size);
+
+            unsafe
+            {
+                var ptr = Unsafe.AsPointer(ref nativeCode[0]);
+                Unsafe.CopyBlock(address.ToPointer(), ptr, (uint)size);
+            }
+
+            Write(nativeEntry, address);
+            nativeSize = size;
+
+            if (OSHelper.IsWindows)
+            {
+                Kernel32.VirtualProtect(address, size, Kernel32.MemoryProtection.EXECUTE_READ_WRITE);
+            }
+            else
+            {
+                var (alignedAddress, alignedSize) = GetAlignedAddress(address, size);
+
+                //Only R^W because of Apple Silicon Hardened Runtime.
+                Syscall.mprotect(alignedAddress, alignedSize, MmapProts.PROT_READ | MmapProts.PROT_EXEC);
             }
         }
 
@@ -534,8 +547,7 @@ namespace Jitex.JIT
                             if (string.IsNullOrEmpty(context.Content))
                                 throw new ArgumentNullException("String content can't be null or empty.");
 
-                            InfoAccessType result =
-                                CEEInfo.ConstructStringLiteral(thisHandle, hModule, metadataToken, ppValue);
+                            var result = CEEInfo.ConstructStringLiteral(thisHandle, hModule, metadataToken, ppValue);
                             WriteString(ppValue, context.Content!);
                             return result;
                         }
@@ -571,90 +583,6 @@ namespace Jitex.JIT
             Marshal.Copy(newContent, 0, objectHandle + IntPtr.Size + sizeof(int), newContent.Length);
 
             Marshal.WriteIntPtr(pEntry, objectHandle);
-        }
-
-        /// <summary>
-        /// Prepare IL to inject native code.
-        /// </summary>
-        /// <remarks>
-        /// To inject native code, its necessary generate a IL which native code size generated by JIT
-        /// is greater than or equals native code size to inject.
-        /// Create a lot of recursive call.
-        /// </remarks>
-        /// <param name="methodContext">Context to prepare IL.</param>
-        /// <returns>Address and size of IL.</returns>
-        private static (IntPtr ilAddress, int ilLength) PrepareIL(MethodContext methodContext)
-        {
-            if (methodContext == null)
-                throw new ArgumentNullException(nameof(methodContext));
-
-            if (methodContext.NativeCode == null)
-                throw new NullReferenceException(nameof(methodContext.NativeCode));
-
-            System.Reflection.MethodInfo method = (System.Reflection.MethodInfo)methodContext.Method;
-
-            int metadataToken = method.IsGenericMethod ? 0x2B000001 : method.MetadataToken;
-
-            byte[] tokenBytes =
-            {
-                (byte)metadataToken,
-                (byte)(metadataToken >> 8),
-                (byte)(metadataToken >> 16),
-                (byte)(metadataToken >> 24)
-            };
-
-            List<byte> callBody = new List<byte>();
-
-            bool isVoid = method.ReturnType == typeof(void);
-
-            int argIndex = 0;
-
-            if (!method.IsStatic)
-            {
-                argIndex++;
-                callBody.Add((byte)OpCodes.Ldarg_0.Value);
-            }
-
-            int totalArgs = method.GetParameters().Count(w => !w.IsOptional);
-
-            for (int i = 0; i < totalArgs; i++)
-            {
-                callBody.Add((byte)OpCodes.Ldarg_S.Value);
-                callBody.Add((byte)argIndex++);
-            }
-
-            callBody.Add((byte)OpCodes.Call.Value);
-            callBody.AddRange(tokenBytes);
-
-            if (!isVoid)
-                callBody.Add((byte)OpCodes.Pop.Value);
-
-            byte[] callBytes = callBody.ToArray();
-
-            int bodyLength = (int)Math.Ceiling((double)methodContext.NativeCode.Length / callBytes.Length) *
-                             callBytes.Length;
-            int retLength = 1;
-
-            if (!isVoid)
-                retLength = callBytes.Length;
-
-            int ilSize = bodyLength + retLength;
-
-            IntPtr ilAddress = Marshal.AllocHGlobal(ilSize);
-
-            for (int i = 0; i < bodyLength; i += callBytes.Length)
-            {
-                Marshal.Copy(callBytes, 0, ilAddress + i, callBytes.Length);
-            }
-
-            if (!isVoid)
-            {
-                Marshal.Copy(callBytes, 0, ilAddress + bodyLength, callBytes.Length);
-            }
-
-            Marshal.WriteByte(ilAddress + ilSize - 1, (byte)OpCodes.Ret.Value);
-
-            return (ilAddress, ilSize);
         }
 
         public void Dispose()

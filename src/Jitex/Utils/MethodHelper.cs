@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -17,7 +18,7 @@ namespace Jitex.Utils
         private static readonly bool CanRecompileMethod;
 
         private static readonly Type CanonType;
-        private static readonly IntPtr PrecodeFixupThunkAddress;
+        private static IntPtr PreCodeFixupThunkAddress;
         private static readonly ConstructorInfo CtorRuntimeMethodHandeInternal;
         private static readonly MethodInfo GetMethodBase;
         private static readonly MethodInfo GetMethodDescriptorInfo;
@@ -32,28 +33,34 @@ namespace Jitex.Utils
 
             CanonType = Type.GetType("System.__Canon")!;
 
-            CtorRuntimeMethodHandeInternal = runtimeMethodHandleInternalType.GetConstructor(BindingFlags.NonPublic | BindingFlags.Instance, null, new[] { typeof(IntPtr) }, null)!;
+            CtorRuntimeMethodHandeInternal =
+                runtimeMethodHandleInternalType.GetConstructor(BindingFlags.NonPublic | BindingFlags.Instance, null,
+                    new[] { typeof(IntPtr) }, null)!;
 
-            GetMethodBase = runtimeType.GetMethod("GetMethodBase", BindingFlags.NonPublic | BindingFlags.Static, null, new[] { runtimeType, runtimeMethodHandleInternalType }, null)!;
+            GetMethodBase = runtimeType.GetMethod("GetMethodBase", BindingFlags.NonPublic | BindingFlags.Static, null,
+                new[] { runtimeType, runtimeMethodHandleInternalType }, null)!;
 
-            GetMethodDescriptorInfo = typeof(DynamicMethod).GetMethod("GetMethodDescriptor", BindingFlags.Instance | BindingFlags.NonPublic)!;
+            GetMethodDescriptorInfo =
+                typeof(DynamicMethod).GetMethod("GetMethodDescriptor", BindingFlags.Instance | BindingFlags.NonPublic)!;
 
-            GetFunctionPointerInternal = typeof(RuntimeMethodHandle).GetMethod("GetFunctionPointer", BindingFlags.Static | BindingFlags.NonPublic)!;
+            GetFunctionPointerInternal =
+                typeof(RuntimeMethodHandle).GetMethod("GetFunctionPointer",
+                    BindingFlags.Static | BindingFlags.NonPublic)!;
 
-            GetSlot = typeof(RuntimeMethodHandle).GetMethod("GetSlot", BindingFlags.Static | BindingFlags.NonPublic, null, new[] { iRuntimeMethodInfo }, null)!;
+            GetSlot = typeof(RuntimeMethodHandle).GetMethod("GetSlot", BindingFlags.Static | BindingFlags.NonPublic,
+                null, new[] { iRuntimeMethodInfo }, null)!;
 
-            PrecodeFixupThunkAddress = GetPrecodeFixupThunkAddress();
+            PreCodeFixupThunkAddress = GetPrecodeFixupThunkAddress();
 
             CanRecompileMethod = RuntimeFramework.Framework >= new Version(5, 0, 0);
         }
 
         private static IntPtr GetPrecodeFixupThunkAddress()
         {
-            MethodInfo methodStub = typeof(MethodHelper).GetMethod("MethodToNeverBeCalled", BindingFlags.Static | BindingFlags.NonPublic)!;
-            IntPtr functionPointer = methodStub.MethodHandle.GetFunctionPointer();
-            int jmpSize = Marshal.ReadInt32(functionPointer, 1);
+            var methodStub =
+                typeof(MethodHelper).GetMethod("MethodToNeverBeCalled", BindingFlags.Static | BindingFlags.NonPublic)!;
 
-            return functionPointer + jmpSize + 5;
+            return GetNativeAddress(methodStub, false);
         }
 
         private static object GetRuntimeMethodHandleInternal(IntPtr methodHandle)
@@ -214,20 +221,35 @@ namespace Jitex.Utils
             return MethodBase.GetMethodFromHandle(handle, typeHandle);
         }
 
-        public static IntPtr GetNativeAddress(MethodBase method)
+        public static IntPtr GetNativeAddress(MethodBase method, bool prepareMethod = true)
         {
-            RuntimeMethodHandle handle = GetMethodHandle(method);
-            RuntimeHelpers.PrepareMethod(handle);
+            var handle = GetMethodHandle(method);
 
-            IntPtr functionPointer = handle.GetFunctionPointer();
+            if (prepareMethod)
+                RuntimeHelpers.PrepareMethod(handle);
 
-            byte opCode = MemoryHelper.Read<byte>(functionPointer, 0);
+            var functionPointer = handle.GetFunctionPointer();
+            var opCode = MemoryHelper.Read<byte>(functionPointer, 0);
 
-            if (opCode == 0xE9)
+            if (OSHelper.IsArm64)
             {
-                int jmpSize = MemoryHelper.Read<int>(functionPointer, 1);
-                return functionPointer + jmpSize + 5;
+                //LDR OpCode
+                if (opCode == 0x0B)
+                {
+                    var midAddress = GetMidAddress(functionPointer);
+                    return MemoryHelper.Read<IntPtr>(midAddress);
+                }
             }
+            else
+            {
+                //MOV OpCode
+                if (opCode == 0xE9)
+                {
+                    var jmpSize = MemoryHelper.Read<int>(functionPointer, 1);
+                    return functionPointer + jmpSize + 5;
+                }
+            }
+
 
             return functionPointer;
         }
@@ -298,8 +320,11 @@ namespace Jitex.Utils
         /// <returns>Returns if state was set sucessfully.</returns>
         public static bool ForceRecompile(MethodBase method)
         {
-            if (!CanRecompileMethod) throw new UnsupportedFrameworkVersion("Recompile method is only supported on .NET 5 or above.");
-            if (method == null) throw new ArgumentNullException(nameof(method));
+            if (!CanRecompileMethod)
+                throw new UnsupportedFrameworkVersion("Recompile method is only supported on .NET 5 or above.");
+
+            if (method == null)
+                throw new ArgumentNullException(nameof(method));
 
             CheckIfGenericIsInitialized(method);
 
@@ -308,18 +333,29 @@ namespace Jitex.Utils
 
         private static bool SetMethodPreCode(MethodBase method)
         {
-            IntPtr methodHandle = GetDirectMethodHandle(method);
-            IntPtr functionPointer = GetFunctionPointer(methodHandle);
-            int jmpSize = (int)(PrecodeFixupThunkAddress.ToInt64() - functionPointer.ToInt64() - 5);
-            int offset = GetFunctionPointerOffset(method);
+            var methodHandle = GetDirectMethodHandle(method);
+            var functionPointer = GetFunctionPointer(methodHandle);
 
-            //Remove funcitonPointer on MethodDesc
-            Marshal.WriteIntPtr(methodHandle, IntPtr.Size * offset, IntPtr.Zero);
+            var offset = GetFunctionPointerOffset(method);
+
+            //Remove functionPointer on MethodDesc
+            MemoryHelper.Write(methodHandle, IntPtr.Size * offset, IntPtr.Zero);
 
             //Set call instruction to call PreCodeFixup
-            Marshal.WriteByte(functionPointer, 0xE8); //call instruction
-            Marshal.WriteByte(functionPointer, 5, 0x5E); //pop instruction
-            Marshal.WriteInt32(functionPointer, 1, jmpSize);
+            if (OSHelper.IsArm64)
+            {
+                var midAddress = GetMidAddress(functionPointer);
+                var compileAddress = functionPointer + IntPtr.Size;
+                MemoryHelper.Write(midAddress, compileAddress);
+            }
+            else
+            {
+                var jmpSize = (int)(PreCodeFixupThunkAddress.ToInt64() - functionPointer.ToInt64() - 5);
+
+                MemoryHelper.Write<byte>(functionPointer, 0xE8);
+                MemoryHelper.Write<byte>(functionPointer, 5, 0x5E);
+                MemoryHelper.Write(functionPointer, 1, jmpSize);
+            }
 
             if (!method.IsVirtual)
                 return false;
@@ -391,7 +427,7 @@ namespace Jitex.Utils
                 return false;
 
             int originalSlot = GetMethodSlot((MethodInfo)method);
-            
+
             //If method is virtual, we need get the "virtual" function pointer, which sadly, it's not same from MethodHandle.
             //I can't find a way to get that pointer, but we can assume his allocated after/before function pointer from last constructor:
             //Eg.:
@@ -446,7 +482,8 @@ namespace Jitex.Utils
         /// <param name="methodGenericArguments">Generic arguments from method.</param>
         /// <returns>If method or declared type is generic, returns a MethodInfo with arguements typed, otherwise return parameter method.</returns>
         /// <exception cref="ArgumentNullException"></exception>
-        internal static MethodBase TryInitializeGenericMethod(MethodBase method, Type[]? typeGenericArguments, Type[]? methodGenericArguments)
+        internal static MethodBase TryInitializeGenericMethod(MethodBase method, Type[]? typeGenericArguments,
+            Type[]? methodGenericArguments)
         {
             if (!method.IsGenericMethod && method.DeclaringType is not { IsGenericType: true })
                 return method;
@@ -508,7 +545,11 @@ namespace Jitex.Utils
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static int GetRID(MethodBase method) => method.MetadataToken & 0x00FFFFFF;
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static bool IsMethodInVtable(MethodBase method) => method.IsVirtual || method.IsGenericMethod;
+        private static IntPtr GetMidAddress(IntPtr functionPointer)
+        {
+            var jmpSize = MemoryHelper.Read<ushort>(functionPointer, 1);
+            var size = (jmpSize << 4) * 2;
+            return functionPointer + size;
+        }
     }
 }
