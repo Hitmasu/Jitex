@@ -12,7 +12,7 @@
         </TargetFrameworks>
         <IsPackable>false</IsPackable>
         <LangVersion>default</LangVersion>
-        <Platforms>AnyCPU</Platforms>
+        <Platforms>AnyCPU;x64</Platforms>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 
