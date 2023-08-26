@@ -349,8 +349,7 @@ namespace Jitex.JIT
                     }
                 }
 
-                var result =
-                    _framework.CompileMethod(thisPtr, comp, info, flags, nativeEntry, out nativeSizeOfCode);
+                var result = _framework.CompileMethod(thisPtr, comp, info, flags, nativeEntry, out nativeSizeOfCode);
 
                 if (result != CorJitResult.CORJIT_OK)
                 {

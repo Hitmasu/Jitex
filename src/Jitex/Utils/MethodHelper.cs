@@ -229,12 +229,18 @@ namespace Jitex.Utils
                 RuntimeHelpers.PrepareMethod(handle);
 
             var functionPointer = handle.GetFunctionPointer();
-            var opCode = MemoryHelper.Read<byte>(functionPointer, 0);
+
+            var offset = 0;
+
+            if (OSHelper.IsArm64 && RuntimeFramework.Framework.FrameworkVersion < new Version(7, 0))
+                offset = 4;
+
+            var opCode = MemoryHelper.Read<byte>(functionPointer, offset);
 
             if (OSHelper.IsArm64)
             {
                 //LDR OpCode
-                if (opCode == 0x0B)
+                if (opCode is 0x0B or 0x6B)
                 {
                     var midAddress = GetMidAddress(functionPointer);
                     return MemoryHelper.Read<IntPtr>(midAddress);
@@ -346,6 +352,7 @@ namespace Jitex.Utils
             {
                 var midAddress = GetMidAddress(functionPointer);
                 var compileAddress = functionPointer + IntPtr.Size;
+
                 MemoryHelper.Write(midAddress, compileAddress);
             }
             else
