@@ -35,14 +35,9 @@ namespace Jitex.JIT.Context
             Native = 1 << 1,
 
             /// <summary>
-            /// Detour
-            /// </summary>
-            Detour = 1 << 2,
-
-            /// <summary>
             /// Native entry of method
             /// </summary>
-            Entry = 1 << 4
+            Entry = 1 << 2
         }
 
         /// <summary>
@@ -70,8 +65,6 @@ namespace Jitex.JIT.Context
         internal byte[]? NativeCode { get; private set; }
 
         internal NativeCode? EntryContext { get; private set; }
-
-        internal DetourContext? DetourContext { get; private set; }
 
         /// <summary>
         /// Resolution mode.
@@ -137,13 +130,13 @@ namespace Jitex.JIT.Context
         /// Detour to another method.
         /// </summary>
         /// <param name="method"></param>
-        public DetourContext ResolveDetour(MethodInfo method) => ResolveDetour(method as MethodBase);
+        public void ResolveDetour(MethodInfo method) => ResolveDetour(method as MethodBase);
 
         /// <summary>
         /// Detour to a Delegate
         /// </summary>
         /// <param name="del"></param>
-        public DetourContext ResolveDetour(Delegate del) => ResolveDetour<Delegate>(del);
+        public void ResolveDetour(Delegate del) => ResolveDetour<Delegate>(del);
 
         /// <summary>
         /// Detour to a delegate or method
@@ -151,36 +144,21 @@ namespace Jitex.JIT.Context
         /// <param name="del">Delegate or method to detour.</param>
         /// <typeparam name="T"></typeparam>
         /// <returns>Context of detour.</returns>
-        public DetourContext ResolveDetour<T>(T del) where T : Delegate => ResolveDetour(del.Method);
+        public void ResolveDetour<T>(T del) where T : Delegate => ResolveDetour(del.Method);
 
         /// <summary>
         /// Detour to an address.
         /// </summary>
         /// <param name="address">Address to detour.</param>
         /// <returns>Context of detour.</returns>
-        public DetourContext ResolveDetour(IntPtr address)
-        {
-            DetourContext = new DetourContext(address);
-            return ResolveDetour(DetourContext);
-        }
+        public void ResolveDetour(IntPtr address) => ResolveEntry(address);
 
         /// <summary>
         /// Detour to a method.
         /// </summary>
         /// <param name="method">Method to detour.</param>
         /// <returns>Context of detour.</returns>
-        public DetourContext ResolveDetour(MethodBase method)
-        {
-            DetourContext = new DetourContext(method);
-            return ResolveDetour(DetourContext);
-        }
-
-        private DetourContext ResolveDetour(DetourContext context)
-        {
-            IsResolved = true;
-            Mode = ResolveMode.Detour;
-            return context;
-        }
+        public void ResolveDetour(MethodBase method) => ResolveEntry(method);
 
         /// <summary>
         /// Resolve method by entry.

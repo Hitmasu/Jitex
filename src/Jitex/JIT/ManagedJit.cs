@@ -382,14 +382,6 @@ namespace Jitex.JIT
 
                     Log?.LogDebug("Native code overwrited.");
                 }
-                else if (methodContext.Mode == MethodContext.ResolveMode.Detour)
-                {
-                    Log?.LogDebug("Detouring method...");
-                    DetourContext detourContext = methodContext.DetourContext!;
-                    detourContext.MethodAddress = nativeEntry;
-                    detourContext.Enable();
-                    Log?.LogDebug("Method detoured.");
-                }
                 else if (methodContext.Mode == MethodContext.ResolveMode.Entry)
                 {
                     Log?.LogDebug($"Overwriting original EntryPoint...");
