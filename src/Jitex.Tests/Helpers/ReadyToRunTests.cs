@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.InteropServices;
@@ -6,11 +7,11 @@ using Jitex.Framework;
 using Jitex.Utils;
 using Xunit;
 
-
 namespace Jitex.Tests.Helpers
 {
-    [Collection("Manager")]
-    public class ReadyToRunTests
+    [Collection("Helpres")]
+    [SuppressMessage("Usage", "xUnit1000:Test classes must be public", Justification = "We need wrote better tests for ReadyToRun.")]
+    internal class ReadyToRunTests
     {
         [Fact]
         public void DetectMethodIsReadyToRunTest()

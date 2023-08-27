@@ -71,11 +71,9 @@ namespace Jitex.JIT
         /// </summary>
         private static ManagedJit? _instance;
 
-        [ThreadStatic]
-        private static CompileTls? _compileTls;
+        [ThreadStatic] private static CompileTls? _compileTls;
 
-        [ThreadStatic]
-        private static TokenTls? _tokenTls;
+        [ThreadStatic] private static TokenTls? _tokenTls;
 
         private readonly HookManager _hookManager = new HookManager();
 
@@ -164,12 +162,12 @@ namespace Jitex.JIT
         internal void RemoveOnMethodCompiledEvent(MethodCompiledHandler handler) => OnMethodCompiled -= handler;
 
         internal bool HasMethodResolver(MethodResolverHandler methodResolver) => _methodResolvers != null &&
-            _methodResolvers.GetInvocationList().Any(del => del.Method == methodResolver.Method);
+                                                                                 _methodResolvers.GetInvocationList().Any(del => del.Method == methodResolver.Method);
 
         internal bool HasTokenResolver(TokenResolverHandler tokenResolver) => _tokenResolvers != null &&
                                                                               _tokenResolvers.GetInvocationList()
                                                                                   .Any(del => del.Method ==
-                                                                                      tokenResolver.Method);
+                                                                                              tokenResolver.Method);
 
 
         /// <summary>
@@ -440,8 +438,10 @@ namespace Jitex.JIT
             {
                 var (alignedAddress, alignedSize) = GetAlignedAddress(address, size);
 
-                //Only R^W because of Apple Silicon Hardened Runtime.
-                Syscall.mprotect(alignedAddress, alignedSize, MmapProts.PROT_READ | MmapProts.PROT_EXEC);
+                if (OSHelper.IsHardenedRuntime)
+                    Syscall.mprotect(alignedAddress, alignedSize, MmapProts.PROT_READ | MmapProts.PROT_EXEC);
+                else
+                    Syscall.mprotect(alignedAddress, alignedSize, MmapProts.PROT_READ | MmapProts.PROT_WRITE | MmapProts.PROT_EXEC);
             }
         }
 
