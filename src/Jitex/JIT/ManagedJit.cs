@@ -438,9 +438,9 @@ namespace Jitex.JIT
             {
                 var (alignedAddress, alignedSize) = GetAlignedAddress(address, size);
 
-                if (OSHelper.IsHardenedRuntime)
-                    Syscall.mprotect(alignedAddress, alignedSize, MmapProts.PROT_READ | MmapProts.PROT_EXEC);
-                else
+                // if (OSHelper.IsHardenedRuntime)
+                //     Syscall.mprotect(alignedAddress, alignedSize, MmapProts.PROT_READ | MmapProts.PROT_EXEC);
+                // else
                     Syscall.mprotect(alignedAddress, alignedSize, MmapProts.PROT_READ | MmapProts.PROT_WRITE | MmapProts.PROT_EXEC);
             }
         }
