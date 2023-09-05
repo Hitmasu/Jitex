@@ -59,8 +59,10 @@ namespace Jitex.Utils
         {
             var methodStub =
                 typeof(MethodHelper).GetMethod("MethodToNeverBeCalled", BindingFlags.Static | BindingFlags.NonPublic)!;
+            var functionPointer = methodStub.MethodHandle.GetFunctionPointer();
+            var jmpSize = Marshal.ReadInt32(functionPointer, 1);
 
-            return GetNativeAddress(methodStub, false);
+            return functionPointer + jmpSize + 5;
         }
 
         private static object GetRuntimeMethodHandleInternal(IntPtr methodHandle)
