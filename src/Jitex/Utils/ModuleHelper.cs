@@ -80,9 +80,10 @@ namespace Jitex.Utils
 
             if (OSHelper.IsWindows)
                 address = GetModuleWindows(module);
-            else 
-            // if (OSHelper.IsLinux)
+            else if (OSHelper.IsLinux)
                 address = GetModuleLinux(module.FullyQualifiedName);
+            else
+                address = GetModuleOSX(module.FullyQualifiedName);
 
             if (address == default)
                 throw new BadImageFormatException($"Base address for module {module.FullyQualifiedName} not found!");
