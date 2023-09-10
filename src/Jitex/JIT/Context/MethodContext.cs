@@ -166,31 +166,7 @@ namespace Jitex.JIT.Context
         /// <param name="entryMethod">New entry method.</param>
         public void ResolveEntry(MethodBase entryMethod)
         {
-            NativeReader reader = new NativeReader(entryMethod.Module);
-            IntPtr address;
-
-            if (reader.IsReadyToRun(entryMethod))
-            {
-                address = MethodHelper.GetNativeAddress(entryMethod);
-            }
-            else
-            {
-                CancellationTokenSource source = new CancellationTokenSource(TimeSpan.FromSeconds(1));
-
-                try
-                {
-                    var nativeCode = RuntimeMethodCache.GetNativeCodeAsync(entryMethod, source.Token)
-                        .GetAwaiter()
-                        .GetResult();
-
-                    address = nativeCode.Address;
-                }
-                catch (OperationCanceledException)
-                {
-                    address = MethodHelper.GetNativeAddress(entryMethod);
-                }
-            }
-
+            var address = MethodHelper.GetNativeAddress(entryMethod);
             ResolveEntry(address);
         }
 
