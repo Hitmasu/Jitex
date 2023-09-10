@@ -14,8 +14,10 @@ namespace Jitex.Utils
         public static bool IsWindows => RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
         public static bool IsOSX => RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
 
-        
-        public static bool IsHardenedRuntime => IsOSX && RuntimeInformation.ProcessArchitecture == Architecture.Arm64;
+        public static bool IsArm64 => RuntimeInformation.ProcessArchitecture == Architecture.Arm64;
+
+
+        public static bool IsHardenedRuntime => IsOSX && IsArm64;
 
         public static bool IsPosix => !IsWindows;
     }

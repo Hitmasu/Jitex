@@ -21,9 +21,6 @@ namespace Jitex.Tests.Resolvers
         [Fact]
         public void SmallAssemblyTest()
         {
-            if (OSHelper.IsHardenedRuntime)
-                return;
-
             int n1 = 5;
             int n2 = 5;
             int expected = n1 * n2;
@@ -34,9 +31,6 @@ namespace Jitex.Tests.Resolvers
         [Fact]
         public void LargeAssemblyTest()
         {
-            if (OSHelper.IsHardenedRuntime)
-                return;
-
             int n1 = 10;
             int n2 = 1000;
             int expected = n1 * n2;

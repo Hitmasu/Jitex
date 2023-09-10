@@ -35,14 +35,9 @@ namespace Jitex.JIT.Context
             Native = 1 << 1,
 
             /// <summary>
-            /// Detour
-            /// </summary>
-            Detour = 1 << 2,
-
-            /// <summary>
             /// Native entry of method
             /// </summary>
-            Entry = 1 << 4
+            Entry = 1 << 2
         }
 
         /// <summary>
@@ -71,8 +66,6 @@ namespace Jitex.JIT.Context
 
         internal NativeCode? EntryContext { get; private set; }
 
-        internal DetourContext? DetourContext { get; private set; }
-
         /// <summary>
         /// Resolution mode.
         /// </summary>
@@ -89,9 +82,6 @@ namespace Jitex.JIT.Context
         /// <param name="nativeCode">ASM to inject.</param>
         public void ResolveNative(IEnumerable<byte> nativeCode)
         {
-            if (OSHelper.IsHardenedRuntime)
-                throw new InvalidOperationException("Detour is not supported on Apple Silicon.");
-
             NativeCode = nativeCode.ToArray();
             IsResolved = true;
             Mode = ResolveMode.Native;
@@ -140,13 +130,13 @@ namespace Jitex.JIT.Context
         /// Detour to another method.
         /// </summary>
         /// <param name="method"></param>
-        public DetourContext ResolveDetour(MethodInfo method) => ResolveDetour(method as MethodBase);
+        public void ResolveDetour(MethodInfo method) => ResolveDetour(method as MethodBase);
 
         /// <summary>
         /// Detour to a Delegate
         /// </summary>
         /// <param name="del"></param>
-        public DetourContext ResolveDetour(Delegate del) => ResolveDetour<Delegate>(del);
+        public void ResolveDetour(Delegate del) => ResolveDetour<Delegate>(del);
 
         /// <summary>
         /// Detour to a delegate or method
@@ -154,39 +144,21 @@ namespace Jitex.JIT.Context
         /// <param name="del">Delegate or method to detour.</param>
         /// <typeparam name="T"></typeparam>
         /// <returns>Context of detour.</returns>
-        public DetourContext ResolveDetour<T>(T del) where T : Delegate => ResolveDetour(del.Method);
+        public void ResolveDetour<T>(T del) where T : Delegate => ResolveDetour(del.Method);
 
         /// <summary>
         /// Detour to an address.
         /// </summary>
         /// <param name="address">Address to detour.</param>
         /// <returns>Context of detour.</returns>
-        public DetourContext ResolveDetour(IntPtr address)
-        {
-            DetourContext = new DetourContext(address);
-            return ResolveDetour(DetourContext);
-        }
+        public void ResolveDetour(IntPtr address) => ResolveEntry(address);
 
         /// <summary>
         /// Detour to a method.
         /// </summary>
         /// <param name="method">Method to detour.</param>
         /// <returns>Context of detour.</returns>
-        public DetourContext ResolveDetour(MethodBase method)
-        {
-            DetourContext = new DetourContext(method);
-            return ResolveDetour(DetourContext);
-        }
-
-        private DetourContext ResolveDetour(DetourContext context)
-        {
-            if (OSHelper.IsHardenedRuntime)
-                throw new InvalidOperationException("Detour is not supported on Apple Silicon.");
-
-            IsResolved = true;
-            Mode = ResolveMode.Detour;
-            return context;
-        }
+        public void ResolveDetour(MethodBase method) => ResolveEntry(method);
 
         /// <summary>
         /// Resolve method by entry.
@@ -194,31 +166,7 @@ namespace Jitex.JIT.Context
         /// <param name="entryMethod">New entry method.</param>
         public void ResolveEntry(MethodBase entryMethod)
         {
-            NativeReader reader = new NativeReader(entryMethod.Module);
-            IntPtr address;
-
-            if (reader.IsReadyToRun(entryMethod))
-            {
-                address = MethodHelper.GetNativeAddress(entryMethod);
-            }
-            else
-            {
-                CancellationTokenSource source = new CancellationTokenSource(TimeSpan.FromSeconds(1));
-
-                try
-                {
-                    var nativeCode = RuntimeMethodCache.GetNativeCodeAsync(entryMethod, source.Token)
-                        .GetAwaiter()
-                        .GetResult();
-
-                    address = nativeCode.Address;
-                }
-                catch (OperationCanceledException)
-                {
-                    address = MethodHelper.GetNativeAddress(entryMethod);
-                }
-            }
-
+            var address = MethodHelper.GetNativeAddress(entryMethod);
             ResolveEntry(address);
         }
 

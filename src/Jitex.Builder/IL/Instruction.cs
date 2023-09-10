@@ -153,7 +153,7 @@ namespace Jitex.Builder.IL
             List<byte> bytes = new(10);
 
             if (OpCode.Size == 1)
-                bytes.Add((byte) OpCode.Value);
+                bytes.Add((byte)OpCode.Value);
             else
                 bytes.AddRange(BitConverter.GetBytes(OpCode.Value).Reverse());
 
@@ -170,8 +170,8 @@ namespace Jitex.Builder.IL
                     if (_value == null)
                         throw new ArgumentNullException($"Value to be written is null. Opcode: {OpCode.Name}");
 
-                    byte[] b = BitConverter.GetBytes(_value);
-                    bytes.AddRange(b.Take(size));
+                    byte[] buffer = ByteHelper.GetBytes(_value);
+                    bytes.AddRange(buffer.Take(size));
                 }
             }
 
@@ -207,7 +207,7 @@ namespace Jitex.Builder.IL
 
             foreach (FieldInfo field in fields)
             {
-                OpCode opCode = (OpCode) field.GetValue(null);
+                OpCode opCode = (OpCode)field.GetValue(null);
                 OpCodes.Add(opCode.Value, opCode);
             }
         }
