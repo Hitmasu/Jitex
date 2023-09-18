@@ -8,38 +8,27 @@ using System.Runtime.CompilerServices;
 
 namespace Jitex.Builder.IL
 {
-    public class Instructions : IEnumerable<Instruction>
+    public class Instructions : List<Instruction>
     {
-        private readonly List<Instruction> _instructions = new(10);
-
-        public Instruction this[int index]
+        public new Instruction this[int index]
         {
             get => GetInstruction(index);
             set => SetInstruction(index, value);
-        }
-
-        public IEnumerator<Instruction> GetEnumerator()
-        {
-            return _instructions.GetEnumerator();
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return GetEnumerator();
         }
 
         public void Remove(int index)
         {
             ValidateIndex(index);
 
-            _instructions.RemoveAt(index);
+            RemoveAt(index);
+
 
             Instruction? prevInstruction = null;
 
             if (index > 0)
-                prevInstruction = _instructions.ElementAt(index - 1);
+                prevInstruction = this.ElementAt(index - 1);
 
-            foreach (Instruction instruction in _instructions.Skip(index))
+            foreach (var instruction in this.Skip(index))
             {
                 if (prevInstruction != null)
                 {
@@ -51,20 +40,20 @@ namespace Jitex.Builder.IL
             }
         }
 
-        public void RemoveLast() => Remove(_instructions.Count - 1);
+        public void RemoveLast() => Remove(Count - 1);
 
         public void Add(Instruction instruction)
         {
             ValidateNotNull(instruction);
 
-            if (_instructions.Count > 0)
+            if (Count > 0)
             {
-                Instruction lastInstruction = _instructions.Last();
+                var lastInstruction = this.Last();
                 instruction.Index = lastInstruction.Index + 1;
                 instruction.Offset = lastInstruction.Offset + lastInstruction.Size;
             }
 
-            _instructions.Add(instruction);
+            base.Add(instruction);
         }
 
         public Instruction Add(OpCode opcode)
@@ -81,17 +70,10 @@ namespace Jitex.Builder.IL
             return instruction;
         }
 
-        public void AddRange(IEnumerable<Instruction> instructions)
-        {
-            foreach (Instruction instruction in instructions)
-                Add(instruction);
-        }
-
         public Instruction GetInstruction(int index)
         {
             ValidateIndex(index);
-
-            return _instructions[index];
+            return base[index];
         }
 
         public void SetInstruction(int index, Instruction instruction)
@@ -99,14 +81,15 @@ namespace Jitex.Builder.IL
             ValidateIndex(index);
             ValidateNotNull(instruction);
 
-            _instructions[index] = instruction;
+            base[index] = instruction;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void ValidateIndex(int index)
         {
-            if (index > _instructions.Count - 1 || index < 0)
-                throw new ArgumentOutOfRangeException(nameof(index), "Index was out of range. Must be non-negative and less than the size of the collection.");
+            if (index > Count - 1 || index < 0)
+                throw new ArgumentOutOfRangeException(nameof(index),
+                    "Index was out of range. Must be non-negative and less than the size of the collection.");
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -118,7 +101,7 @@ namespace Jitex.Builder.IL
 
         public IEnumerable<byte> ToBytes()
         {
-            return _instructions.SelectMany(instruction => instruction.ToBytes());
+            return this.SelectMany(instruction => instruction.ToBytes());
         }
 
         public static implicit operator byte[](Instructions instructions)

@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using Jitex.PE;
 using System.Reflection;
+using System.Reflection.Emit;
 using Jitex.Builder.IL;
 using Jitex.Internal;
 using Jitex.Utils;
@@ -16,17 +18,38 @@ namespace Jitex.Intercept
 {
     internal class InterceptorBuilder : IDisposable
     {
-        private static readonly ConstructorInfo CallContextCtor = typeof(CallContext).GetConstructor(new[] {typeof(long), typeof(Type[]), typeof(Type[]), typeof(Pointer), typeof(Pointer), typeof(Pointer[])})!;
-        private static readonly ConstructorInfo CallManagerCtor = typeof(CallManager).GetConstructor(new[] {typeof(CallContext)})!;
+        private static readonly ConstructorInfo CallContextCtor = typeof(CallContext).GetConstructor(new[]
+            { typeof(long), typeof(Type[]), typeof(Type[]), typeof(Pointer), typeof(Pointer), typeof(Pointer[]) })!;
 
-        private static readonly MethodInfo CallInterceptors = typeof(CallManager).GetMethod(nameof(CallManager.CallInterceptors), BindingFlags.Public | BindingFlags.Instance)!;
-        private static readonly MethodInfo ReleaseTask = typeof(CallManager).GetMethod(nameof(CallManager.ReleaseTask), BindingFlags.Public | BindingFlags.Instance)!;
+        private static readonly ConstructorInfo CallManagerCtor =
+            typeof(CallManager).GetConstructor(new[] { typeof(CallContext) })!;
+
+        private static readonly MethodInfo CallInterceptors =
+            typeof(CallManager).GetMethod(nameof(CallManager.CallInterceptors),
+                BindingFlags.Public | BindingFlags.Instance)!;
+
+        private static readonly MethodInfo ReleaseTask = typeof(CallManager).GetMethod(nameof(CallManager.ReleaseTask),
+            BindingFlags.Public | BindingFlags.Instance)!;
+
         private static readonly MethodInfo PointerBox = typeof(Pointer).GetMethod(nameof(Pointer.Box))!;
-        private static readonly MethodInfo GetProceedCall = typeof(CallContext).GetProperty(nameof(CallContext.ProceedCall))!.GetGetMethod()!;
-        private static readonly MethodInfo GetReturnValue = typeof(CallContext).GetMethods(BindingFlags.Public | BindingFlags.Instance).First(w => w.Name == nameof(CallContext.GetReturnValue) && w.IsGenericMethod);
-        private static readonly MethodInfo GetReturnValuePointer = typeof(CallManager).GetMethod(nameof(CallManager.GetReturnValuePointer), BindingFlags.Public | BindingFlags.Instance)!;
-        private static readonly MethodInfo GetReturnValueNoRef = typeof(CallManager).GetMethod(nameof(CallManager.GetReturnValueNoRef), BindingFlags.Public | BindingFlags.Instance)!;
-        private static readonly MethodInfo GetTypeFromHandle = GetTypeFromHandle = typeof(Type).GetMethod(nameof(Type.GetTypeFromHandle))!;
+
+        private static readonly MethodInfo GetProceedCall =
+            typeof(CallContext).GetProperty(nameof(CallContext.ProceedCall))!.GetGetMethod()!;
+
+        private static readonly MethodInfo GetReturnValue = typeof(CallContext)
+            .GetMethods(BindingFlags.Public | BindingFlags.Instance)
+            .First(w => w.Name == nameof(CallContext.GetReturnValue) && w.IsGenericMethod);
+
+        private static readonly MethodInfo GetReturnValuePointer =
+            typeof(CallManager).GetMethod(nameof(CallManager.GetReturnValuePointer),
+                BindingFlags.Public | BindingFlags.Instance)!;
+
+        private static readonly MethodInfo GetReturnValueNoRef =
+            typeof(CallManager).GetMethod(nameof(CallManager.GetReturnValueNoRef),
+                BindingFlags.Public | BindingFlags.Instance)!;
+
+        private static readonly MethodInfo GetTypeFromHandle =
+            GetTypeFromHandle = typeof(Type).GetMethod(nameof(Type.GetTypeFromHandle))!;
 
         private readonly MethodBase _method;
         private readonly MethodBody _body;
@@ -82,13 +105,13 @@ namespace Jitex.Intercept
                 _image = _imageReader.LoadImage(reuseReferences);
             }
 
-            IList<LocalVariableInfo> localVariables = _body.LocalVariables;
+            var localVariables = _body.LocalVariables;
 
             localVariables.Add(new LocalVariableInfo(typeof(CallContext)));
-            byte callContextVariableIndex = (byte) (localVariables.Count - 1);
+            byte callContextVariableIndex = (byte)(localVariables.Count - 1);
 
             localVariables.Add(new LocalVariableInfo(typeof(CallManager)));
-            byte callManagerVariableIndex = (byte) (localVariables.Count - 1);
+            byte callManagerVariableIndex = (byte)(localVariables.Count - 1);
 
             _image!.AddOrGetMemberRef(CallContextCtor, out int callContextCtorMetadataToken);
             _image!.AddOrGetMemberRef(CallManagerCtor, out int callManagerCtorMetadataToken);
@@ -116,8 +139,8 @@ namespace Jitex.Intercept
                 returnType = typeof(void);
             }
 
-            byte ldargIndex = WriteInstanceParameter(instructions);
-            byte? returnVariableIndex = WriteReturnVariable(localVariables, instructions, returnType);
+            var ldargIndex = WriteInstanceParameter(instructions);
+            var returnVariableIndex = WriteReturnVariable(localVariables, instructions, returnType);
 
             WriteParameters(instructions, ldargIndex);
 
@@ -129,21 +152,63 @@ namespace Jitex.Intercept
             instructions.Add(Stloc_S, callManagerVariableIndex);
             instructions.Add(Ldloc_S, callManagerVariableIndex);
 
+            //Call interceptors.
             instructions.Add(Callvirt, callInterceptorMetadataToken);
 
             instructions.Add(Ldloc_S, callContextVariableIndex);
             instructions.Add(Callvirt, getProceedCallMetadataToken);
-            Instruction gotoInstruction = instructions.Add(Brfalse, 0); //if(context.ProceedCall)
+            var endMethodJump = instructions.Add(Brfalse, 0); //if(context.ProceedCall)
 
-            instructions.AddRange(_body.ReadIL());
-            instructions.RemoveLast(); //Remove Ret instruction.
+            var retBranches = new List<Instruction>();
+            List<(Instruction Src, Instruction Dst)> branches = new();
 
-            if (returnType != typeof(void))
-                instructions.Add(Stloc_S, returnVariableIndex);
+            var bodyIl = _body.ReadIL().ToList();
 
-            Instruction endpointGoto = instructions.Add(Ldloc_S, callManagerVariableIndex);
+            //Map all branches from instructions.
+            foreach (var bodyInstruction in bodyIl)
+            {
+                var opCode = bodyInstruction.OpCode;
+
+                if (opCode.FlowControl != FlowControl.Branch && opCode.FlowControl != FlowControl.Cond_Branch)
+                    continue;
+
+                var destinationOffset = bodyInstruction.Offset + bodyInstruction.Value + bodyInstruction.Size;
+                var destination = bodyIl.First(w => w.Offset == destinationOffset);
+
+                branches.Add((bodyInstruction, destination));
+            }
+
+            //Remove ret instructions and replace them with a jmp to the end of the method (releaseTask).
+            foreach (var bodyInstruction in bodyIl)
+            {
+                if (bodyInstruction.OpCode != Ret)
+                {
+                    instructions.Add(bodyInstruction);
+                    continue;
+                }
+
+                if (returnType != typeof(void))
+                    instructions.Add(Stloc_S, returnVariableIndex);
+
+                var retBranch = instructions.Add(Br, 0);
+
+                retBranches.Add(retBranch);
+            }
+
+            var endpointGoto = instructions.Add(Ldloc_S, callManagerVariableIndex);
             instructions.Add(Callvirt, releaseTaskMetadataToken);
-            gotoInstruction.Value = (endpointGoto.Offset - gotoInstruction.Offset - gotoInstruction.Size);
+
+            //Recalculate all branchs from body.
+            //This is necessary because we have added instructions in the middle of the body,
+            //which may have caused the branch offsets to become incorrect.
+            foreach (var branch in branches)
+                branch.Src.Value = branch.Dst.Offset - branch.Src.Offset - branch.Src.Size;
+
+            //Update all ret branches (ret) to a single target.
+            foreach (var retBranch in retBranches)
+                retBranch.Value = endpointGoto.Offset - retBranch.Offset - retBranch.Size;
+
+            endMethodJump.Value = endpointGoto.Offset - endMethodJump.Offset - endMethodJump.Size;
 
             WriteGetReturnValue(instructions, callContextVariableIndex, callManagerVariableIndex, returnType);
 
@@ -171,7 +236,7 @@ namespace Jitex.Intercept
 
             Type[] parameters = _method.GetParameters().Select(w => w.ParameterType).ToArray();
 
-            instructions.Add(Ldc_I4_S, (byte) parameters.Length);
+            instructions.Add(Ldc_I4_S, (byte)parameters.Length);
             instructions.Add(Newarr, pointerTypeMetadataToken);
 
             for (byte i = 0; i < parameters.Length; i++)
@@ -213,7 +278,7 @@ namespace Jitex.Intercept
 
             _image!.AddOrGetMemberRef(PointerBox, out int pointerBoxMetadataToken);
 
-            instructions.Add(Ldarga_S, (byte) 0);
+            instructions.Add(Ldarga_S, (byte)0);
             instructions.Add(Conv_U);
             instructions.Add(Call, pointerBoxMetadataToken);
             return 1;
@@ -226,7 +291,8 @@ namespace Jitex.Intercept
         /// <param name="instructions"></param>
         /// <param name="returnType"></param>
         /// <returns></returns>
-        private byte? WriteReturnVariable(IList<LocalVariableInfo> variables, Instructions instructions, Type returnType)
+        private byte? WriteReturnVariable(IList<LocalVariableInfo> variables, Instructions instructions,
+            Type returnType)
         {
             if (returnType == typeof(void))
             {
@@ -237,7 +303,7 @@ namespace Jitex.Intercept
             _image!.AddOrGetMemberRef(PointerBox, out int pointerBoxMetadataToken);
 
             variables.Add(new LocalVariableInfo(returnType));
-            byte returnVariableIndex = (byte) (variables.Count - 1);
+            byte returnVariableIndex = (byte)(variables.Count - 1);
 
             instructions.Add(Ldloca_S, returnVariableIndex);
 
@@ -261,7 +327,8 @@ namespace Jitex.Intercept
         /// <param name="callContextVariableIndex"></param>
         /// <param name="callManagerVariableIndex"></param>
         /// <param name="returnType"></param>
-        private void WriteGetReturnValue(Instructions instructions, byte callContextVariableIndex, byte callManagerVariableIndex, Type returnType)
+        private void WriteGetReturnValue(Instructions instructions, byte callContextVariableIndex,
+            byte callManagerVariableIndex, Type returnType)
         {
             if (returnType == typeof(void))
                 return;
@@ -315,7 +382,7 @@ namespace Jitex.Intercept
 
             if (MethodHelper.HasCanon(_method, false))
             {
-                MethodInfo methodInfo = (MethodInfo) _method;
+                MethodInfo methodInfo = (MethodInfo)_method;
                 Type[] types = methodInfo.GetGenericMethodDefinition().GetGenericArguments();
                 WriteTypesOnArray(instructions, types);
 
@@ -339,7 +406,7 @@ namespace Jitex.Intercept
             _image!.AddOrGetTypeRef(typeof(Type), out int typeMetadataToken);
             _image!.AddOrGetMemberRef(GetTypeFromHandle, out int getTypeFromHandleMetadataToken);
 
-            instructions.Add(Ldc_I4_S, (byte) types.Count);
+            instructions.Add(Ldc_I4_S, (byte)types.Count);
             instructions.Add(Newarr, typeMetadataToken);
 
             for (byte i = 0; i < types.Count; i++)

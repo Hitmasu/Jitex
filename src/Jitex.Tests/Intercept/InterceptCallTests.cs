@@ -249,8 +249,8 @@ namespace Jitex.Tests.Intercept
 
             unsafe
             {
-                resultAddr = *(IntPtr*) &resultRef;
-                pointAddr = *(IntPtr*) &pointRef;
+                resultAddr = *(IntPtr*)&resultRef;
+                pointAddr = *(IntPtr*)&pointRef;
             }
 
             Assert.Equal(_point, result);
@@ -283,8 +283,8 @@ namespace Jitex.Tests.Intercept
 
             unsafe
             {
-                resultAddr = *(IntPtr*) &resultRef;
-                personAddr = *(IntPtr*) &personRef;
+                resultAddr = *(IntPtr*)&resultRef;
+                personAddr = *(IntPtr*)&personRef;
             }
 
             Assert.Equal(name, _person.Name);
@@ -421,7 +421,8 @@ namespace Jitex.Tests.Intercept
         [Fact]
         public void GenericParametersTest()
         {
-            string typesName = GetTypesGeneric<int, InterceptPerson, Point>(10, new InterceptPerson(default), new Point());
+            string typesName =
+                GetTypesGeneric<int, InterceptPerson, Point>(10, new InterceptPerson(default), new Point());
             string expected = $"{nameof(Int32)}.{nameof(InterceptPerson)}.{nameof(Point)}";
 
             Assert.Equal(expected, typesName);
@@ -455,7 +456,7 @@ namespace Jitex.Tests.Intercept
             const int number = -4;
             const int age = 50;
 
-            InstanceConstructor instance = new(number, new Person {Age = age});
+            InstanceConstructor instance = new(number, new Person { Age = age });
 
             Assert.Equal(number * 2, instance.Number);
             Assert.Equal(age * 2, instance.Person.Age);
@@ -465,6 +466,11 @@ namespace Jitex.Tests.Intercept
 
             CallsIntercepted.TryRemove(nameof(InstanceConstructor) + ".ctor", out _);
             MethodsCalled.TryRemove(nameof(InstanceConstructor) + ".ctor", out _);
+        }
+
+        [Fact]
+        public void MultipleRetIntercept()
+        {
         }
 
         private static string ReverseText(string text) => new(text.Reverse().ToArray());
@@ -583,6 +589,17 @@ namespace Jitex.Tests.Intercept
             return $"{p1.GetType().Name}.{p2.GetType().Name}.{p3.GetType().Name}";
         }
 
+        [InterceptCall]
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private string GetNumberInfo(int number)
+        {
+            if (number < 0)
+                return "Negative";
+            if (number > 0)
+                return "Positive";
+            return "None";
+        }
+
         private static async Task InterceptorCall(CallContext context)
         {
             string methodName;
@@ -616,7 +633,8 @@ namespace Jitex.Tests.Intercept
                 InterceptPerson interceptPerson = context.GetParameterValue<InterceptPerson>(0)!;
                 interceptPerson.Age += 255;
             }
-            else if (testSource.Name == nameof(ModifyValueTypeParametersTest) && context.Method.Name == nameof(CreatePoint))
+            else if (testSource.Name == nameof(ModifyValueTypeParametersTest) &&
+                     context.Method.Name == nameof(CreatePoint))
             {
                 Point point = context.GetParameterValue<Point>(0)!;
 
@@ -638,7 +656,8 @@ namespace Jitex.Tests.Intercept
                 InterceptPerson returnValue = new InterceptPerson(newName, newAge);
                 context.SetReturnValue(returnValue);
             }
-            else if (testSource.Name == nameof(ModifyRefPrimitiveParametersTest) && context.Method.Name == nameof(SimpleSumRef))
+            else if (testSource.Name == nameof(ModifyRefPrimitiveParametersTest) &&
+                     context.Method.Name == nameof(SimpleSumRef))
             {
                 ModifyParameters();
 
@@ -692,7 +711,8 @@ namespace Jitex.Tests.Intercept
                 InstanceConstructor instance = await context.ContinueAsync<InstanceConstructor>();
                 instance!.Number = int.MaxValue;
             }
-            else if (testSource.Name == nameof(ConstructorInstanceWithParametersTest) && context.Method.GetParameters().Length > 0)
+            else if (testSource.Name == nameof(ConstructorInstanceWithParametersTest) &&
+                     context.Method.GetParameters().Length > 0)
             {
                 int number = context.GetParameterValue<int>(0);
                 context.SetParameterValue(0, number * 2);
@@ -753,7 +773,8 @@ namespace Jitex.Tests.Intercept
 
         private static void AddMethodCall(string method, bool isIntercepted = false, string caller = "")
         {
-            ConcurrentDictionary<string, ConcurrentBag<string>> calls = isIntercepted ? CallsIntercepted : MethodsCalled;
+            ConcurrentDictionary<string, ConcurrentBag<string>>
+                calls = isIntercepted ? CallsIntercepted : MethodsCalled;
 
             MethodBase testSource = GetSourceTest();
 
@@ -763,7 +784,7 @@ namespace Jitex.Tests.Intercept
             if (calls.TryGetValue(caller, out ConcurrentBag<string> methods))
                 methods.Add(method);
             else
-                calls.TryAdd(caller, new ConcurrentBag<string> {method});
+                calls.TryAdd(caller, new ConcurrentBag<string> { method });
         }
 
         private static MethodBase GetSourceTest()
@@ -771,7 +792,8 @@ namespace Jitex.Tests.Intercept
             StackTrace trace = new StackTrace(false);
             return trace.GetFrames()
                 .Select(w => w.GetMethod())
-                .FirstOrDefault(w => w.GetCustomAttribute<FactAttribute>() != null || w.GetCustomAttribute<TheoryAttribute>() != null);
+                .FirstOrDefault(w =>
+                    w.GetCustomAttribute<FactAttribute>() != null || w.GetCustomAttribute<TheoryAttribute>() != null);
         }
 
         #endregion

@@ -90,9 +90,11 @@ namespace Jitex.Builder.Method
 
                 if (methodBase.DeclaringType!.IsGenericType)
                     GenericTypeArguments = methodBase.DeclaringType.GetGenericArguments();
+
+                LocalVariables = methodBase.GetMethodBody().LocalVariables
+                    .Select(s => new LocalVariableInfo(s.LocalType!, s.IsPinned)).ToList();
             }
 
-            LocalVariables = methodBase.GetMethodBody().LocalVariables.Select(s => new LocalVariableInfo(s.LocalType!, s.IsPinned)).ToList();
             IL = methodBase.GetILBytes();
         }
 
@@ -104,7 +106,8 @@ namespace Jitex.Builder.Method
         /// <param name="genericTypeArguments">Generic class arguments used in body.</param>
         /// <param name="genericMethodArguments">Generic method arguments used in body.</param>
         /// <param name="variables">Local variables.</param>
-        public MethodBody(IEnumerable<byte> il, Module? module, Type[]? genericTypeArguments = null, Type[]? genericMethodArguments = null, params Type[] variables)
+        public MethodBody(IEnumerable<byte> il, Module? module, Type[]? genericTypeArguments = null,
+            Type[]? genericMethodArguments = null, params Type[] variables)
         {
             Module = module;
             LocalVariables = variables.Select(s => new LocalVariableInfo(s)).ToList();
@@ -122,7 +125,9 @@ namespace Jitex.Builder.Method
         /// <param name="module">Module from IL.</param>
         /// <param name="genericTypeArguments">Generic class arguments used in body.</param>
         /// <param name="genericMethodArguments">Generic method arguments used in body.</param>
-        public MethodBody(IEnumerable<byte> il, Module? module, Type[]? genericTypeArguments = null, Type[]? genericMethodArguments = null) : this(il, module, genericTypeArguments, genericMethodArguments, new Type[0])
+        public MethodBody(IEnumerable<byte> il, Module? module, Type[]? genericTypeArguments = null,
+            Type[]? genericMethodArguments = null) : this(il, module, genericTypeArguments, genericMethodArguments,
+            new Type[0])
         {
         }
 
@@ -132,7 +137,8 @@ namespace Jitex.Builder.Method
         /// <param name="il">IL instructions.</param>
         /// <param name="module">Module from IL.</param>
         /// <param name="variables">Local variables.</param>
-        public MethodBody(IEnumerable<byte> il, Module? module, params Type[] variables) : this(il, module, null, null, variables)
+        public MethodBody(IEnumerable<byte> il, Module? module, params Type[] variables) : this(il, module, null, null,
+            variables)
         {
         }
 
@@ -188,7 +194,7 @@ namespace Jitex.Builder.Method
                 maxStackSize += CalculateMaxStack(operation.OpCode);
 
                 if (maxStackSize > highMaxStack)
-                    highMaxStack = (uint) maxStackSize;
+                    highMaxStack = (uint)maxStackSize;
 
                 if (operation.OpCode == OpCodes.Leave || operation.OpCode == OpCodes.Leave_S)
                     EHCount++;
@@ -278,7 +284,7 @@ namespace Jitex.Builder.Method
             byte[] signature = new byte[blobSignature.Length + 1];
 
             Array.Copy(blobSignature, 0, signature, 1, blobSignature.Length);
-            signature[0] = (byte) blobSignature.Length;
+            signature[0] = (byte)blobSignature.Length;
 
             return signature;
         }
