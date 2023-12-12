@@ -68,6 +68,11 @@ jobs:
         with:
           dotnet-version: 7.0.x
 
+      - name: Installing .NET 8
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: 8.0.x
+
       - run: |
           dotnet clean && dotnet nuget locals all --clear
           dotnet restore
@@ -92,7 +97,7 @@ jobs:
       - name: Installing .NET
         uses: actions/setup-dotnet@v1
         with:
-          dotnet-version: 7.0.x
+          dotnet-version: 8.0.x
 
       - run: |
           dotnet clean && dotnet nuget locals all --clear

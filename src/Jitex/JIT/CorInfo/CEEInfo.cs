@@ -36,7 +36,7 @@ namespace Jitex.JIT.CorInfo
 
             IntPtr resolveTokenPtr = Marshal.ReadIntPtr(ResolveTokenIndex);
             IntPtr constructStringLiteralPtr = Marshal.ReadIntPtr(ConstructStringLiteralIndex);
-
+            
             _resolveToken = Marshal.GetDelegateForFunctionPointer<ResolveTokenDelegate>(resolveTokenPtr);
             _constructStringLiteral =
                 Marshal.GetDelegateForFunctionPointer<ConstructStringLiteralDelegate>(constructStringLiteralPtr);

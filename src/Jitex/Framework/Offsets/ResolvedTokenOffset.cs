@@ -23,14 +23,16 @@ namespace Jitex.Framework.Offsets
             HClass = 0x18;
             HMethod = 0x20;
             HField = 0x28;
-            
+
             RuntimeFramework framework = RuntimeFramework.Framework;
             ReadOffset(framework.IsCore, framework.FrameworkVersion);
         }
 
         private static void ReadOffset(bool isCore, Version version)
         {
-            if (isCore && version >= new Version(7, 0, 0))
+            if (isCore && version >= new Version(8, 0, 0))
+                SourceOffset = 2;
+            else if (isCore && version >= new Version(7, 0, 0))
                 SourceOffset = 5;
             else
                 SourceOffset = 2;

@@ -25,6 +25,8 @@ namespace Jitex.Framework
         public delegate CorJitResult CompileMethodDelegate(IntPtr thisPtr, IntPtr comp, IntPtr info, uint flags,
             IntPtr nativeEntry, out int nativeSizeOfCode);
 
+        public bool HasRTDynamicType => FrameworkVersion < new Version(8, 0, 0);
+
         /// <summary>
         /// Returns if runtime is .NET Core or .NET Framework
         /// </summary>
