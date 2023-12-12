@@ -283,6 +283,7 @@ namespace Jitex.JIT
 
                             Log?.LogTrace("Injecting hook for ResolveToken");
                             _hookManager.InjectHook(CEEInfo.ResolveTokenIndex, _resolveToken);
+                            
                             Log?.LogTrace("Injecting hook for ConstructStringLiteralIndex");
                             _hookManager.InjectHook(CEEInfo.ConstructStringLiteralIndex, _constructStringLiteral);
                         }
