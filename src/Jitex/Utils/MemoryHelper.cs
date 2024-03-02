@@ -1,10 +1,7 @@
 ﻿using System;
-using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Threading;
 using Jitex.Utils.NativeAPI.Windows;
 using Mono.Unix.Native;
 
@@ -19,7 +16,7 @@ namespace Jitex.Utils
         public static byte[] GetTrampoline(IntPtr methodAddress)
         {
             var (trampoline, index) = GetTrampoline();
-            var address = BitConverter.GetBytes(methodAddress.ToInt64());
+            var address = MarshalHelper.GetAddressBytes(methodAddress);
             address.CopyTo(trampoline, index);
             return trampoline;
         }
@@ -44,6 +41,18 @@ namespace Jitex.Utils
                 };
 
                 startIndex = 8;
+            }
+            else if (OSHelper.IsX86)
+            {
+                trampoline = new byte[]
+                {
+                    // mov eax, <address_of_function> ; Load address of function into eax
+                    0xB8, 0x00, 0x00, 0x00, 0x00,
+                    // jmp eax
+                    0xFF, 0xE0
+                };
+
+                startIndex = 1;
             }
             else
             {

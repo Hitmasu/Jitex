@@ -3,7 +3,6 @@ using Jitex.JIT.CorInfo;
 using Jitex.Utils;
 using System;
 using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -71,9 +70,11 @@ namespace Jitex.JIT
         /// </summary>
         private static ManagedJit? _instance;
 
-        [ThreadStatic] private static CompileTls? _compileTls;
+        [ThreadStatic]
+        private static CompileTls? _compileTls;
 
-        [ThreadStatic] private static TokenTls? _tokenTls;
+        [ThreadStatic]
+        private static TokenTls? _tokenTls;
 
         private readonly HookManager _hookManager = new HookManager();
 
@@ -144,6 +145,7 @@ namespace Jitex.JIT
         /// <returns></returns>
         internal static ManagedJit GetInstance()
         {
+            MethodInfo INFO = new MethodInfo(IntPtr.Zero);
             lock (InstanceLock)
             {
                 return _instance ??= new ManagedJit();
@@ -162,12 +164,12 @@ namespace Jitex.JIT
         internal void RemoveOnMethodCompiledEvent(MethodCompiledHandler handler) => OnMethodCompiled -= handler;
 
         internal bool HasMethodResolver(MethodResolverHandler methodResolver) => _methodResolvers != null &&
-                                                                                 _methodResolvers.GetInvocationList().Any(del => del.Method == methodResolver.Method);
+            _methodResolvers.GetInvocationList().Any(del => del.Method == methodResolver.Method);
 
         internal bool HasTokenResolver(TokenResolverHandler tokenResolver) => _tokenResolvers != null &&
                                                                               _tokenResolvers.GetInvocationList()
                                                                                   .Any(del => del.Method ==
-                                                                                              tokenResolver.Method);
+                                                                                      tokenResolver.Method);
 
 
         /// <summary>
@@ -184,8 +186,8 @@ namespace Jitex.JIT
 
                 if (_framework.CEEInfoVTable != IntPtr.Zero)
                 {
-                    _hookManager.InjectHook(CEEInfo.ResolveTokenIndex, _resolveToken);
-                    _hookManager.InjectHook(CEEInfo.ConstructStringLiteralIndex, _constructStringLiteral);
+                    // _hookManager.InjectHook(CEEInfo.ResolveTokenIndex, _resolveToken);
+                    // _hookManager.InjectHook(CEEInfo.ConstructStringLiteralIndex, _constructStringLiteral);
                 }
             }
 
@@ -223,6 +225,7 @@ namespace Jitex.JIT
         /// <param name="flags">(IN) - Pointer to CorJitFlag.</param>
         /// <param name="nativeEntry">(OUT) - Pointer to NativeEntry.</param>
         /// <param name="nativeSizeOfCode">(OUT) - Size of NativeEntry.</param>
+        [MethodImpl(MethodImplOptions.NoInlining)]
         private CorJitResult CompileMethod(IntPtr thisPtr, IntPtr comp, IntPtr info, uint flags, IntPtr nativeEntry,
             out int nativeSizeOfCode)
         {
@@ -282,9 +285,9 @@ namespace Jitex.JIT
                             _framework.ReadICorJitInfoVTable(comp);
 
                             Log?.LogTrace("Injecting hook for ResolveToken");
-                            _hookManager.InjectHook(CEEInfo.ResolveTokenIndex, _resolveToken);
+                            // _hookManager.InjectHook(CEEInfo.ResolveTokenIndex, _resolveToken);
                             Log?.LogTrace("Injecting hook for ConstructStringLiteralIndex");
-                            _hookManager.InjectHook(CEEInfo.ConstructStringLiteralIndex, _constructStringLiteral);
+                            // _hookManager.InjectHook(CEEInfo.ConstructStringLiteralIndex, _constructStringLiteral);
                         }
                     }
 
@@ -334,12 +337,12 @@ namespace Jitex.JIT
                         {
                             byte[] signatureVariables = methodBody.GetSignatureVariables();
                             sigAddress = MarshalHelper.CreateArrayCopy(signatureVariables);
-
+                        
                             methodInfo.Locals.Signature = sigAddress + 1;
                             methodInfo.Locals.Args = sigAddress + 3;
                             methodInfo.Locals.NumArgs = (ushort)methodBody.LocalVariables.Count;
                         }
-
+                        
                         methodInfo.MaxStack = methodBody.MaxStackSize;
                         methodInfo.EHCount = methodContext.Body.EHCount;
                         methodInfo.ILCode = MarshalHelper.CreateArrayCopy(methodBody.IL);
@@ -402,6 +405,7 @@ namespace Jitex.JIT
                 nativeSizeOfCode = default;
                 throw new Exception("Failed compile method.", ex);
             }
+
             finally
             {
                 _compileTls.EnterCount--;
@@ -441,7 +445,8 @@ namespace Jitex.JIT
                 if (OSHelper.IsHardenedRuntime)
                     Syscall.mprotect(alignedAddress, alignedSize, MmapProts.PROT_READ | MmapProts.PROT_EXEC);
                 else
-                    Syscall.mprotect(alignedAddress, alignedSize, MmapProts.PROT_READ | MmapProts.PROT_WRITE | MmapProts.PROT_EXEC);
+                    Syscall.mprotect(alignedAddress, alignedSize,
+                        MmapProts.PROT_READ | MmapProts.PROT_WRITE | MmapProts.PROT_EXEC);
             }
         }
 

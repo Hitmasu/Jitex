@@ -1,4 +1,5 @@
 ﻿using System;
+using Jitex.Utils;
 
 namespace Jitex.Framework.Offsets
 {
@@ -21,16 +22,16 @@ namespace Jitex.Framework.Offsets
         private static void ReadOffset(Version version)
         {
             MethodDesc = 0x0;
-            Scope = 0x8;
-            ILCode = 0x10;
-            ILCodeSize = 0x18;
-            MaxStack = 0x1C;
-            EHCount = 0x20;
+            Scope = OSHelper.IsX86 ? 0x4 : 0x8;
+            ILCode = OSHelper.IsX86 ? 0x8 : 0x10;
+            ILCodeSize = OSHelper.IsX86 ? 0xC : 0x18;
+            MaxStack = OSHelper.IsX86 ? 0x10 : 0x1C;
+            EHCount = OSHelper.IsX86 ? 0x14 : 0x20;
 
             if (version >= new Version(6, 0, 0))
-                Locals = 0xA0;
+                Locals = OSHelper.IsX86 ? 0x50 : 0xA0;
             else
-                Locals = 0x98;
+                Locals = OSHelper.IsX86 ? 0x4C : 0x98;
         }
     }
 }
