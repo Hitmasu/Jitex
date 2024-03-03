@@ -19,13 +19,13 @@ namespace Jitex.Framework.Offsets
         static ResolvedTokenOffset()
         {
             Context = 0x0;
-            Scope = 0x8;
-            Token = 0x10;
-            Type = 0x14;
-            HClass = 0x18;
-            HMethod = 0x20;
-            HField = 0x28;
-            
+            Scope = Context + IntPtr.Size;
+            Token = Scope + IntPtr.Size;
+            Type = Token + sizeof(short);
+            HClass = Type + sizeof(TokenKind);
+            HMethod = HClass + IntPtr.Size;
+            HField = HMethod + IntPtr.Size;
+
             RuntimeFramework framework = RuntimeFramework.Framework;
             ReadOffset(framework.IsCore, framework.FrameworkVersion);
         }
@@ -33,9 +33,9 @@ namespace Jitex.Framework.Offsets
         private static void ReadOffset(bool isCore, Version version)
         {
             if (isCore && version >= new Version(7, 0, 0))
-                SourceOffset = 5;
+                SourceOffset = 0x5;
             else
-                SourceOffset = 2;
+                SourceOffset = 0x2;
         }
     }
 }
