@@ -6,7 +6,7 @@ namespace Jitex.Utils
 {
     internal static class DynamicHelpers
     {
-        private static readonly FieldInfo m_owner;
+        private static readonly FieldInfo? m_owner;
         private static readonly Type _rtDynamicMethod;
 
         static DynamicHelpers()
@@ -15,11 +15,20 @@ namespace Jitex.Utils
             m_owner = _rtDynamicMethod.GetField("m_owner", BindingFlags.NonPublic | BindingFlags.Instance);
         }
 
-        public static bool IsDynamicScope(IntPtr scope) => (scope.ToInt64() & 1) == 1;
+        public static bool IsDynamicScope(IntPtr scope)
+        {
+            if (OSHelper.IsX86)
+                return false;
+
+            if (OSHelper.IsX86)
+                return (scope.ToInt32() & 1) == 1;
+
+            return (scope.ToInt64() & 1) == 1;
+        }
 
         public static DynamicMethod GetOwner(MethodBase method)
         {
-            return (DynamicMethod) m_owner.GetValue(method);
+            return (DynamicMethod)m_owner.GetValue(method);
         }
 
         public static bool IsRTDynamicMethod(MethodBase method)

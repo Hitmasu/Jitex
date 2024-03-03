@@ -1,4 +1,7 @@
-﻿namespace Jitex.Framework.Offsets
+﻿using System;
+using Jitex.Utils;
+
+namespace Jitex.Framework.Offsets
 {
     internal static class SigInfoOffset
     {
@@ -8,9 +11,9 @@
 
         static SigInfoOffset()
         {
-            NumArgs = 26;
-            Args = 64;
-            Signature = 72;
+            NumArgs = OSHelper.IsX86 ? 0x16 : 0x1A;
+            Args = OSHelper.IsX86 ? 0x28 : 0x40;
+            Signature = Args + IntPtr.Size;
         }
     }
 }

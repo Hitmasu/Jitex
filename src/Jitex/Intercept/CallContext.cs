@@ -15,10 +15,10 @@ namespace Jitex.Intercept
     /// </summary>
     public class CallContext
     {
-        private readonly VariableInfo? _instance;
-        private readonly VariableInfo[] _parameters;
-        private readonly Type _returnType;
-        private readonly VariableInfo? _returnValue;
+        private VariableInfo? _instance;
+        private VariableInfo[] _parameters;
+        private Type _returnType;
+        private VariableInfo? _returnValue;
 
         private bool _alreadyCalled = false;
 
@@ -28,7 +28,7 @@ namespace Jitex.Intercept
         /// <summary>
         /// Method from call
         /// </summary>
-        public MethodBase Method { get; }
+        public MethodBase Method { get; set; }
 
         /// <summary>
         /// If should continue with original call. 
@@ -38,7 +38,7 @@ namespace Jitex.Intercept
         /// <summary>
         /// If method has return value
         /// </summary>
-        public bool HasReturn { get; }
+        public bool HasReturn { get; set; }
 
         /// <summary>
         /// Number of parameters
@@ -54,7 +54,23 @@ namespace Jitex.Intercept
         internal bool IsWaitingForEnd { get; private set; }
 
         /// <summary>
-        /// Create a new context from call (Should not be called directly). 
+        /// Create a new context from call (Should not be called directly).
+        /// It's for 32 Bits. 
+        /// </summary>
+        /// <param name="methodHandle">Handle from method called.</param>
+        /// <param name="methodGenericArguments"></param>
+        /// <param name="instance">Instance passed on call.</param>
+        /// <param name="returnValue">Pointer to variable of return method.</param>
+        /// <param name="parameters">Pointer for each parameter from call.</param>
+        /// <param name="typeGenericArguments"></param>
+        public CallContext(int methodHandle, Type[]? typeGenericArguments, Type[]? methodGenericArguments, Pointer? instance, Pointer? returnValue, params Pointer[] parameters)
+        {
+            LoadContext(new IntPtr(methodHandle), typeGenericArguments, methodGenericArguments, instance, returnValue, parameters);
+        }
+        
+        /// <summary>
+        /// Create a new context from call (Should not be called directly).
+        /// It's for 64 Bits
         /// </summary>
         /// <param name="methodHandle">Handle from method called.</param>
         /// <param name="methodGenericArguments"></param>
@@ -64,10 +80,16 @@ namespace Jitex.Intercept
         /// <param name="typeGenericArguments"></param>
         public CallContext(long methodHandle, Type[]? typeGenericArguments, Type[]? methodGenericArguments, Pointer? instance, Pointer? returnValue, params Pointer[] parameters)
         {
+            LoadContext(new IntPtr(methodHandle), typeGenericArguments, methodGenericArguments, instance, returnValue, parameters);
+        }
+
+        private void LoadContext(IntPtr methodHandle, Type[]? typeGenericArguments, Type[]? methodGenericArguments,
+            Pointer? instance, Pointer? returnValue, Pointer[] parameters)
+        {
             Type[] types;
 
             //TODO: Move to out from constructor
-            Method = MethodHelper.GetMethodFromHandle(new IntPtr(methodHandle))!;
+            Method = MethodHelper.GetMethodFromHandle(methodHandle)!;
 
             if (Method is MethodInfo methodInfo)
             {

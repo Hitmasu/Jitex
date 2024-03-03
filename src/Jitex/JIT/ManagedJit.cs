@@ -3,7 +3,6 @@ using Jitex.JIT.CorInfo;
 using Jitex.Utils;
 using System;
 using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -71,9 +70,11 @@ namespace Jitex.JIT
         /// </summary>
         private static ManagedJit? _instance;
 
-        [ThreadStatic] private static CompileTls? _compileTls;
+        [ThreadStatic]
+        private static CompileTls? _compileTls;
 
-        [ThreadStatic] private static TokenTls? _tokenTls;
+        [ThreadStatic]
+        private static TokenTls? _tokenTls;
 
         private readonly HookManager _hookManager = new HookManager();
 
@@ -162,12 +163,12 @@ namespace Jitex.JIT
         internal void RemoveOnMethodCompiledEvent(MethodCompiledHandler handler) => OnMethodCompiled -= handler;
 
         internal bool HasMethodResolver(MethodResolverHandler methodResolver) => _methodResolvers != null &&
-                                                                                 _methodResolvers.GetInvocationList().Any(del => del.Method == methodResolver.Method);
+            _methodResolvers.GetInvocationList().Any(del => del.Method == methodResolver.Method);
 
         internal bool HasTokenResolver(TokenResolverHandler tokenResolver) => _tokenResolvers != null &&
                                                                               _tokenResolvers.GetInvocationList()
                                                                                   .Any(del => del.Method ==
-                                                                                              tokenResolver.Method);
+                                                                                      tokenResolver.Method);
 
 
         /// <summary>
@@ -223,6 +224,7 @@ namespace Jitex.JIT
         /// <param name="flags">(IN) - Pointer to CorJitFlag.</param>
         /// <param name="nativeEntry">(OUT) - Pointer to NativeEntry.</param>
         /// <param name="nativeSizeOfCode">(OUT) - Size of NativeEntry.</param>
+        [MethodImpl(MethodImplOptions.NoInlining)]
         private CorJitResult CompileMethod(IntPtr thisPtr, IntPtr comp, IntPtr info, uint flags, IntPtr nativeEntry,
             out int nativeSizeOfCode)
         {
@@ -402,6 +404,7 @@ namespace Jitex.JIT
                 nativeSizeOfCode = default;
                 throw new Exception("Failed compile method.", ex);
             }
+
             finally
             {
                 _compileTls.EnterCount--;
@@ -441,7 +444,8 @@ namespace Jitex.JIT
                 if (OSHelper.IsHardenedRuntime)
                     Syscall.mprotect(alignedAddress, alignedSize, MmapProts.PROT_READ | MmapProts.PROT_EXEC);
                 else
-                    Syscall.mprotect(alignedAddress, alignedSize, MmapProts.PROT_READ | MmapProts.PROT_WRITE | MmapProts.PROT_EXEC);
+                    Syscall.mprotect(alignedAddress, alignedSize,
+                        MmapProts.PROT_READ | MmapProts.PROT_WRITE | MmapProts.PROT_EXEC);
             }
         }
 
@@ -476,8 +480,17 @@ namespace Jitex.JIT
 
                 ResolvedToken resolvedToken = new ResolvedToken(pResolvedToken);
                 token = resolvedToken.Token; //Just to show on exception.
-                IntPtr sourceAddress = Marshal.ReadIntPtr(thisHandle, IntPtr.Size * ResolvedTokenOffset.SourceOffset);
-                MethodBase? source = MethodHelper.GetMethodFromHandle(sourceAddress);
+
+                MethodBase? source = null;
+
+                if (!OSHelper.IsX86)
+                {
+                    IntPtr sourceAddress =
+                        Marshal.ReadIntPtr(thisHandle, IntPtr.Size * ResolvedTokenOffset.SourceOffset);
+                    if (sourceAddress != default)
+                        source = MethodHelper.GetMethodFromHandle(sourceAddress);
+                }
+
                 bool hasSource = source != null;
 
                 TokenContext context = new TokenContext(ref resolvedToken, source, hasSource);

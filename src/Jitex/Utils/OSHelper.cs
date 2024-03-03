@@ -15,7 +15,7 @@ namespace Jitex.Utils
         public static bool IsOSX => RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
 
         public static bool IsArm64 => RuntimeInformation.ProcessArchitecture == Architecture.Arm64;
-
+        public static bool IsX86 => RuntimeInformation.ProcessArchitecture == Architecture.X86;
 
         public static bool IsHardenedRuntime => IsOSX && IsArm64;
 
