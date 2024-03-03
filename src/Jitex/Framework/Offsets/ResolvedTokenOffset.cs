@@ -1,4 +1,6 @@
 ﻿using System;
+using Jitex.JIT.CorInfo;
+using Jitex.Utils;
 
 namespace Jitex.Framework.Offsets
 {

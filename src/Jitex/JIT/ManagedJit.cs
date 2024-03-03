@@ -145,7 +145,6 @@ namespace Jitex.JIT
         /// <returns></returns>
         internal static ManagedJit GetInstance()
         {
-            MethodInfo INFO = new MethodInfo(IntPtr.Zero);
             lock (InstanceLock)
             {
                 return _instance ??= new ManagedJit();
@@ -186,8 +185,8 @@ namespace Jitex.JIT
 
                 if (_framework.CEEInfoVTable != IntPtr.Zero)
                 {
-                    // _hookManager.InjectHook(CEEInfo.ResolveTokenIndex, _resolveToken);
-                    // _hookManager.InjectHook(CEEInfo.ConstructStringLiteralIndex, _constructStringLiteral);
+                    _hookManager.InjectHook(CEEInfo.ResolveTokenIndex, _resolveToken);
+                    _hookManager.InjectHook(CEEInfo.ConstructStringLiteralIndex, _constructStringLiteral);
                 }
             }
 
@@ -285,9 +284,9 @@ namespace Jitex.JIT
                             _framework.ReadICorJitInfoVTable(comp);
 
                             Log?.LogTrace("Injecting hook for ResolveToken");
-                            // _hookManager.InjectHook(CEEInfo.ResolveTokenIndex, _resolveToken);
+                            _hookManager.InjectHook(CEEInfo.ResolveTokenIndex, _resolveToken);
                             Log?.LogTrace("Injecting hook for ConstructStringLiteralIndex");
-                            // _hookManager.InjectHook(CEEInfo.ConstructStringLiteralIndex, _constructStringLiteral);
+                            _hookManager.InjectHook(CEEInfo.ConstructStringLiteralIndex, _constructStringLiteral);
                         }
                     }
 
@@ -337,12 +336,12 @@ namespace Jitex.JIT
                         {
                             byte[] signatureVariables = methodBody.GetSignatureVariables();
                             sigAddress = MarshalHelper.CreateArrayCopy(signatureVariables);
-                        
+
                             methodInfo.Locals.Signature = sigAddress + 1;
                             methodInfo.Locals.Args = sigAddress + 3;
                             methodInfo.Locals.NumArgs = (ushort)methodBody.LocalVariables.Count;
                         }
-                        
+
                         methodInfo.MaxStack = methodBody.MaxStackSize;
                         methodInfo.EHCount = methodContext.Body.EHCount;
                         methodInfo.ILCode = MarshalHelper.CreateArrayCopy(methodBody.IL);
@@ -481,8 +480,17 @@ namespace Jitex.JIT
 
                 ResolvedToken resolvedToken = new ResolvedToken(pResolvedToken);
                 token = resolvedToken.Token; //Just to show on exception.
-                IntPtr sourceAddress = Marshal.ReadIntPtr(thisHandle, IntPtr.Size * ResolvedTokenOffset.SourceOffset);
-                MethodBase? source = MethodHelper.GetMethodFromHandle(sourceAddress);
+
+                MethodBase? source = null;
+
+                if (!OSHelper.IsX86)
+                {
+                    IntPtr sourceAddress =
+                        Marshal.ReadIntPtr(thisHandle, IntPtr.Size * ResolvedTokenOffset.SourceOffset);
+                    if (sourceAddress != default)
+                        source = MethodHelper.GetMethodFromHandle(sourceAddress);
+                }
+
                 bool hasSource = source != null;
 
                 TokenContext context = new TokenContext(ref resolvedToken, source, hasSource);

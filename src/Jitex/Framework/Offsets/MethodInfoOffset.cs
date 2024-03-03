@@ -22,11 +22,11 @@ namespace Jitex.Framework.Offsets
         private static void ReadOffset(Version version)
         {
             MethodDesc = 0x0;
-            Scope = OSHelper.IsX86 ? 0x4 : 0x8;
-            ILCode = OSHelper.IsX86 ? 0x8 : 0x10;
-            ILCodeSize = OSHelper.IsX86 ? 0xC : 0x18;
-            MaxStack = OSHelper.IsX86 ? 0x10 : 0x1C;
-            EHCount = OSHelper.IsX86 ? 0x14 : 0x20;
+            Scope = MethodDesc + IntPtr.Size;
+            ILCode = Scope + IntPtr.Size;
+            ILCodeSize = ILCode + IntPtr.Size;
+            MaxStack = ILCodeSize + sizeof(uint);
+            EHCount = MaxStack + sizeof(uint);
 
             if (version >= new Version(6, 0, 0))
                 Locals = OSHelper.IsX86 ? 0x50 : 0xA0;

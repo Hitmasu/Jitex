@@ -16,17 +16,41 @@ namespace Jitex.Intercept
 {
     internal class InterceptorBuilder : IDisposable
     {
-        private static readonly ConstructorInfo CallContextCtor = typeof(CallContext).GetConstructor(new[] {typeof(long), typeof(Type[]), typeof(Type[]), typeof(Pointer), typeof(Pointer), typeof(Pointer[])})!;
-        private static readonly ConstructorInfo CallManagerCtor = typeof(CallManager).GetConstructor(new[] {typeof(CallContext)})!;
+        private static readonly ConstructorInfo CallContextCtorX64 = typeof(CallContext).GetConstructor(new[]
+            { typeof(long), typeof(Type[]), typeof(Type[]), typeof(Pointer), typeof(Pointer), typeof(Pointer[]) })!;
 
-        private static readonly MethodInfo CallInterceptors = typeof(CallManager).GetMethod(nameof(CallManager.CallInterceptors), BindingFlags.Public | BindingFlags.Instance)!;
-        private static readonly MethodInfo ReleaseTask = typeof(CallManager).GetMethod(nameof(CallManager.ReleaseTask), BindingFlags.Public | BindingFlags.Instance)!;
+        private static readonly ConstructorInfo CallContextCtorX86 = typeof(CallContext).GetConstructor(new[]
+            { typeof(int), typeof(Type[]), typeof(Type[]), typeof(Pointer), typeof(Pointer), typeof(Pointer[]) })!;
+
+        private static readonly ConstructorInfo CallManagerCtor =
+            typeof(CallManager).GetConstructor(new[] { typeof(CallContext) })!;
+
+        private static readonly MethodInfo CallInterceptors =
+            typeof(CallManager).GetMethod(nameof(CallManager.CallInterceptors),
+                BindingFlags.Public | BindingFlags.Instance)!;
+
+        private static readonly MethodInfo ReleaseTask = typeof(CallManager).GetMethod(nameof(CallManager.ReleaseTask),
+            BindingFlags.Public | BindingFlags.Instance)!;
+
         private static readonly MethodInfo PointerBox = typeof(Pointer).GetMethod(nameof(Pointer.Box))!;
-        private static readonly MethodInfo GetProceedCall = typeof(CallContext).GetProperty(nameof(CallContext.ProceedCall))!.GetGetMethod()!;
-        private static readonly MethodInfo GetReturnValue = typeof(CallContext).GetMethods(BindingFlags.Public | BindingFlags.Instance).First(w => w.Name == nameof(CallContext.GetReturnValue) && w.IsGenericMethod);
-        private static readonly MethodInfo GetReturnValuePointer = typeof(CallManager).GetMethod(nameof(CallManager.GetReturnValuePointer), BindingFlags.Public | BindingFlags.Instance)!;
-        private static readonly MethodInfo GetReturnValueNoRef = typeof(CallManager).GetMethod(nameof(CallManager.GetReturnValueNoRef), BindingFlags.Public | BindingFlags.Instance)!;
-        private static readonly MethodInfo GetTypeFromHandle = GetTypeFromHandle = typeof(Type).GetMethod(nameof(Type.GetTypeFromHandle))!;
+
+        private static readonly MethodInfo GetProceedCall =
+            typeof(CallContext).GetProperty(nameof(CallContext.ProceedCall))!.GetGetMethod()!;
+
+        private static readonly MethodInfo GetReturnValue = typeof(CallContext)
+            .GetMethods(BindingFlags.Public | BindingFlags.Instance)
+            .First(w => w.Name == nameof(CallContext.GetReturnValue) && w.IsGenericMethod);
+
+        private static readonly MethodInfo GetReturnValuePointer =
+            typeof(CallManager).GetMethod(nameof(CallManager.GetReturnValuePointer),
+                BindingFlags.Public | BindingFlags.Instance)!;
+
+        private static readonly MethodInfo GetReturnValueNoRef =
+            typeof(CallManager).GetMethod(nameof(CallManager.GetReturnValueNoRef),
+                BindingFlags.Public | BindingFlags.Instance)!;
+
+        private static readonly MethodInfo GetTypeFromHandle =
+            GetTypeFromHandle = typeof(Type).GetMethod(nameof(Type.GetTypeFromHandle))!;
 
         private readonly MethodBase _method;
         private readonly MethodBody _body;
@@ -85,20 +109,34 @@ namespace Jitex.Intercept
             IList<LocalVariableInfo> localVariables = _body.LocalVariables;
 
             localVariables.Add(new LocalVariableInfo(typeof(CallContext)));
-            byte callContextVariableIndex = (byte) (localVariables.Count - 1);
+            byte callContextVariableIndex = (byte)(localVariables.Count - 1);
 
             localVariables.Add(new LocalVariableInfo(typeof(CallManager)));
-            byte callManagerVariableIndex = (byte) (localVariables.Count - 1);
+            byte callManagerVariableIndex = (byte)(localVariables.Count - 1);
+            int callContextCtorMetadataToken;
 
-            _image!.AddOrGetMemberRef(CallContextCtor, out int callContextCtorMetadataToken);
+            if (OSHelper.IsX86)
+                _image!.AddOrGetMemberRef(CallContextCtorX86, out callContextCtorMetadataToken);
+            else
+                _image!.AddOrGetMemberRef(CallContextCtorX64, out callContextCtorMetadataToken);
+
             _image!.AddOrGetMemberRef(CallManagerCtor, out int callManagerCtorMetadataToken);
             _image!.AddOrGetMemberRef(CallInterceptors, out int callInterceptorMetadataToken);
             _image!.AddOrGetMemberRef(GetProceedCall, out int getProceedCallMetadataToken);
             _image!.AddOrGetMemberRef(ReleaseTask, out int releaseTaskMetadataToken);
 
             Instructions instructions = new();
-            long methodHandle = MethodHelper.GetMethodHandle(_method).Value.ToInt64();
-            instructions.Add(Ldc_I8, methodHandle);
+
+            if (OSHelper.IsX86)
+            {
+                var methodHandle = MethodHelper.GetMethodHandle(_method).Value.ToInt32();
+                instructions.Add(Ldc_I4, methodHandle);
+            }
+            else
+            {
+                var methodHandle = MethodHelper.GetMethodHandle(_method).Value.ToInt64();
+                instructions.Add(Ldc_I8, methodHandle);
+            }
 
             WriteGenericArguments(instructions);
 
@@ -171,7 +209,7 @@ namespace Jitex.Intercept
 
             Type[] parameters = _method.GetParameters().Select(w => w.ParameterType).ToArray();
 
-            instructions.Add(Ldc_I4_S, (byte) parameters.Length);
+            instructions.Add(Ldc_I4_S, (byte)parameters.Length);
             instructions.Add(Newarr, pointerTypeMetadataToken);
 
             for (byte i = 0; i < parameters.Length; i++)
@@ -213,7 +251,7 @@ namespace Jitex.Intercept
 
             _image!.AddOrGetMemberRef(PointerBox, out int pointerBoxMetadataToken);
 
-            instructions.Add(Ldarga_S, (byte) 0);
+            instructions.Add(Ldarga_S, (byte)0);
             instructions.Add(Conv_U);
             instructions.Add(Call, pointerBoxMetadataToken);
             return 1;
@@ -226,7 +264,8 @@ namespace Jitex.Intercept
         /// <param name="instructions"></param>
         /// <param name="returnType"></param>
         /// <returns></returns>
-        private byte? WriteReturnVariable(IList<LocalVariableInfo> variables, Instructions instructions, Type returnType)
+        private byte? WriteReturnVariable(IList<LocalVariableInfo> variables, Instructions instructions,
+            Type returnType)
         {
             if (returnType == typeof(void))
             {
@@ -237,7 +276,7 @@ namespace Jitex.Intercept
             _image!.AddOrGetMemberRef(PointerBox, out int pointerBoxMetadataToken);
 
             variables.Add(new LocalVariableInfo(returnType));
-            byte returnVariableIndex = (byte) (variables.Count - 1);
+            byte returnVariableIndex = (byte)(variables.Count - 1);
 
             instructions.Add(Ldloca_S, returnVariableIndex);
 
@@ -261,7 +300,8 @@ namespace Jitex.Intercept
         /// <param name="callContextVariableIndex"></param>
         /// <param name="callManagerVariableIndex"></param>
         /// <param name="returnType"></param>
-        private void WriteGetReturnValue(Instructions instructions, byte callContextVariableIndex, byte callManagerVariableIndex, Type returnType)
+        private void WriteGetReturnValue(Instructions instructions, byte callContextVariableIndex,
+            byte callManagerVariableIndex, Type returnType)
         {
             if (returnType == typeof(void))
                 return;
@@ -315,7 +355,7 @@ namespace Jitex.Intercept
 
             if (MethodHelper.HasCanon(_method, false))
             {
-                MethodInfo methodInfo = (MethodInfo) _method;
+                MethodInfo methodInfo = (MethodInfo)_method;
                 Type[] types = methodInfo.GetGenericMethodDefinition().GetGenericArguments();
                 WriteTypesOnArray(instructions, types);
 
@@ -339,7 +379,7 @@ namespace Jitex.Intercept
             _image!.AddOrGetTypeRef(typeof(Type), out int typeMetadataToken);
             _image!.AddOrGetMemberRef(GetTypeFromHandle, out int getTypeFromHandleMetadataToken);
 
-            instructions.Add(Ldc_I4_S, (byte) types.Count);
+            instructions.Add(Ldc_I4_S, (byte)types.Count);
             instructions.Add(Newarr, typeMetadataToken);
 
             for (byte i = 0; i < types.Count; i++)
