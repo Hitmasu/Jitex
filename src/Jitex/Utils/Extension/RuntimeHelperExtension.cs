@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using static Jitex.Utils.MemoryHelper;
 
-namespace Jitex.Utils
+namespace Jitex.Utils.Extension
 {
     internal static class RuntimeHelperExtension
     {
