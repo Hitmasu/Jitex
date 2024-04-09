@@ -6,7 +6,7 @@ using Jitex.JIT.Context;
 using Jitex.Utils;
 using Xunit;
 
-namespace Jitex.Tests.Detour
+namespace Jitex.Tests.Resolvers.Detour
 {
     [Collection("Manager")]
     public class DetourMethodAddress

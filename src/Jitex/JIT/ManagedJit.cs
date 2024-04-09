@@ -19,6 +19,7 @@ using MethodInfo = Jitex.JIT.CorInfo.MethodInfo;
 using static Jitex.JIT.JitexHandler;
 using static Jitex.Utils.JitexLogger;
 using Jitex.JIT.Handlers;
+using Jitex.Utils.Extension;
 using Jitex.Utils.NativeAPI.Windows;
 using Mono.Unix.Native;
 using static Jitex.Utils.MemoryHelper;
@@ -71,9 +72,11 @@ namespace Jitex.JIT
         /// </summary>
         private static ManagedJit? _instance;
 
-        [ThreadStatic] private static CompileTls? _compileTls;
+        [ThreadStatic]
+        private static CompileTls? _compileTls;
 
-        [ThreadStatic] private static TokenTls? _tokenTls;
+        [ThreadStatic]
+        private static TokenTls? _tokenTls;
 
         private readonly HookManager _hookManager = new HookManager();
 
@@ -162,12 +165,12 @@ namespace Jitex.JIT
         internal void RemoveOnMethodCompiledEvent(MethodCompiledHandler handler) => OnMethodCompiled -= handler;
 
         internal bool HasMethodResolver(MethodResolverHandler methodResolver) => _methodResolvers != null &&
-                                                                                 _methodResolvers.GetInvocationList().Any(del => del.Method == methodResolver.Method);
+            _methodResolvers.GetInvocationList().Any(del => del.Method == methodResolver.Method);
 
         internal bool HasTokenResolver(TokenResolverHandler tokenResolver) => _tokenResolvers != null &&
                                                                               _tokenResolvers.GetInvocationList()
                                                                                   .Any(del => del.Method ==
-                                                                                              tokenResolver.Method);
+                                                                                      tokenResolver.Method);
 
 
         /// <summary>
@@ -283,6 +286,7 @@ namespace Jitex.JIT
 
                             Log?.LogTrace("Injecting hook for ResolveToken");
                             _hookManager.InjectHook(CEEInfo.ResolveTokenIndex, _resolveToken);
+
                             Log?.LogTrace("Injecting hook for ConstructStringLiteralIndex");
                             _hookManager.InjectHook(CEEInfo.ConstructStringLiteralIndex, _constructStringLiteral);
                         }
@@ -441,7 +445,8 @@ namespace Jitex.JIT
                 if (OSHelper.IsHardenedRuntime)
                     Syscall.mprotect(alignedAddress, alignedSize, MmapProts.PROT_READ | MmapProts.PROT_EXEC);
                 else
-                    Syscall.mprotect(alignedAddress, alignedSize, MmapProts.PROT_READ | MmapProts.PROT_WRITE | MmapProts.PROT_EXEC);
+                    Syscall.mprotect(alignedAddress, alignedSize,
+                        MmapProts.PROT_READ | MmapProts.PROT_WRITE | MmapProts.PROT_EXEC);
             }
         }
 
