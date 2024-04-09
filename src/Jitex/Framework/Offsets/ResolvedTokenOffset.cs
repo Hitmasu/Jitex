@@ -32,10 +32,12 @@ namespace Jitex.Framework.Offsets
 
         private static void ReadOffset(bool isCore, Version version)
         {
-            if (isCore && version >= new Version(7, 0, 0))
-                SourceOffset = 0x5;
+            if (isCore && version >= new Version(8, 0, 0))
+                SourceOffset = 2;
+            else if (isCore && version >= new Version(7, 0, 0))
+                SourceOffset = 5;
             else
-                SourceOffset = 0x2;
+                SourceOffset = 2;
         }
     }
 }

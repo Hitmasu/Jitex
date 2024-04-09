@@ -21,6 +21,10 @@ namespace Jitex.Tests.Resolvers
         [Fact]
         public void SmallAssemblyTest()
         {
+            //TODO: Write tests for ARM64 native code.
+            if (OSHelper.IsArm64)
+                return;
+            
             int n1 = 5;
             int n2 = 5;
             int expected = n1 * n2;
@@ -31,6 +35,10 @@ namespace Jitex.Tests.Resolvers
         [Fact]
         public void LargeAssemblyTest()
         {
+            //TODO: Write tests for ARM64 native code.
+            if (OSHelper.IsArm64)
+                return;
+            
             int n1 = 10;
             int n2 = 1000;
             int expected = n1 * n2;

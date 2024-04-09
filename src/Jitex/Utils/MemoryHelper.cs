@@ -2,6 +2,8 @@
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Threading;
+using Jitex.Framework;
 using Jitex.Utils.NativeAPI.Windows;
 using Mono.Unix.Native;
 
@@ -149,8 +151,8 @@ namespace Jitex.Utils
             }
             else
             {
-                //For apple silicon
-                if (OSHelper.IsHardenedRuntime)
+                //For apple silicon, but after NET 8.0, we need get aligned address even on x64.
+                if (OSHelper.IsHardenedRuntime || RuntimeFramework.Framework >= new Version(8, 0, 0))
                 {
                     var (alignedAddr, alignedSize) = GetAlignedAddress(address, size);
                     Syscall.mprotect(alignedAddr, alignedSize, MmapProts.PROT_WRITE);

@@ -18,6 +18,7 @@ using MethodInfo = Jitex.JIT.CorInfo.MethodInfo;
 using static Jitex.JIT.JitexHandler;
 using static Jitex.Utils.JitexLogger;
 using Jitex.JIT.Handlers;
+using Jitex.Utils.Extension;
 using Jitex.Utils.NativeAPI.Windows;
 using Mono.Unix.Native;
 using static Jitex.Utils.MemoryHelper;
@@ -285,6 +286,7 @@ namespace Jitex.JIT
 
                             Log?.LogTrace("Injecting hook for ResolveToken");
                             _hookManager.InjectHook(CEEInfo.ResolveTokenIndex, _resolveToken);
+
                             Log?.LogTrace("Injecting hook for ConstructStringLiteralIndex");
                             _hookManager.InjectHook(CEEInfo.ConstructStringLiteralIndex, _constructStringLiteral);
                         }
