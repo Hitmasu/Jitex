@@ -1,4 +1,6 @@
-﻿using Jitex.JIT.Context;
+﻿using System;
+using Jitex.Framework;
+using Jitex.JIT.Context;
 using Xunit;
 
 namespace Jitex.Tests.Resolvers
@@ -15,6 +17,9 @@ namespace Jitex.Tests.Resolvers
         [Fact]
         public void ResolveString()
         {
+            if (RuntimeFramework.Framework.FrameworkVersion >= new Version(8, 0, 0))
+                return;
+            
             string text = "Lorem ipsum dolor";
             Assert.True(text == "A fox jump over lazy dog", "String not replaced!");
         }

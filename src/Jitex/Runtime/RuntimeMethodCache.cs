@@ -7,6 +7,7 @@ using Jitex.Exceptions;
 using Jitex.JIT.Handlers;
 using Jitex.Utils;
 using Jitex.Utils.Comparer;
+using Jitex.Utils.Extension;
 
 namespace Jitex.Runtime
 {
