@@ -21,7 +21,7 @@ namespace Jitex.Framework
         /// <param name="nativeEntry">(OUT) - Pointer to NativeEntry.</param>
         /// <param name="nativeSizeOfCode">(OUT) - Size of NativeEntry.</param>
         /// <returns></returns>
-        [UnmanagedFunctionPointer(CallingConvention.StdCall, SetLastError = true)]
+        [UnmanagedFunctionPointer(CallingConvention.ThisCall, SetLastError = true)]
         public delegate CorJitResult CompileMethodDelegate(IntPtr thisPtr, IntPtr comp, IntPtr info, uint flags,
             IntPtr nativeEntry, out int nativeSizeOfCode);
 

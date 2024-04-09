@@ -82,9 +82,16 @@ namespace Jitex.Utils
 
         internal static IntPtr CreateArrayCopy(byte[] arr)
         {
-            IntPtr address = Marshal.AllocHGlobal(arr.Length);
+            var address = Marshal.AllocHGlobal(arr.Length);
             Marshal.Copy(arr, 0, address, arr.Length);
             return address;
+        }
+
+        internal static byte[] GetAddressBytes(IntPtr address)
+        {
+            return OSHelper.IsX86
+                ? BitConverter.GetBytes(address.ToInt32())
+                : BitConverter.GetBytes(address.ToInt64());
         }
     }
 }

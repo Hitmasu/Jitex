@@ -3,7 +3,6 @@ using Jitex.JIT.CorInfo;
 using Jitex.Utils;
 using System;
 using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -226,6 +225,7 @@ namespace Jitex.JIT
         /// <param name="flags">(IN) - Pointer to CorJitFlag.</param>
         /// <param name="nativeEntry">(OUT) - Pointer to NativeEntry.</param>
         /// <param name="nativeSizeOfCode">(OUT) - Size of NativeEntry.</param>
+        [MethodImpl(MethodImplOptions.NoInlining)]
         private CorJitResult CompileMethod(IntPtr thisPtr, IntPtr comp, IntPtr info, uint flags, IntPtr nativeEntry,
             out int nativeSizeOfCode)
         {
@@ -406,6 +406,7 @@ namespace Jitex.JIT
                 nativeSizeOfCode = default;
                 throw new Exception("Failed compile method.", ex);
             }
+
             finally
             {
                 _compileTls.EnterCount--;
@@ -481,8 +482,17 @@ namespace Jitex.JIT
 
                 ResolvedToken resolvedToken = new ResolvedToken(pResolvedToken);
                 token = resolvedToken.Token; //Just to show on exception.
-                IntPtr sourceAddress = Marshal.ReadIntPtr(thisHandle, IntPtr.Size * ResolvedTokenOffset.SourceOffset);
-                MethodBase? source = MethodHelper.GetMethodFromHandle(sourceAddress);
+
+                MethodBase? source = null;
+
+                if (!OSHelper.IsX86)
+                {
+                    IntPtr sourceAddress =
+                        Marshal.ReadIntPtr(thisHandle, IntPtr.Size * ResolvedTokenOffset.SourceOffset);
+                    if (sourceAddress != default)
+                        source = MethodHelper.GetMethodFromHandle(sourceAddress);
+                }
+
                 bool hasSource = source != null;
 
                 TokenContext context = new TokenContext(ref resolvedToken, source, hasSource);

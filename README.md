@@ -9,9 +9,9 @@ It's a library built in .NET Standard 2.0, works on all version >=.NET Core 2.0.
 
 |             | .NET Core (2.1 ~ 3.1) | .NET 5~7           | .NET Framework (4.6.1 ~ 4.8)           | Mono              |
 | ----------- | --------------------- | ------------------ | -------------------------------------- | ----------------- |
-| **Windows (x64/ARM64)** | :heavy_check_mark:    | :heavy_check_mark: | :x: Not supported | :x: Not supported |
-| **Linux (x64/ARM64)**   | :heavy_check_mark:    | :heavy_check_mark: | :x: Not supported                      | :x: Not supported |
-| **MacOS (x64/ARM64)**   | :heavy_check_mark:    | :heavy_check_mark: | :x: Not supported​                      | :x: Not supported |
+| **Windows (x86/x64/ARM64)** | :heavy_check_mark:    | :heavy_check_mark: | :x: Not supported | :x: Not supported |
+| **Linux (x86/x64/ARM64)**   | :heavy_check_mark:    | :heavy_check_mark: | :x: Not supported                      | :x: Not supported |
+| **MacOS (x86/x64/ARM64)**   | :heavy_check_mark:    | :heavy_check_mark: | :x: Not supported​                      | :x: Not supported |
 
 ------
 

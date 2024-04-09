@@ -1,4 +1,6 @@
 ﻿using System;
+using Jitex.JIT.CorInfo;
+using Jitex.Utils;
 
 namespace Jitex.Framework.Offsets
 {
@@ -17,12 +19,12 @@ namespace Jitex.Framework.Offsets
         static ResolvedTokenOffset()
         {
             Context = 0x0;
-            Scope = 0x8;
-            Token = 0x10;
-            Type = 0x14;
-            HClass = 0x18;
-            HMethod = 0x20;
-            HField = 0x28;
+            Scope = Context + IntPtr.Size;
+            Token = Scope + IntPtr.Size;
+            Type = Token + sizeof(int);
+            HClass = Type + sizeof(TokenKind);
+            HMethod = HClass + IntPtr.Size;
+            HField = HMethod + IntPtr.Size;
 
             RuntimeFramework framework = RuntimeFramework.Framework;
             ReadOffset(framework.IsCore, framework.FrameworkVersion);

@@ -19,10 +19,10 @@ namespace Jitex.JIT.CorInfo
 
         public static IntPtr ConstructStringLiteralIndex { get; }
 
-        [UnmanagedFunctionPointer(default)]
+        [UnmanagedFunctionPointer(CallingConvention.ThisCall)]
         public delegate void ResolveTokenDelegate(IntPtr thisHandle, IntPtr pResolvedToken);
 
-        [UnmanagedFunctionPointer(default)]
+        [UnmanagedFunctionPointer(CallingConvention.ThisCall)]
         public delegate InfoAccessType ConstructStringLiteralDelegate(IntPtr thisHandle, IntPtr hModule,
             int metadataToken, IntPtr ptrString);
 

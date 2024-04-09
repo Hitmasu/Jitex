@@ -18,7 +18,13 @@ namespace Jitex.Utils
             m_owner = _rtDynamicMethod!.GetField("m_owner", BindingFlags.NonPublic | BindingFlags.Instance);
         }
 
-        public static bool IsDynamicScope(IntPtr scope) => (scope.ToInt64() & 1) == 1;
+        public static bool IsDynamicScope(IntPtr scope)
+        {
+            if (OSHelper.IsX86)
+                return false;
+
+            return (scope.ToInt64() & 1) == 1;
+        }
 
         public static DynamicMethod GetOwner(MethodBase method)
         {
