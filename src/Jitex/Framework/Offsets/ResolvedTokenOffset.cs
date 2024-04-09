@@ -21,7 +21,7 @@ namespace Jitex.Framework.Offsets
             Context = 0x0;
             Scope = Context + IntPtr.Size;
             Token = Scope + IntPtr.Size;
-            Type = Token + sizeof(short);
+            Type = Token + sizeof(int);
             HClass = Type + sizeof(TokenKind);
             HMethod = HClass + IntPtr.Size;
             HField = HMethod + IntPtr.Size;
