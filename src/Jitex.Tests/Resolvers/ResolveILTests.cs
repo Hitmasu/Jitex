@@ -17,7 +17,7 @@ namespace Jitex.Tests.Resolvers
 
         static ResolveILTests()
         {
-            AssertTrue = typeof(Assert).GetMethod("True", new[] {typeof(bool)});
+            AssertTrue = typeof(Assert).GetMethod("True", [typeof(bool)]);
         }
 
         public ResolveILTests()

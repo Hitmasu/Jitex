@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -124,6 +123,9 @@ namespace Jitex.Framework
             {
                 string version = assemblyPath[frameworkIndex + 1];
 
+                if(version.Contains("preview"))
+                    version = version.Split('-')[0];
+                
                 if (!IsCore)
                     version = version[1..];
 
