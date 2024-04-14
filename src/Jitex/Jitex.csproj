@@ -30,7 +30,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="dnlib" Version="3.4.0" />
+        <PackageReference Include="dnlib" Version="4.4.0" />
         <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
         <PackageReference Include="Mono.Posix" Version="7.1.0-final.1.21458.1" />
 
@@ -41,9 +41,9 @@
     <Choose>
         <When Condition="'$(TargetFramework)' == 'NETCOREAPP3_1_OR_GREATER'">
             <ItemGroup>
-                <PackageReference Include="Microsoft.Extensions.Logging" Version="6.0.0" />
-                <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="6.0.0" />
-                <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.0.0" />
+                <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0" />
+                <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0" />
+                <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="8.0.0" />
             </ItemGroup>
         </When>
         <Otherwise>

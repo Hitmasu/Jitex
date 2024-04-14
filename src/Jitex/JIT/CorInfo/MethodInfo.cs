@@ -20,7 +20,7 @@ namespace Jitex.JIT.CorInfo
         private IntPtr ILCodeAddr => HInstance + MethodInfoOffset.ILCode;
         private IntPtr ILCodeSizeAddr => HInstance + MethodInfoOffset.ILCodeSize;
         private IntPtr MaxStackAddr => HInstance + MethodInfoOffset.MaxStack;
-        private IntPtr EHCountAddr => HInstance + MethodInfoOffset.EHCount;
+        public IntPtr EHCountAddr => HInstance + MethodInfoOffset.EHCount;
 
         /// <summary>
         /// Signature from locals variables.

@@ -2,7 +2,8 @@
 using System.Collections.Concurrent;
 using System.Reflection;
 using System.Reflection.Emit;
-using Jitex.JIT.Context;
+using Jitex.JIT.Hooks.CompileMethod;
+using Jitex.JIT.Hooks.Token;
 using Jitex.Utils;
 using MethodInfo = System.Reflection.MethodInfo;
 

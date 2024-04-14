@@ -1,8 +1,8 @@
-﻿using Jitex.JIT.Context;
-using Jitex.JIT.CorInfo;
+﻿using Jitex.JIT.CorInfo;
 using Jitex.Runtime;
 using System;
 using System.Reflection;
+using Jitex.JIT.Hooks.CompileMethod;
 
 namespace Jitex.JIT.Handlers
 {

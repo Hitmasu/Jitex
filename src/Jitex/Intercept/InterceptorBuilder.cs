@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using Jitex.PE;
 using System.Reflection;
@@ -51,6 +52,12 @@ namespace Jitex.Intercept
 
         private static readonly MethodInfo GetTypeFromHandle =
             GetTypeFromHandle = typeof(Type).GetMethod(nameof(Type.GetTypeFromHandle))!;
+
+        private static readonly MethodInfo SetException = typeof(CallContext)
+            .GetMethod(nameof(CallContext.SetException), BindingFlags.Public | BindingFlags.Instance)!;
+
+        private static readonly MethodInfo GetThrowExceptionIfNecessary = typeof(CallContext)
+            .GetMethod(nameof(CallContext.ThrowExceptionIfNecessary), BindingFlags.Public | BindingFlags.Instance)!;
 
         private readonly MethodBase _method;
         private readonly MethodBody _body;
@@ -106,13 +113,11 @@ namespace Jitex.Intercept
                 _image = _imageReader.LoadImage(reuseReferences);
             }
 
-            IList<LocalVariableInfo> localVariables = _body.LocalVariables;
+            var localVariables = _body.LocalVariables;
 
-            localVariables.Add(new LocalVariableInfo(typeof(CallContext)));
-            byte callContextVariableIndex = (byte)(localVariables.Count - 1);
+            var callContextVariableIndex = CreateVariable<CallContext>(localVariables);
+            var callManagerVariableIndex = CreateVariable<CallManager>(localVariables);
 
-            localVariables.Add(new LocalVariableInfo(typeof(CallManager)));
-            byte callManagerVariableIndex = (byte)(localVariables.Count - 1);
             int callContextCtorMetadataToken;
 
             if (OSHelper.IsX86)
@@ -171,17 +176,22 @@ namespace Jitex.Intercept
 
             instructions.Add(Ldloc_S, callContextVariableIndex);
             instructions.Add(Callvirt, getProceedCallMetadataToken);
-            Instruction gotoInstruction = instructions.Add(Brfalse, 0); //if(context.ProceedCall)
 
+            //if(context.ProceedCall)
+            Instruction gotoReleaseTask = instructions.Add(Brfalse, 0);
+            var rr = _body.ReadIL();
             instructions.AddRange(_body.ReadIL());
             instructions.RemoveLast(); //Remove Ret instruction.
 
             if (returnType != typeof(void))
                 instructions.Add(Stloc_S, returnVariableIndex);
 
-            Instruction endpointGoto = instructions.Add(Ldloc_S, callManagerVariableIndex);
+            // WriteExceptionHandler(localVariables, instructions, callContextVariableIndex);
+
+            //callManager.ReleaseTask();
+            var endpointGoto = instructions.Add(Ldloc_S, callManagerVariableIndex);
             instructions.Add(Callvirt, releaseTaskMetadataToken);
-            gotoInstruction.Value = (endpointGoto.Offset - gotoInstruction.Offset - gotoInstruction.Size);
+            gotoReleaseTask.Value = (endpointGoto.Offset - gotoReleaseTask.Offset - gotoReleaseTask.Size);
 
             WriteGetReturnValue(instructions, callContextVariableIndex, callManagerVariableIndex, returnType);
 
@@ -194,7 +204,52 @@ namespace Jitex.Intercept
                 LocalVariables = localVariables
             };
 
+            var ll = body.ReadIL();
             return body;
+        }
+
+        /// <summary>
+        /// Write exception handler on body.
+        /// </summary>
+        /// <remarks>
+        /// Inject the follow code:
+        /// ----
+        /// try {
+        ///     #code...
+        /// } catch (Exception ex) {
+        ///     context.SetException(ex);
+        /// }
+        ///
+        /// context.ThrowExceptionIfNecessary();
+        /// ----
+        /// </remarks>
+        /// <param name="localVariables"></param>
+        /// <param name="instructions"></param>
+        /// <param name="callContextVariableIndex"></param>
+        private void WriteExceptionHandler(IList<LocalVariableInfo> localVariables, Instructions instructions,
+            byte callContextVariableIndex)
+        {
+            //try{
+            //  <code>
+            //} ...
+            var exceptionVariableIndex = CreateVariable<Exception>(localVariables);
+            var leaveTryInstruction = instructions.Add(Leave, 0);
+            instructions.Add(Stloc_S, exceptionVariableIndex);
+
+            //catch (Exception ex){
+            //  context.SetException(ex);
+            //}
+            instructions.Add(Ldloc_S, callContextVariableIndex);
+            instructions.Add(Ldloc_S, exceptionVariableIndex);
+            instructions.Add(Callvirt, SetException);
+            var leaveCatchInstruction = instructions.Add(Leave, 0);
+
+            //context.ThrowExceptionIfNecessary();
+            var endpointLeave = instructions.Add(Ldloc_S, callContextVariableIndex);
+            instructions.Add(Callvirt, GetThrowExceptionIfNecessary);
+
+            leaveTryInstruction.Value = (endpointLeave.Offset - leaveTryInstruction.Offset - leaveTryInstruction.Size);
+            leaveCatchInstruction.Value = (endpointLeave.Offset - leaveCatchInstruction.Offset - leaveCatchInstruction.Size);
         }
 
         /// <summary>
@@ -275,8 +330,7 @@ namespace Jitex.Intercept
 
             _image!.AddOrGetMemberRef(PointerBox, out int pointerBoxMetadataToken);
 
-            variables.Add(new LocalVariableInfo(returnType));
-            byte returnVariableIndex = (byte)(variables.Count - 1);
+            var returnVariableIndex = CreateVariable(variables, returnType);
 
             instructions.Add(Ldloca_S, returnVariableIndex);
 
@@ -392,6 +446,14 @@ namespace Jitex.Intercept
                 instructions.Add(Call, getTypeFromHandleMetadataToken);
                 instructions.Add(Stelem_Ref);
             }
+        }
+
+        private byte CreateVariable<T>(IList<LocalVariableInfo> variables) => CreateVariable(variables, typeof(T));
+
+        private byte CreateVariable(IList<LocalVariableInfo> variables, Type type)
+        {
+            variables.Add(new LocalVariableInfo(type));
+            return (byte)(variables.Count - 1);
         }
 
         private void ValidateImageLoaded()

@@ -45,6 +45,8 @@ namespace Jitex.Intercept
         /// </summary>
         public int ParametersCount => _parameters.Length;
 
+        public Exception? Exception { get; set; }
+
         /// <summary>
         /// If context is waiting for end of call
         /// </summary>
@@ -52,7 +54,7 @@ namespace Jitex.Intercept
         /// Is used to hold original call after call ContinueAsync. 
         /// </remarks>
         internal bool IsWaitingForEnd { get; private set; }
-
+        
         /// <summary>
         /// Create a new context from call (Should not be called directly).
         /// It's for 32 Bits. 
@@ -363,6 +365,17 @@ namespace Jitex.Intercept
 
             _returnValue!.SetValue(value);
             ProceedCall = false;
+        }
+
+        public void SetException(Exception exception)
+        {
+            
+        }
+
+        public void ThrowExceptionIfNecessary()
+        {
+            if(Exception != null)
+                throw Exception;
         }
 
         internal void ContinueWithCode()

@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Jitex.JIT.CorInfo;
 
@@ -70,8 +71,9 @@ namespace Jitex.Framework
             IsCore = isCore;
             Jit = GetJitAddress();
             ICorJitCompileVTable = Marshal.ReadIntPtr(Jit);
-            IntPtr compileMethodPtr = Marshal.ReadIntPtr(ICorJitCompileVTable);
+            var compileMethodPtr = Marshal.ReadIntPtr(ICorJitCompileVTable);
             CompileMethod = Marshal.GetDelegateForFunctionPointer<CompileMethodDelegate>(compileMethodPtr);
+            RuntimeHelpers.PrepareDelegate(CompileMethod);
             IdentifyFrameworkVersion();
         }
 
@@ -84,11 +86,9 @@ namespace Jitex.Framework
             if (_framework != null)
                 return _framework;
 
-            string frameworkRunning = RuntimeInformation.FrameworkDescription;
+            var frameworkRunning = RuntimeInformation.FrameworkDescription;
 
-            if (frameworkRunning.StartsWith(".NET Framework"))
-                _framework = new NETFramework();
-            else if (frameworkRunning.StartsWith(".NET"))
+            if (frameworkRunning.StartsWith(".NET"))
                 _framework = new NETCore();
             else
                 throw new NotSupportedException($"Framework {frameworkRunning} is not supported!");
@@ -113,21 +113,21 @@ namespace Jitex.Framework
 
         private void IdentifyFrameworkVersion()
         {
-            Assembly assembly = typeof(System.Runtime.GCSettings).GetTypeInfo().Assembly;
+            var assembly = typeof(System.Runtime.GCSettings).GetTypeInfo().Assembly;
             string[] assemblyPath = assembly.CodeBase.Split(new[] { '/', '\\' }, StringSplitOptions.RemoveEmptyEntries);
 
-            string frameworkName = IsCore ? "Microsoft.NETCore.App" : "Framework64";
+            var frameworkName = IsCore ? "Microsoft.NETCore.App" : "Framework64";
 
-            int frameworkIndex = Array.IndexOf(assemblyPath, frameworkName);
+            var frameworkIndex = Array.IndexOf(assemblyPath, frameworkName);
 
             if (frameworkIndex > 0 && frameworkIndex < assemblyPath.Length - 2)
             {
-                string version = assemblyPath[frameworkIndex + 1];
+                var version = assemblyPath[frameworkIndex + 1];
 
                 if (!IsCore)
                     version = version[1..];
 
-                int[] versionsNumbers = version.Split('.').Select(int.Parse).ToArray();
+                var versionsNumbers = version.Split('.').Select(int.Parse).ToArray();
                 FrameworkVersion = new Version(versionsNumbers[0], versionsNumbers[1], versionsNumbers[2]);
             }
             else if (AppContext.TargetFrameworkName.StartsWith(".NETCoreApp"))

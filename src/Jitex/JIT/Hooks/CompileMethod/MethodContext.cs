@@ -2,28 +2,30 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Threading;
 using Jitex.Intercept;
-using Jitex.PE;
 using Jitex.Runtime;
 using Jitex.Utils;
 using MethodBody = Jitex.Builder.Method.MethodBody;
 
-namespace Jitex.JIT.Context
+namespace Jitex.JIT.Hooks.CompileMethod
 {
     /// <summary>
     /// Context for method resolution.
     /// </summary>
-    public class MethodContext : ContextBase
+    public class MethodContext : Contextbase
     {
         private MethodBody? _body;
 
         /// <summary>
         /// Resolution mode.
         /// </summary>
-        [Flags]
         public enum ResolveMode
         {
+            /// <summary>
+            /// None
+            /// </summary>
+            None = 0,
+            
             /// <summary>
             /// MSIL (pre-compile)
             /// </summary>
