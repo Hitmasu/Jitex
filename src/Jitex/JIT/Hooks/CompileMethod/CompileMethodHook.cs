@@ -1,15 +1,18 @@
 using System;
 using System.Collections.Concurrent;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Jitex.Framework;
 using Jitex.JIT.CorInfo;
 using Jitex.JIT.Handlers;
+using Jitex.JIT.Hooks.ExceptionInfo;
 using Jitex.JIT.Hooks.String;
 using Jitex.JIT.Hooks.Token;
 using Jitex.Runtime;
 using Jitex.Utils;
+using Jitex.Utils.Extension;
 using Jitex.Utils.NativeAPI.Windows;
 using Mono.Unix.Native;
 using MethodInfo = Jitex.JIT.CorInfo.MethodInfo;
@@ -28,8 +31,15 @@ public delegate void MethodResolverHandler(MethodContext context);
 /// <param name="methodCompiled">Method compiled.</param>
 public delegate void MethodCompiledHandler(MethodCompiled methodCompiled);
 
-internal class CompileMethodHook : HookBase<RuntimeFramework.CompileMethodDelegate>
+internal class CompileMethodHook : HookBase
 {
+    private readonly RuntimeFramework _framework;
+
+    private static RuntimeFramework.CompileMethodDelegate DelegateHook;
+
+    [ThreadStatic]
+    private static ThreadTls? _tls;
+
     private static CompileMethodHook? Instance { get; set; }
     private static readonly ConcurrentDictionary<IntPtr, MethodBase?> HandleSource = new();
     private event MethodCompiledHandler? OnMethodCompiled;
@@ -38,8 +48,9 @@ internal class CompileMethodHook : HookBase<RuntimeFramework.CompileMethodDelega
     internal void RemoveOnMethodCompiledEvent(MethodCompiledHandler handler) => OnMethodCompiled -= handler;
 
 
-    private CompileMethodHook() : base(Hook)
+    private CompileMethodHook()
     {
+        _framework = RuntimeFramework.Framework;
     }
 
     public static CompileMethodHook GetInstance()
@@ -63,101 +74,101 @@ internal class CompileMethodHook : HookBase<RuntimeFramework.CompileMethodDelega
     /// <param name="nativeEntry">(OUT) - Pointer to NativeEntry.</param>
     /// <param name="nativeSizeOfCode">(OUT) - Size of NativeEntry.</param>
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static CorJitResult Hook(IntPtr thisPtr, IntPtr comp, IntPtr info, uint flags, IntPtr nativeEntry,
+    private CorJitResult Hook(IntPtr thisPtr, IntPtr comp, IntPtr info, uint flags, IntPtr nativeEntry,
         out int nativeSizeOfCode)
     {
-        Tls ??= new ThreadTls();
+        //Don`t move this line to below of "if"! This line is to prevent stack overflow.
+        _tls ??= new ThreadTls();
 
         if (thisPtr == default)
         {
+            nativeEntry = IntPtr.Zero;
             nativeSizeOfCode = 0;
             return 0;
         }
 
-        Tls.EnterCount++;
+        _tls.EnterCount++;
 
         try
         {
+            MethodContext? methodContext = null;
             var sigAddress = IntPtr.Zero;
             var ilAddress = IntPtr.Zero;
 
-            //Dont put anything inside "if" to be compiled! Otherwise, will raise a StackOverflow
-            if (Tls.EnterCount > 1)
-                return Framework.CompileMethod(thisPtr, comp, info, flags, nativeEntry, out nativeSizeOfCode);
+            //Don't put anything inside "if" to be compiled! Otherwise, will raise a StackOverflow
+            if (_tls.EnterCount > 1)
+                return _framework.CompileMethod(thisPtr, comp, info, flags, nativeEntry, out nativeSizeOfCode);
 
             var methodInfo = new MethodInfo(info);
             var methodFound = MethodHelper.GetMethodFromHandle(methodInfo.MethodHandle);
 
             if (methodFound == null)
-                return Framework.CompileMethod(thisPtr, comp, info, flags, nativeEntry, out nativeSizeOfCode);
+                return _framework.CompileMethod(thisPtr, comp, info, flags, nativeEntry, out nativeSizeOfCode);
 
             if (DynamicHelpers.IsDynamicScope(methodInfo.Scope))
             {
                 methodFound = DynamicHelpers.GetOwner(methodFound);
             }
 
-            if (Framework.CEEInfoVTable == IntPtr.Zero)
+            if (GetInvocationList().Any())
             {
                 lock (JitLock)
                 {
-                    if (Framework.CEEInfoVTable == IntPtr.Zero)
+                    if (_framework.CEEInfoVTable == IntPtr.Zero)
                     {
-                        Framework.ReadICorJitInfoVTable(comp);
+                        _framework.ReadICorJitInfoVTable(comp);
 
-                        Token.TokenHook.GetInstance().InjectHook(CEEInfo.ResolveTokenIndex);
-                        String.StringHook.GetInstance().InjectHook(CEEInfo.ConstructStringLiteralIndex);
+                        TokenHook.GetInstance().InjectHook(CEEInfo.ResolveTokenIndex);
+                        //StringHook.GetInstance().InjectHook(CEEInfo.ConstructStringLiteralIndex);
+                        // ExceptionInfoHook.GetInstance().InjectHook(CEEInfo.GetEHInfoIndex);
                     }
                 }
-            }
 
-            //Try retrieve source from call.
-            //---
-            //Before method to be compiled, he should be "resolved" (resolveToken).
-            //Inside resolveToken, we can get source (which requested compilation) and destiny handle method (which be compiled).
-            //In theory, every method to be compiled, should pass inside resolveToken, but has some unknown cases which they will be not "resolved".
-            //Also, this is an inaccurate way to get source, because in some cases, can return a false source.
-            var hasSource = HandleSource.TryGetValue(methodInfo.MethodHandle, out var source);
+                //Try retrieve source from call.
+                //---
+                //Before method to be compiled, he should be "resolved" (resolveToken).
+                //Inside resolveToken, we can get source (which requested compilation) and destiny handle method (which be compiled).
+                //In theory, every method to be compiled, should pass inside resolveToken, but has some unknown cases which they will be not "resolved".
+                //Also, this is an inaccurate way to get source, because in some cases, can return a false source.
+                var hasSource = HandleSource.TryGetValue(methodInfo.MethodHandle, out var source);
 
-            var methodContext = new MethodContext(methodFound, source, hasSource);
+                methodContext = new MethodContext(methodFound, source, hasSource);
 
-            foreach (var handler in GetInvocationList<MethodResolverHandler>())
-            {
-                try
+                foreach (var handler in GetInvocationList<MethodResolverHandler>())
                 {
                     handler(methodContext);
-                }
-                catch (Exception ex)
-                {
-                    continue;
-                }
 
-                if (methodContext.IsResolved)
-                    break;
+                    if (methodContext.IsResolved)
+                        break;
+                }
+                
+                //Set instance TLS for ResolveToken.
+                //I know, it`s weird, but without this line, we got an SEHException.
+                TokenHook.GetInstance().SetNewInstanceTls();
+
+                if (methodContext.Mode == MethodContext.ResolveMode.IL)
+                {
+                    var methodBody = methodContext.Body;
+                    // ExceptionInfoHook.Handle = methodInfo.MethodHandle;
+
+                    if (methodBody.HasLocalVariable)
+                    {
+                        byte[] signatureVariables = methodBody.GetSignatureVariables();
+                        sigAddress = MarshalHelper.CreateArrayCopy(signatureVariables);
+
+                        methodInfo.Locals.Signature = sigAddress + 1;
+                        methodInfo.Locals.Args = sigAddress + 3;
+                        methodInfo.Locals.NumArgs = (ushort)methodBody.LocalVariables.Count;
+                    }
+
+                    methodInfo.MaxStack = methodBody.MaxStackSize;
+                    methodInfo.EHCount = methodContext.Body.EHCount;
+                    methodInfo.ILCode = MarshalHelper.CreateArrayCopy(methodBody.IL);
+                    methodInfo.ILCodeSize = (uint)methodBody.IL.Length;
+                }
             }
 
-            Tls = new ThreadTls();
-
-            if (methodContext.Mode == MethodContext.ResolveMode.IL)
-            {
-                var methodBody = methodContext.Body;
-
-                if (methodBody.HasLocalVariable)
-                {
-                    byte[] signatureVariables = methodBody.GetSignatureVariables();
-                    sigAddress = MarshalHelper.CreateArrayCopy(signatureVariables);
-
-                    methodInfo.Locals.Signature = sigAddress + 1;
-                    methodInfo.Locals.Args = sigAddress + 3;
-                    methodInfo.Locals.NumArgs = (ushort)methodBody.LocalVariables.Count;
-                }
-
-                methodInfo.MaxStack = methodBody.MaxStackSize;
-                methodInfo.EHCount = methodContext.Body.EHCount;
-                methodInfo.ILCode = MarshalHelper.CreateArrayCopy(methodBody.IL);
-                methodInfo.ILCodeSize = (uint)methodBody.IL.Length;
-            }
-
-            var result = Framework.CompileMethod(thisPtr, comp, info, flags, nativeEntry, out nativeSizeOfCode);
+            var result = _framework.CompileMethod(thisPtr, comp, info, flags, nativeEntry, out nativeSizeOfCode);
 
             if (result != CorJitResult.CORJIT_OK)
                 return result;
@@ -200,10 +211,9 @@ internal class CompileMethodHook : HookBase<RuntimeFramework.CompileMethodDelega
             nativeSizeOfCode = default;
             throw new Exception("Failed compile method.", ex);
         }
-
         finally
         {
-            Tls.EnterCount--;
+            _tls.EnterCount--;
         }
     }
 
@@ -248,5 +258,13 @@ internal class CompileMethodHook : HookBase<RuntimeFramework.CompileMethodDelega
     internal static void RegisterSource(IntPtr methodHandle, MethodBase? source)
     {
         HandleSource.AddOrUpdate(methodHandle, source, (_, _) => source);
+    }
+
+    public override void PrepareHook()
+    {
+        DelegateHook = Hook;
+        HookAddress = Marshal.GetFunctionPointerForDelegate(DelegateHook);
+        RuntimeHelperExtension.PrepareDelegate(DelegateHook, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, (uint)0,
+            IntPtr.Zero, 0);
     }
 }

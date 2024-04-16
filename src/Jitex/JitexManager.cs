@@ -16,7 +16,7 @@ namespace Jitex
     public static class JitexManager
     {
         private static InterceptManager? _interceptManager;
-        private static InterceptManager InterceptManager => _interceptManager ??= InterceptManager;
+        private static InterceptManager InterceptManager => _interceptManager ??= InterceptManager.GetInstance();
         private static CompileMethodHook CompileMethodHook => CompileMethodHook.GetInstance();
         private static TokenHook TokenHook => TokenHook.GetInstance();
         private static StringHook StringHook => StringHook.GetInstance();
@@ -26,6 +26,13 @@ namespace Jitex
         /// </summary>
         private static IDictionary<Type, JitexModule> ModulesLoaded { get; } =
             new Dictionary<Type, JitexModule>(TypeEqualityComparer.Instance);
+
+        static JitexManager()
+        {
+            CompileMethodHook.PrepareHook();
+            TokenHook.PrepareHook();
+            StringHook.PrepareHook();
+        }
 
         /// <summary>
         /// Event to raise when method was compiled.
@@ -76,7 +83,7 @@ namespace Jitex
         /// <summary>
         /// Returns if Jitex is enabled. 
         /// </summary>
-        public static bool IsEnabled => CompileMethodHook.IsEnabled && TokenHook.IsEnabled && StringHook.IsEnabled;
+        public static bool IsEnabled => CompileMethodHook.IsEnabled;
 
         /// <summary>
         /// Enable Jitex
@@ -84,8 +91,8 @@ namespace Jitex
         public static void EnableJitex()
         {
             CompileMethodHook.InjectHook(RuntimeFramework.Framework.ICorJitCompileVTable);
-            TokenHook.InjectHook(RuntimeFramework.Framework.CEEInfoVTable);
-            StringHook.InjectHook(RuntimeFramework.Framework.CEEInfoVTable);
+            // TokenHook.InjectHook(RuntimeFramework.Framework.CEEInfoVTable);
+            // StringHook.InjectHook(RuntimeFramework.Framework.CEEInfoVTable);
         }
 
         /// <summary>
@@ -94,8 +101,8 @@ namespace Jitex
         public static void DisableJitex()
         {
             CompileMethodHook.RemoveHook();
-            TokenHook.RemoveHook();
-            StringHook.RemoveHook();
+            // TokenHook.RemoveHook();
+            // StringHook.RemoveHook();
         }
 
         /// <summary>

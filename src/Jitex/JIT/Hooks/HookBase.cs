@@ -1,50 +1,29 @@
 using System;
+using System.Diagnostics;
 using System.Linq;
-using System.Runtime.InteropServices;
 using Jitex.Framework;
+using Jitex.JIT.Hooks.Token;
 using Jitex.Utils;
-using Jitex.Utils.Extension;
 
 namespace Jitex.JIT.Hooks;
 
-internal abstract class HookBase
+internal abstract class HookBase : IDisposable
 {
-    protected static ThreadTls? Tls;
-    protected static readonly RuntimeFramework Framework = RuntimeFramework.Framework;
-}
-
-internal abstract class HookBase<THookDelegate> : HookBase, IDisposable
-    where THookDelegate : Delegate
-{
-    private bool _isHookPrepared;
     private IntPtr _indexAddress;
     private IntPtr _originalAddress;
-    private IntPtr _hookAddress;
+    protected IntPtr HookAddress { get; set; }
 
     public bool IsEnabled { get; private set; }
-
-
-    private static Delegate? Handlers { get; set; }
-    protected THookDelegate MethodHook { get; set; }
-
-    protected HookBase(THookDelegate methodHook)
-    {
-        MethodHook = methodHook;
-    }
+    protected Delegate? Handlers { get; set; }
 
     public void InjectHook(IntPtr indexAddress)
     {
-        PrepareHook();
-
         _indexAddress = indexAddress;
 
         if (_originalAddress == default)
             _originalAddress = MemoryHelper.Read<IntPtr>(_indexAddress);
 
-        if (_hookAddress == default)
-            _hookAddress = Marshal.GetFunctionPointerForDelegate(MethodHook);
-
-        MemoryHelper.UnprotectWrite(_indexAddress, _hookAddress);
+        MemoryHelper.UnprotectWrite(_indexAddress, HookAddress);
         IsEnabled = true;
     }
 
@@ -55,11 +34,6 @@ internal abstract class HookBase<THookDelegate> : HookBase, IDisposable
 
         MemoryHelper.UnprotectWrite(_indexAddress, _originalAddress);
         IsEnabled = false;
-    }
-
-    public void ReInjectHook()
-    {
-        InjectHook(_indexAddress);
     }
 
     public void AddHandler<THandler>(THandler handler) where THandler : Delegate
@@ -77,36 +51,25 @@ internal abstract class HookBase<THookDelegate> : HookBase, IDisposable
         return GetInvocationList<THandler>()
             .Any(del => del.Method == handler.Method);
     }
+    
+    protected Delegate[] GetInvocationList ()
+    {
+        if (Handlers == null)
+            return [];
+        
+        return Handlers.GetInvocationList();
+    }
 
-    protected static THandler[] GetInvocationList<THandler>() where THandler : Delegate
+
+    protected THandler[] GetInvocationList<THandler>()where THandler : Delegate
     {
         if (Handlers == null)
             return [];
 
-        return (THandler[])Handlers.GetInvocationList();
+        return Handlers.GetInvocationList().Cast<THandler>().ToArray();
     }
 
-    public void PrepareHook()
-    {
-        if (_isHookPrepared)
-            return;
-
-        //Prepare default value from parameters.
-        var parameters =
-            MethodHook.Method.GetParameters()
-                .Select(p =>
-                {
-                    //Just a hack to bypass out parameter on CompileHook
-                    if (p.ParameterType.IsByRef)
-                        return 0;
-                    return Activator.CreateInstance(p.ParameterType);
-                })
-                .ToArray();
-
-        RuntimeHelperExtension.PrepareDelegate(MethodHook, parameters);
-
-        _isHookPrepared = true;
-    }
+    public abstract void PrepareHook();
 
     public virtual void Dispose()
     {

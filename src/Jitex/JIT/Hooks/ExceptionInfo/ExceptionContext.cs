@@ -1,6 +1,6 @@
 using System.Reflection;
 
-namespace Jitex.JIT.Hooks.Exception;
+namespace Jitex.JIT.Hooks.ExceptionInfo;
 
 public class ExceptionContext : Contextbase
 {

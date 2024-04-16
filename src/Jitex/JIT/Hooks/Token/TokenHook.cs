@@ -4,7 +4,6 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using Jitex.Framework.Offsets;
 using Jitex.JIT.CorInfo;
-using Jitex.JIT.Hooks.CompileMethod;
 using Jitex.Utils;
 using Jitex.Utils.Extension;
 
@@ -16,8 +15,13 @@ namespace Jitex.JIT.Hooks.Token;
 /// <param name="context">Context of token.</param>
 public delegate void TokenResolverHandler(TokenContext context);
 
-internal class TokenHook : HookBase<CEEInfo.ResolveTokenDelegate>
+internal class TokenHook : HookBase
 {
+    private static CEEInfo.ResolveTokenDelegate DelegateHook;
+
+    [ThreadStatic]
+    private static ThreadTls? _tls;
+
     private static TokenHook? Instance { get; set; }
 
     public static TokenHook GetInstance()
@@ -26,23 +30,22 @@ internal class TokenHook : HookBase<CEEInfo.ResolveTokenDelegate>
         return Instance;
     }
 
-    public TokenHook() : base(Hook)
+    private void Hook(IntPtr thisHandle, IntPtr pResolvedToken)
     {
-    }
-
-    public static void Hook(IntPtr thisHandle, IntPtr pResolvedToken)
-    {
-        Tls ??= new ThreadTls();
-        Tls.EnterCount++;
+        _tls ??= new ThreadTls();
+        _tls.EnterCount++;
 
         if (thisHandle == IntPtr.Zero)
+        {
+            CompileMethod.CompileMethodHook.RegisterSource(IntPtr.Zero, null);
             return;
+        }
 
-        int token = 0;
+        var token = 0;
 
         try
         {
-            if (Tls.EnterCount > 1)
+            if (_tls.EnterCount > 1)
             {
                 CEEInfo.ResolveToken(thisHandle, pResolvedToken);
                 return;
@@ -56,24 +59,24 @@ internal class TokenHook : HookBase<CEEInfo.ResolveTokenDelegate>
                 return;
             }
 
-            ResolvedToken resolvedToken = new ResolvedToken(pResolvedToken);
+            var resolvedToken = new ResolvedToken(pResolvedToken);
             token = resolvedToken.Token; //Just to show on exception.
 
             MethodBase? source = null;
 
             if (!OSHelper.IsX86)
             {
-                IntPtr sourceAddress =
+                var sourceAddress =
                     Marshal.ReadIntPtr(thisHandle, IntPtr.Size * ResolvedTokenOffset.SourceOffset);
                 if (sourceAddress != default)
                     source = MethodHelper.GetMethodFromHandle(sourceAddress);
             }
 
-            bool hasSource = source != null;
+            var hasSource = source != null;
 
-            TokenContext context = new TokenContext(ref resolvedToken, source, hasSource);
+            var context = new TokenContext(ref resolvedToken, source, hasSource);
 
-            foreach (TokenResolverHandler resolver in resolvers)
+            foreach (var resolver in resolvers)
             {
                 resolver(context);
             }
@@ -91,7 +94,20 @@ internal class TokenHook : HookBase<CEEInfo.ResolveTokenDelegate>
         }
         finally
         {
-            Tls.EnterCount--;
+            _tls.EnterCount--;
         }
+    }
+
+    public override void PrepareHook()
+    {
+        DelegateHook = Hook;
+        HookAddress = Marshal.GetFunctionPointerForDelegate(DelegateHook);
+        RuntimeHelperExtension.PrepareDelegate(DelegateHook, IntPtr.Zero, IntPtr.Zero);
+    }
+
+    
+    public void SetNewInstanceTls()
+    {
+        _tls = new ThreadTls();
     }
 }

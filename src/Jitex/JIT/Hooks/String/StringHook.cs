@@ -15,13 +15,14 @@ namespace Jitex.JIT.Hooks.String;
 /// <param name="context">Context form string.</param>
 public delegate void StringResolverHandler(StringContext context);
 
-internal class StringHook : HookBase<CEEInfo.ConstructStringLiteralDelegate>
+internal class StringHook : HookBase
 {
-    private static StringHook? Instance { get; set; }
+    private static CEEInfo.ConstructStringLiteralDelegate DelegateHook;
 
-    public StringHook() : base(Hook)
-    {
-    }
+    [ThreadStatic]
+    private static ThreadTls? Tls;
+
+    private static StringHook? Instance { get; set; }
 
     public static StringHook GetInstance()
     {
@@ -29,7 +30,7 @@ internal class StringHook : HookBase<CEEInfo.ConstructStringLiteralDelegate>
         return Instance;
     }
 
-    private static InfoAccessType Hook(IntPtr thisHandle, IntPtr hModule, int metadataToken,
+    private InfoAccessType Hook(IntPtr thisHandle, IntPtr hModule, int metadataToken,
         IntPtr ppValue)
     {
         if (thisHandle == IntPtr.Zero)
@@ -53,7 +54,7 @@ internal class StringHook : HookBase<CEEInfo.ConstructStringLiteralDelegate>
             var content = module!.ResolveString(metadataToken);
             var context = new StringContext(module, metadataToken, content);
 
-            foreach (var resolver in resolvers)
+            foreach (StringResolverHandler resolver in resolvers)
             {
                 resolver(context);
 
@@ -83,11 +84,11 @@ internal class StringHook : HookBase<CEEInfo.ConstructStringLiteralDelegate>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void WriteString(IntPtr ppValue, string content)
     {
-        IntPtr pEntry = Marshal.ReadIntPtr(ppValue);
+        var pEntry = Marshal.ReadIntPtr(ppValue);
 
-        IntPtr objectHandle = Marshal.ReadIntPtr(pEntry);
-        IntPtr hashMapPtr = Marshal.ReadIntPtr(objectHandle);
-        byte[] newContent = Encoding.Unicode.GetBytes(content);
+        var objectHandle = Marshal.ReadIntPtr(pEntry);
+        var hashMapPtr = Marshal.ReadIntPtr(objectHandle);
+        var newContent = Encoding.Unicode.GetBytes(content);
 
         objectHandle = Marshal.AllocHGlobal(IntPtr.Size + sizeof(int) + newContent.Length);
 
@@ -96,5 +97,12 @@ internal class StringHook : HookBase<CEEInfo.ConstructStringLiteralDelegate>
         Marshal.Copy(newContent, 0, objectHandle + IntPtr.Size + sizeof(int), newContent.Length);
 
         Marshal.WriteIntPtr(pEntry, objectHandle);
+    }
+
+    public override void PrepareHook()
+    {
+        DelegateHook = Hook;
+        HookAddress = Marshal.GetFunctionPointerForDelegate(DelegateHook);
+        RuntimeHelperExtension.PrepareDelegate(DelegateHook, IntPtr.Zero, IntPtr.Zero, 0, IntPtr.Zero);
     }
 }

@@ -73,7 +73,6 @@ namespace Jitex.Framework
             ICorJitCompileVTable = Marshal.ReadIntPtr(Jit);
             var compileMethodPtr = Marshal.ReadIntPtr(ICorJitCompileVTable);
             CompileMethod = Marshal.GetDelegateForFunctionPointer<CompileMethodDelegate>(compileMethodPtr);
-            RuntimeHelpers.PrepareDelegate(CompileMethod);
             IdentifyFrameworkVersion();
         }
 
