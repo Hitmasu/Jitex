@@ -21,14 +21,14 @@ Jitex can help you replace code at runtime easily.
 using System;
 using Jitex;
 
-JitexManager.AddMethodResolver(context =>
+JitexManager.MethodResolver += context =>
 {
     if (context.Method.Name.Contains("Sum"))
-        context.ResolveMethod<Func<int, int, int>>(Mul); //Replace Sum by Mul
-});
+        context.ResolveMethod(Mul); //Replace Sum by Mul
+};
 
-int result = Sum(5, 5); //Output is 25
-Console.WriteLine(result);
+int result = Sum(5, 5); 
+Console.WriteLine(result); //Output is 25
 
 static int Sum(int n1, int n2) => n1 + n2;
 static int Mul(int n1, int n2) => n1 * n2;
