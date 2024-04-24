@@ -17,7 +17,7 @@
         <LangVersion>latest</LangVersion>
         <AssemblyName>Jitex</AssemblyName>
         <PackageIcon>nuget.png</PackageIcon>
-        <Version>6.7.0</Version>
+        <Version>6.7.1</Version>
         <RepositoryType>Git</RepositoryType>
     </PropertyGroup>
 

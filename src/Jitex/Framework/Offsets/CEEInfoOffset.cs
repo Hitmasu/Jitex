@@ -16,7 +16,12 @@ namespace Jitex.Framework.Offsets
 
         private static void ReadOffset(bool isCore, Version version)
         {
-            if (isCore && version >= new Version(8, 0, 0))
+            if (isCore && version >= new Version(9, 0, 0))
+            {
+                ResolveToken = 0x1D;
+                ConstructStringLiteral = 0x92;
+            }
+            else if (isCore && version >= new Version(8, 0, 0))
             {
                 GetEHInfo = 0xB;
                 ResolveToken = 0x1C;

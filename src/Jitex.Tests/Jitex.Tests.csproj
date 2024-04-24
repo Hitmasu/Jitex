@@ -10,10 +10,11 @@
             net6.0;
             net7.0;
             net8.0;
+            net9.0;
         </TargetFrameworks>
         <IsPackable>false</IsPackable>
         <LangVersion>default</LangVersion>
-        <Platforms>AnyCPU;x64</Platforms>
+        <Platforms>AnyCPU</Platforms>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 
