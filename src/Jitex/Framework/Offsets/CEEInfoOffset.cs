@@ -5,8 +5,8 @@ namespace Jitex.Framework.Offsets
     internal static class CEEInfoOffset
     {
         public static int ResolveToken { get; private set; }
-
         public static int ConstructStringLiteral { get; private set; }
+        public static int GetEHInfo { get; private set; }
 
         static CEEInfoOffset()
         {
@@ -18,10 +18,13 @@ namespace Jitex.Framework.Offsets
         {
             if (isCore && version >= new Version(8, 0, 0))
             {
+                GetEHInfo = 0xB;
                 ResolveToken = 0x1C;
                 ConstructStringLiteral = 0x91;
-            }else if (isCore && version >= new Version(7, 0, 0))
+            }
+            else if (isCore && version >= new Version(7, 0, 0))
             {
+                GetEHInfo = 0xB;
                 ResolveToken = 0x1D;
                 ConstructStringLiteral = 0x95;
             }

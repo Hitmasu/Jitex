@@ -1,6 +1,6 @@
 ﻿namespace Jitex.JIT
 {
-    internal class CompileTls
+    internal class ThreadTls
     {
         public int EnterCount;
     }

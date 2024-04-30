@@ -1,15 +1,13 @@
 ﻿using System;
 using System.Reflection;
 using Jitex.JIT.CorInfo;
-using Jitex.Utils;
-using MethodInfo = System.Reflection.MethodInfo;
 
-namespace Jitex.JIT.Context
+namespace Jitex.JIT.Hooks.Token
 {
     /// <summary>
     /// Context for token resolution.
     /// </summary>
-    public class TokenContext : ContextBase
+    public class TokenContext : Contextbase
     {
         private readonly ResolvedToken? _resolvedToken;
         private TokenKind _tokenType;
@@ -166,36 +164,15 @@ namespace Jitex.JIT.Context
         public bool IsResolved { get; private set; }
 
         /// <summary>
-        /// Content from string (only to string).
-        /// </summary>
-        public string? Content { get; private set; }
-
-        /// <summary>
         /// Constructor for token type. (non-string)
         /// </summary>
         /// <param name="resolvedToken">Original token.</param>
         /// <param name="source">Source method from compile tree ("requester").</param>
         /// <param name="hasSource">Has source from call.</param>
-        internal TokenContext(ref ResolvedToken resolvedToken, MethodBase? source, bool hasSource) : base(source, hasSource)
+        internal TokenContext(ref ResolvedToken resolvedToken, MethodBase? source, bool hasSource) : base(source,
+            hasSource)
         {
             _resolvedToken = resolvedToken;
-        }
-
-        /// <summary>
-        /// Constructor for string type.
-        /// </summary>
-        /// <param name="constructString">Original string.</param>
-        /// <param name="source">Source method who requested token.</param>
-        /// /// <param name="hasSource">Has source from call.</param>
-        internal TokenContext(ConstructString constructString, MethodBase? source, bool hasSource) : base(source, hasSource)
-        {
-            _module = ModuleHelper.GetModuleByAddress(constructString.HandleModule);
-
-            TokenType = TokenKind.String;
-            MetadataToken = constructString.MetadataToken;
-
-            if (Module != null)
-                Content = Module.ResolveString(MetadataToken);
         }
 
         /// <summary>
@@ -246,16 +223,6 @@ namespace Jitex.JIT.Context
         public void ResolveConstructor(ConstructorInfo constructor)
         {
             ResolveMethod(constructor);
-        }
-
-        /// <summary>
-        /// Resolve string by content string.
-        /// </summary>
-        /// <param name="content">Content to replace.</param>
-        public void ResolveString(string content)
-        {
-            IsResolved = true;
-            Content = content;
         }
     }
 }

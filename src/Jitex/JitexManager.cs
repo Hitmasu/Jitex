@@ -1,9 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using Jitex.Framework;
 using Jitex.JIT;
 using Jitex.Utils.Comparer;
 using Jitex.Intercept;
-using static Jitex.JIT.JitexHandler;
+using Jitex.JIT.Hooks.CompileMethod;
+using Jitex.JIT.Hooks.String;
+using Jitex.JIT.Hooks.Token;
 
 namespace Jitex
 {
@@ -12,23 +15,24 @@ namespace Jitex
     /// </summary>
     public static class JitexManager
     {
-        private static readonly object LockModules = new object();
-        private static readonly object MethodResolverLock = new object();
-        private static readonly object TokenResolverLock = new object();
-        private static readonly object CallInterceptorLock = new object();
-        private static readonly object OnMethodCompiledLock = new object();
-
-        private static ManagedJit? _jit;
         private static InterceptManager? _interceptManager;
-
-        private static ManagedJit Jit => _jit ??= ManagedJit.GetInstance();
         private static InterceptManager InterceptManager => _interceptManager ??= InterceptManager.GetInstance();
+        private static CompileMethodHook CompileMethodHook => CompileMethodHook.GetInstance();
+        private static TokenHook TokenHook => TokenHook.GetInstance();
+        private static StringHook StringHook => StringHook.GetInstance();
 
         /// <summary>
         /// All modules load on Jitex.
         /// </summary>
         private static IDictionary<Type, JitexModule> ModulesLoaded { get; } =
             new Dictionary<Type, JitexModule>(TypeEqualityComparer.Instance);
+
+        static JitexManager()
+        {
+            CompileMethodHook.PrepareHook();
+            TokenHook.PrepareHook();
+            StringHook.PrepareHook();
+        }
 
         /// <summary>
         /// Event to raise when method was compiled.
@@ -68,19 +72,38 @@ namespace Jitex
         }
 
         /// <summary>
+        /// String resolver
+        /// </summary>
+        public static event StringResolverHandler StringResolver
+        {
+            add => AddStringResolver(value);
+            remove => RemoveStringResolver(value);
+        }
+
+        /// <summary>
         /// Returns if Jitex is enabled. 
         /// </summary>
-        public static bool IsEnabled => _jit is { IsEnabled: true };
+        public static bool IsEnabled => CompileMethodHook.IsEnabled;
 
         /// <summary>
         /// Enable Jitex
         /// </summary>
-        public static void EnableJitex() => Jit.Enable();
+        public static void EnableJitex()
+        {
+            CompileMethodHook.InjectHook(RuntimeFramework.Framework.ICorJitCompileVTable);
+            // TokenHook.InjectHook(RuntimeFramework.Framework.CEEInfoVTable);
+            // StringHook.InjectHook(RuntimeFramework.Framework.CEEInfoVTable);
+        }
 
         /// <summary>
         /// Disable Jitex
         /// </summary>
-        public static void DisableJitex() => Jit.Disable();
+        public static void DisableJitex()
+        {
+            CompileMethodHook.RemoveHook();
+            // TokenHook.RemoveHook();
+            // StringHook.RemoveHook();
+        }
 
         /// <summary>
         /// Load module on Jitex.
@@ -88,16 +111,13 @@ namespace Jitex
         /// <param name="typeModule">Module to load.</param>
         public static void LoadModule(Type typeModule)
         {
-            lock (LockModules)
+            if (!ModuleIsLoaded(typeModule))
             {
-                if (!ModuleIsLoaded(typeModule))
-                {
-                    JitexModule module = (JitexModule)Activator.CreateInstance(typeModule);
+                JitexModule module = (JitexModule)Activator.CreateInstance(typeModule);
 
-                    module.LoadResolvers();
+                module.LoadResolvers();
 
-                    ModulesLoaded.Add(typeModule, module);
-                }
+                ModulesLoaded.Add(typeModule, module);
             }
         }
 
@@ -110,16 +130,13 @@ namespace Jitex
         {
             if (instance == null) throw new ArgumentNullException(nameof(instance));
 
-            lock (LockModules)
+            if (!ModuleIsLoaded(typeModule))
             {
-                if (!ModuleIsLoaded(typeModule))
-                {
-                    JitexModule module = (JitexModule)instance;
+                JitexModule module = (JitexModule)instance;
 
-                    module.LoadResolvers();
+                module.LoadResolvers();
 
-                    ModulesLoaded.Add(typeModule, module);
-                }
+                ModulesLoaded.Add(typeModule, module);
             }
         }
 
@@ -156,13 +173,10 @@ namespace Jitex
         /// <param name="typeModule">Module to remove.</param>
         public static void RemoveModule(Type typeModule)
         {
-            lock (LockModules)
+            if (ModulesLoaded.TryGetValue(typeModule, out JitexModule module))
             {
-                if (ModulesLoaded.TryGetValue(typeModule, out JitexModule module))
-                {
-                    ModulesLoaded.Remove(typeModule);
-                    module.Dispose();
-                }
+                ModulesLoaded.Remove(typeModule);
+                module.Dispose();
             }
         }
 
@@ -191,13 +205,10 @@ namespace Jitex
         /// <param name="interceptorCallAsync">Interceptor to call.</param>
         public static void AddInterceptor(InterceptHandler.InterceptorHandler interceptorCallAsync)
         {
-            lock (CallInterceptorLock)
-            {
-                InterceptManager.AddInterceptorCall(interceptorCallAsync);
+            InterceptManager.AddInterceptorCall(interceptorCallAsync);
 
-                if (!IsEnabled)
-                    EnableJitex();
-            }
+            if (!IsEnabled)
+                EnableJitex();
         }
 
         /// <summary>
@@ -206,8 +217,7 @@ namespace Jitex
         /// <param name="interceptorCall">Interceptor to remove.</param>
         public static void RemoveInterceptor(InterceptHandler.InterceptorHandler interceptorCall)
         {
-            lock (CallInterceptorLock)
-                InterceptManager.RemoveInterceptorCall(interceptorCall);
+            InterceptManager.RemoveInterceptorCall(interceptorCall);
         }
 
         /// <summary>
@@ -217,8 +227,7 @@ namespace Jitex
         /// <returns>Returns true if loaded, otherwise returns false.</returns>
         public static bool HasInterceptor(InterceptHandler.InterceptorHandler interceptorCall)
         {
-            lock (CallInterceptorLock)
-                return InterceptManager.HasInteceptorCall(interceptorCall);
+            return InterceptManager.HasInteceptorCall(interceptorCall);
         }
 
         /// <summary>
@@ -227,48 +236,40 @@ namespace Jitex
         /// <param name="methodResolver">Method resolver to add.</param>
         public static void AddMethodResolver(MethodResolverHandler methodResolver)
         {
-            lock (MethodResolverLock)
-            {
-                Jit.AddMethodResolver(methodResolver);
+            CompileMethodHook.AddHandler(methodResolver);
 
-                if (!IsEnabled)
-                    EnableJitex();
-            }
+            if (!IsEnabled)
+                EnableJitex();
         }
 
         /// <summary>
         /// Add a token resolver.
         /// </summary>
         /// <param name="tokenResolver">Token resolver to add.</param>
-        public static void AddTokenResolver(JitexHandler.TokenResolverHandler tokenResolver)
+        public static void AddTokenResolver(TokenResolverHandler tokenResolver)
         {
-            lock (TokenResolverLock)
-            {
-                Jit.AddTokenResolver(tokenResolver);
+            TokenHook.AddHandler(tokenResolver);
 
-                if (!IsEnabled)
-                    EnableJitex();
-            }
+            if (!IsEnabled)
+                EnableJitex();
         }
 
         /// <summary>
         /// Remove a method resolver.
         /// </summary>
         /// <param name="methodResolver">Method resolver to remove.</param>
-        public static void RemoveMethodResolver(JitexHandler.MethodResolverHandler methodResolver)
+        public static void RemoveMethodResolver(MethodResolverHandler methodResolver)
         {
-            lock (MethodResolverLock)
-                Jit.RemoveMethodResolver(methodResolver);
+            CompileMethodHook.RemoverHandler(methodResolver);
         }
 
         /// <summary>
         /// Remove a token resolver.
         /// </summary>
         /// <param name="tokenResolver">Token resolver to remove.</param>
-        public static void RemoveTokenResolver(JitexHandler.TokenResolverHandler tokenResolver)
+        public static void RemoveTokenResolver(TokenResolverHandler tokenResolver)
         {
-            lock (TokenResolverLock)
-                Jit.RemoveTokenResolver(tokenResolver);
+            TokenHook.RemoverHandler(tokenResolver);
         }
 
         /// <summary>
@@ -277,8 +278,7 @@ namespace Jitex
         /// <param name="onMethodCompiled"></param>
         public static void AddOnMethodCompiled(MethodCompiledHandler onMethodCompiled)
         {
-            lock (OnMethodCompiledLock)
-                Jit.AddOnMethodCompiledEvent(onMethodCompiled);
+            CompileMethodHook.AddOnMethodCompiledEvent(onMethodCompiled);
         }
 
         /// <summary>
@@ -287,8 +287,25 @@ namespace Jitex
         /// <param name="onMethodCompiled"></param>
         public static void RemoveOnMethodCompiled(MethodCompiledHandler onMethodCompiled)
         {
-            lock (OnMethodCompiledLock)
-                Jit.RemoveOnMethodCompiledEvent(onMethodCompiled);
+            CompileMethodHook.RemoveOnMethodCompiledEvent(onMethodCompiled);
+        }
+
+        /// <summary>
+        /// Add string resolver.
+        /// </summary>
+        /// <param name="stringResolver"></param>
+        public static void AddStringResolver(StringResolverHandler stringResolver)
+        {
+            StringHook.AddHandler(stringResolver);
+        }
+
+        /// <summary>
+        /// Remove string resolver.
+        /// </summary>
+        /// <param name="stringResolver"></param>
+        public static void RemoveStringResolver(StringResolverHandler stringResolver)
+        {
+            StringHook.RemoverHandler(stringResolver);
         }
 
         /// <summary>
@@ -296,16 +313,20 @@ namespace Jitex
         /// </summary>
         /// <param name="methodResolver">Method resolver.</param>
         /// <returns>True to already loaded. False to not loaded.</returns>
-        public static bool HasMethodResolver(JitexHandler.MethodResolverHandler methodResolver) =>
-            Jit.HasMethodResolver(methodResolver);
+        public static bool HasMethodResolver(MethodResolverHandler methodResolver)
+        {
+            return CompileMethodHook.HasHandler(methodResolver);
+        }
 
         /// <summary>
         /// Returns If a token resolver is already loaded.
         /// </summary>
         /// <param name="tokenResolver">Token resolver.</param>
         /// <returns>True to already loaded. False to not loaded.</returns>
-        public static bool HasTokenResolver(JitexHandler.TokenResolverHandler tokenResolver) =>
-            Jit.HasTokenResolver(tokenResolver);
+        public static bool HasTokenResolver(TokenResolverHandler tokenResolver)
+        {
+            return TokenHook.HasHandler(tokenResolver);
+        }
 
         /// <summary>
         /// Unload Jitex and modules from application.
@@ -325,13 +346,9 @@ namespace Jitex
 
         public static void Remove()
         {
-            if (_jit != null)
-            {
-                ModulesLoaded.Clear();
-
-                _jit.Dispose();
-                _jit = null;
-            }
+            CompileMethodHook.Dispose();
+            TokenHook.Dispose();
+            StringHook.Dispose();
         }
     }
 }

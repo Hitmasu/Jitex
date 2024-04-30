@@ -1,5 +1,6 @@
 ﻿using System;
-using Jitex.JIT.Context;
+using Jitex.JIT.Hooks.CompileMethod;
+using Jitex.JIT.Hooks.Token;
 
 namespace Jitex
 {
